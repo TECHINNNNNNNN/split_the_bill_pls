@@ -3,6 +3,7 @@ import { cors } from "hono/cors"
 import { logger } from "hono/logger"
 import { db } from "./db/index.js"
 import { sql } from "drizzle-orm"
+import { auth } from "./lib/auth.js";
 
 const app = new Hono().basePath("/api")
 
@@ -15,6 +16,10 @@ app.use(
         exposeHeaders: ["set-auth-token"]
     })
 )
+
+app.on(["POST", "GET"], "/auth/**", (c) => {
+    return auth.handler(c.req.raw)
+})
 
 const routes = app.get("/health", async (c) => {
     try {
