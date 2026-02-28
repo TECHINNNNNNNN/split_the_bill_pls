@@ -1,0 +1,10 @@
+{
+    "extends": "@pladuk/typescript-config/base.json",
+    "compilerOptions": {
+      "outDir": "./dist",
+      "rootDir": "./src",
+      "noEmit": true
+    },
+    "include": ["src"]
+}
+  

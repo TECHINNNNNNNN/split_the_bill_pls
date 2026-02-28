@@ -1,0 +1,9 @@
+{
+    "extends": "@pladuk/typescript-config/hono.json",
+    "compilerOptions": {
+      "rootDir": "./src",
+      "outDir": "./dist"
+    },
+    "include": ["src"]
+}
+  
