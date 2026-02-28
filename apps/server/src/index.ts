@@ -4,7 +4,7 @@ import app from "./app.js"
 
 const port = 3001;
 
-serve({ fetch: app.fetch, port }, () => {
+serve({ fetch: app.fetch, port, hostname: "0.0.0.0" }, () => {
     console.log(`
 \x1b[36m    ⢀⣠⣤⣤⣀⣀⡀
 ⢀⡼⠋⠁⣠⣄⡀⠈⢹⡗⢦⣤⠶⠛⢳⡄
