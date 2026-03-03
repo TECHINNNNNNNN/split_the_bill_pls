@@ -4,6 +4,6 @@
       "rootDir": "./src",
       "outDir": "./dist"
     },
-    "include": ["src", "../web/lib/auth-client.ts"]
+    "include": ["src"]
 }
   
