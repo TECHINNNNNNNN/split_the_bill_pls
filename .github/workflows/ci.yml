@@ -1,0 +1,48 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  ci:
+    name: Lint, Typecheck & Build
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        # reads version from package.json "packageManager" field
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Lint
+        run: pnpm turbo lint
+
+      - name: Typecheck
+        run: pnpm turbo typecheck
+
+      - name: Build
+        run: pnpm turbo build
+        env:
+          # Next.js needs these at build time (values don't matter for CI)
+          NEXT_PUBLIC_API_URL: https://api.pladuk.online
+          # Server needs these to compile (not used, just satisfies TypeScript)
+          DATABASE_URL: postgresql://fake:fake@localhost:5432/fake
+          BETTER_AUTH_SECRET: ci-placeholder-secret-that-is-32-chars
+          BETTER_AUTH_URL: http://localhost:3001
+          GOOGLE_CLIENT_ID: fake-client-id
+          GOOGLE_CLIENT_SECRET: fake-client-secret
+          FRONTEND_URL: http://localhost:3000

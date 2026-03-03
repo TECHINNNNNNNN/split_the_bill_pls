@@ -19,7 +19,8 @@
       }
     ],
     "paths": {
-      "@/*": ["./*"]
+      "@/*": ["./*"],
+      "@pladuk/server/*": ["../../apps/server/*"]
     }
   },
   "include": [
