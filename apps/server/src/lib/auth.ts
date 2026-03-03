@@ -5,6 +5,8 @@ import { db } from "../db/index.js";
 
 export const auth = betterAuth({
     database: drizzleAdapter(db, { provider: "pg" }),
+    baseURL: process.env.BETTER_AUTH_URL,
+    basePath: "/api/auth",
     trustedOrigins: [process.env.FRONTEND_URL!],
     socialProviders: {
         google: {
