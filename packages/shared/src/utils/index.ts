@@ -5,7 +5,7 @@ export function formatCurrency(amount: number): string {
     }).format(amount)
 }
 
-export { calculateSplit } from "./calculateSplit.js"
+export { calculateSplit } from "./calculateSplit"
 export type {
     CalcBillItem,
     CalcItemClaim,
