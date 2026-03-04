@@ -15,4 +15,10 @@ export const auth = betterAuth({
         }
     },
     plugins: [bearer()],
+    user: {
+        additionalFields: {
+            promptpayId: { type: "string", required: false, input: true },
+            promptpayType: { type: "string", required: false, input: true },
+        },
+    },
 })

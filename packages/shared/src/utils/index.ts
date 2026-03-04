@@ -4,3 +4,13 @@ export function formatCurrency(amount: number): string {
         currency: "THB"
     }).format(amount)
 }
+
+export { calculateSplit } from "./calculateSplit.js"
+export type {
+    CalcBillItem,
+    CalcItemClaim,
+    CalcBillTotals,
+    MemberSplit,
+    MemberItemDetail,
+    SplitResult,
+} from "./calculateSplit.js"
