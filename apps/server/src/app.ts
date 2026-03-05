@@ -5,6 +5,11 @@ import { db } from "./db/index.js"
 import { sql } from "drizzle-orm"
 import { auth } from "./lib/auth.js";
 
+import groupRoutes from "./routes/groups.js"
+import billRoutes from "./routes/bills.js"
+import paymentsRoutes from "./routes/payments.js"
+
+
 const app = new Hono().basePath("/api")
 
 
@@ -28,7 +33,9 @@ const routes = app.get("/health", async (c) => {
     } catch {
         return c.json({ status: "error", database: "disconnected", timestamp: new Date().toISOString() }, 500)
     }
-})
+}).route("/groups", groupRoutes)
+.route("/bills", billRoutes)
+.route("/payments", paymentsRoutes)
 
 export type AppType = typeof routes
 export default app;

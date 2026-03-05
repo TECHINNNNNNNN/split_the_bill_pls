@@ -2,14 +2,15 @@
     "name": "@pladuk/shared",
     "version": "0.0.0",
     "private": true,
+    "type": "module",
     "scripts": {
         "test": "vitest run",
         "test:watch": "vitest"
     },
     "exports": {
-        ".": "./src/index.ts",
-        "./schemas": "./src/schemas/index.ts",
-        "./utils": "./src/utils/index.ts"
+        ".": "./src/schemas/bill.ts",
+        "./schemas": "./src/schemas/bill.ts",
+        "./utils": "./src/utils/calculateSplit.ts"
     },
     "devDependencies": {
         "@pladuk/typescript-config": "workspace:*",

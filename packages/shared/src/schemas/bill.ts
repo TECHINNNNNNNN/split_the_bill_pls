@@ -1,5 +1,14 @@
 import { z } from "zod"
 
+// ─── Health Check ────────────────────────────
+
+export const healthCheckResponseSchema = z.object({
+    status: z.string(),
+    timestamp: z.string()
+});
+
+export type HealthCheckResponse = z.infer<typeof healthCheckResponseSchema>;
+
 // ─── Enums ───────────────────────────────────
 
 export const paymentStatusSchema = z.enum(["unpaid", "claimed", "confirmed", "rejected"])

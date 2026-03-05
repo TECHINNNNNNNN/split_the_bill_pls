@@ -4,19 +4,21 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "tsx watch src/index.ts",
+    "dev": "tsx --watch src/index.ts",
     "build": "tsc",
     "start": "node dist/index.js",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
     "@hono/node-server": "^1.14.3",
+    "@hono/zod-validator": "^0.7.6",
     "@neondatabase/serverless": "^1.0.2",
     "@pladuk/shared": "workspace:*",
     "better-auth": "^1.4.20",
     "dotenv": "^17.3.1",
     "drizzle-orm": "^0.45.1",
-    "hono": "^4.8.3"
+    "hono": "^4.8.3",
+    "zod": "^3.25.76"
   },
   "devDependencies": {
     "@pladuk/typescript-config": "workspace:*",

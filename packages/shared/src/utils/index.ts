@@ -13,4 +13,4 @@ export type {
     MemberSplit,
     MemberItemDetail,
     SplitResult,
-} from "./calculateSplit.js"
+} from "./calculateSplit"
