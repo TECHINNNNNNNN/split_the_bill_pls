@@ -1,13 +1,16 @@
 "use client";
 
+import { useState } from "react";
 import { useSession, signOut } from "@/lib/auth-client";
 import { useQuery } from "@tanstack/react-query";
 import { groupQueries } from "@/lib/queries/groups";
+import { CreateGroupDialog } from "@/components/groups/create-group-dialog";
 import Link from "next/link";
 
 export default function DashboardPage() {
   const { data: session } = useSession();
   const { data: groups, isLoading, error } = useQuery(groupQueries.all());
+  const [showCreateGroup, setShowCreateGroup] = useState(false);
 
   return (
     <div>
@@ -32,12 +35,20 @@ export default function DashboardPage() {
       {/* Groups section */}
       <div className="mb-4 flex items-center justify-between">
         <h2 className="font-heading text-lg font-semibold">Your Groups</h2>
-        <button
-          onClick={() => signOut()}
-          className="text-sm text-gray-400 hover:text-gray-600"
-        >
-          Sign out
-        </button>
+        <div className="flex items-center gap-3">
+          <button
+            onClick={() => setShowCreateGroup(true)}
+            className="rounded-lg bg-gray-900 px-3 py-1.5 text-sm font-medium text-white transition-colors hover:bg-gray-800"
+          >
+            + New
+          </button>
+          <button
+            onClick={() => signOut()}
+            className="text-sm text-gray-400 hover:text-gray-600"
+          >
+            Sign out
+          </button>
+        </div>
       </div>
 
       {isLoading ? (
@@ -50,6 +61,12 @@ export default function DashboardPage() {
           <p className="mt-1 text-sm text-gray-300">
             Create a group to start splitting bills
           </p>
+          <button
+            onClick={() => setShowCreateGroup(true)}
+            className="mt-4 rounded-xl bg-gray-900 px-6 py-2.5 text-sm font-medium text-white transition-colors hover:bg-gray-800"
+          >
+            Create your first group
+          </button>
         </div>
       ) : (
         <div className="space-y-3">
@@ -68,6 +85,11 @@ export default function DashboardPage() {
           ))}
         </div>
       )}
+
+      <CreateGroupDialog
+        open={showCreateGroup}
+        onClose={() => setShowCreateGroup(false)}
+      />
     </div>
   );
 }

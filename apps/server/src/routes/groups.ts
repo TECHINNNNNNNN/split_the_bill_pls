@@ -39,14 +39,24 @@ const app = new Hono()
     const user = c.get("user")
     const { name } = c.req.valid("json")
 
+    const groupId = randomUUID()
+
     const group = await db.insert(groups).values({
-      id: randomUUID(),
+      id: groupId,
       name,
       createdBy: user.id,
       inviteCode: randomUUID().slice(0, 8),
     }).returning()
 
-    // returning() gives us the inserted row back from Postgres
+    // Auto-add the creator as a non-guest member
+    await db.insert(groupMembers).values({
+      id: randomUUID(),
+      groupId,
+      displayName: user.name,
+      isGuest: false,
+      userId: user.id,
+    })
+
     return c.json(group[0], 201)
   })
 
