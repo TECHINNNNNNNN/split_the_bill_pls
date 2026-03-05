@@ -30,7 +30,7 @@ export function useAddGroupMember(groupId: string) {
       return res.json();
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["groups", groupId] });
+      queryClient.invalidateQueries({ queryKey: ["groups"] });
     },
   });
 }
@@ -47,7 +47,7 @@ export function useDeleteGroupMember(groupId: string) {
       return res.json();
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["groups", groupId] });
+      queryClient.invalidateQueries({ queryKey: ["groups"] });
     },
   });
 }
