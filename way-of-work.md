@@ -17,10 +17,13 @@
    refactor: extract member chip component
    ```
    Format: `<type>: <what you did>` — types are `feat`, `fix`, `refactor`, `style`, `docs`, `test`.
-4. **Before creating a PR**, make sure your branch has the latest `main` and all conflicts are resolved:
+4. **Before creating a PR**, update your branch with the latest `main`:
    ```bash
-   git pull origin main
-   # If there are conflicts, resolve them yourself before continuing
+   git fetch origin
+   git merge origin/main
+   # If there are conflicts, fix them, then:
+   git add .
+   git commit -m "merge: resolve conflicts with main"
    ```
 5. **Push and create a Pull Request**:
    ```bash
