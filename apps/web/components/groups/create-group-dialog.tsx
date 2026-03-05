@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useCallback } from "react";
 import { useCreateGroup } from "@/lib/mutations/groups";
 import toast from "react-hot-toast";
 
@@ -14,13 +14,13 @@ export function CreateGroupDialog({ open, onClose }: CreateGroupDialogProps) {
   const inputRef = useRef<HTMLInputElement>(null);
   const createGroup = useCreateGroup();
 
-  useEffect(() => {
-    if (open) {
+  // Reset and focus when the panel mounts — no useEffect needed
+  const panelRef = useCallback((node: HTMLDivElement | null) => {
+    if (node) {
       setName("");
-      // Small delay so the dialog renders before focusing
-      setTimeout(() => inputRef.current?.focus(), 50);
+      inputRef.current?.focus();
     }
-  }, [open]);
+  }, []);
 
   if (!open) return null;
 
@@ -52,7 +52,7 @@ export function CreateGroupDialog({ open, onClose }: CreateGroupDialogProps) {
       />
 
       {/* Panel */}
-      <div className="relative w-full max-w-md rounded-t-2xl bg-white p-6 sm:rounded-2xl">
+      <div ref={panelRef} className="relative w-full max-w-md rounded-t-2xl bg-white p-6 sm:rounded-2xl">
         <h2 className="font-heading text-lg font-semibold">New Group</h2>
         <p className="mt-1 text-sm text-gray-500">
           Create a group to start splitting bills with friends.

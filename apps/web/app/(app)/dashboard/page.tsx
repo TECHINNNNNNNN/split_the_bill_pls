@@ -5,6 +5,7 @@ import { useSession, signOut } from "@/lib/auth-client";
 import { useQuery } from "@tanstack/react-query";
 import { groupQueries } from "@/lib/queries/groups";
 import { CreateGroupDialog } from "@/components/groups/create-group-dialog";
+import Image from "next/image";
 import Link from "next/link";
 
 export default function DashboardPage() {
@@ -23,11 +24,14 @@ export default function DashboardPage() {
           <p className="text-sm text-gray-500">{session?.user.email}</p>
         </div>
         {session?.user.image && (
-          <img
+          <Image
             src={session.user.image}
             alt="avatar"
+            width={40}
+            height={40}
             referrerPolicy="no-referrer"
-            className="h-10 w-10 rounded-full"
+            className="rounded-full"
+            unoptimized
           />
         )}
       </div>
