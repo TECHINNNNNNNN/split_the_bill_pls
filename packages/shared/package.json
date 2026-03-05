@@ -4,13 +4,23 @@
     "private": true,
     "type": "module",
     "scripts": {
+        "build": "tsc",
         "test": "vitest run",
         "test:watch": "vitest"
     },
     "exports": {
-        ".": "./src/schemas/bill.ts",
-        "./schemas": "./src/schemas/bill.ts",
-        "./utils": "./src/utils/calculateSplit.ts"
+        ".": {
+            "types": "./src/schemas/bill.ts",
+            "default": "./dist/schemas/bill.js"
+        },
+        "./schemas": {
+            "types": "./src/schemas/bill.ts",
+            "default": "./dist/schemas/bill.js"
+        },
+        "./utils": {
+            "types": "./src/utils/calculateSplit.ts",
+            "default": "./dist/utils/calculateSplit.js"
+        }
     },
     "devDependencies": {
         "@pladuk/typescript-config": "workspace:*",

@@ -49,3 +49,13 @@ jobs:
           GOOGLE_CLIENT_ID: fake-client-id
           GOOGLE_CLIENT_SECRET: fake-client-secret
           FRONTEND_URL: http://localhost:3000
+
+      - name: Deploy to Fly.io
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        uses: superfly/flyctl-actions/setup-flyctl@master
+
+      - name: Fly Deploy
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        run: flyctl deploy --remote-only
+        env:
+          FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
