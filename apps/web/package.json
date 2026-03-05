@@ -11,11 +11,15 @@
   },
   "dependencies": {
     "@pladuk/shared": "workspace:*",
+    "@tanstack/react-query": "^5.90.21",
+    "@tanstack/react-query-devtools": "^5.91.3",
     "better-auth": "^1.4.20",
+    "clsx": "^2.1.1",
     "hono": "^4.12.3",
     "next": "16.1.6",
     "react": "19.2.3",
-    "react-dom": "19.2.3"
+    "react-dom": "19.2.3",
+    "react-hot-toast": "^2.6.0"
   },
   "devDependencies": {
     "@pladuk/typescript-config": "workspace:*",

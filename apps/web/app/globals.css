@@ -1,3 +1,6 @@
 @import "tailwindcss";
 
-
+@theme inline {
+  --font-body: var(--font-body);
+  --font-heading: var(--font-heading);
+}
