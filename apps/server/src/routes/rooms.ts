@@ -50,14 +50,17 @@ function notifyListeners(code: string, event: string, data: unknown) {
 }
 
 // ─── Cookie helpers ──────────────────────────
-// We identify who's who via an HTTP-only cookie.
-// No auth needed — just a member ID.
+// We identify who's who via a per-room HTTP-only cookie.
+// Cookie name: room_member_<roomId>
+// This way, being "host" in one room and "friend" in
+// another (or even testing both in the same browser)
+// won't overwrite each other.
 
-const COOKIE_NAME = "room_member"
+const COOKIE_PREFIX = "room_member_"
 const COOKIE_MAX_AGE = 86400 // 24 hours
 
-function setMemberCookie(c: any, memberId: string) {
-  setCookie(c, COOKIE_NAME, memberId, {
+function setMemberCookie(c: any, roomId: string, memberId: string) {
+  setCookie(c, `${COOKIE_PREFIX}${roomId}`, memberId, {
     httpOnly: true,
     secure: process.env.NODE_ENV === "production",
     sameSite: process.env.NODE_ENV === "production" ? "None" : "Lax",
@@ -66,8 +69,8 @@ function setMemberCookie(c: any, memberId: string) {
   })
 }
 
-function getMemberCookie(c: any): string | undefined {
-  return getCookie(c, COOKIE_NAME)
+function getMemberCookie(c: any, roomId: string): string | undefined {
+  return getCookie(c, `${COOKIE_PREFIX}${roomId}`)
 }
 
 // ─── Invite code generator ───────────────────
@@ -116,7 +119,7 @@ const app = new Hono()
       isHost: true,
     }).returning()
 
-    setMemberCookie(c, hostMember.id)
+    setMemberCookie(c, room.id, hostMember.id)
 
     return c.json({ room, member: hostMember }, 201)
   })
@@ -140,8 +143,8 @@ const app = new Hono()
       return c.json({ error: "Room not found" }, 404)
     }
 
-    // Tell the frontend who they are (if they have a cookie)
-    const currentMemberId = getMemberCookie(c) ?? null
+    // Tell the frontend who they are (if they have a cookie for this room)
+    const currentMemberId = getMemberCookie(c, room.id) ?? null
 
     return c.json({ room, currentMemberId })
   })
@@ -237,12 +240,56 @@ const app = new Hono()
       isHost: false,
     }).returning()
 
-    setMemberCookie(c, member.id)
+    setMemberCookie(c, room.id, member.id)
 
     // Notify all SSE listeners — lobby updates instantly
     notifyListeners(code, "member-joined", member)
 
     return c.json({ room, member }, 201)
+  })
+
+  // ─── POST /rooms/:id/members ────────────────
+  // Host adds a placeholder member (someone without a
+  // phone). Does NOT set a cookie — the host's cookie
+  // stays intact. Notifies SSE listeners.
+  .post("/:id/members", zValidator("json", joinRoomSchema), async (c) => {
+    const roomId = c.req.param("id")
+    const memberId = getMemberCookie(c, roomId)
+
+    const member = await verifyRoomMember(roomId, memberId)
+    if (!member?.isHost) {
+      return c.json({ error: "Only the host can add placeholder members" }, 403)
+    }
+
+    const { displayName } = c.req.valid("json")
+
+    const room = await db.query.rooms.findFirst({
+      where: eq(rooms.id, roomId),
+      with: { members: true },
+    })
+
+    if (!room) {
+      return c.json({ error: "Room not found" }, 404)
+    }
+
+    // Check for duplicate name
+    const nameExists = room.members.some(
+      (m) => m.displayName.toLowerCase() === displayName.toLowerCase()
+    )
+    if (nameExists) {
+      return c.json({ error: "Name already taken in this room" }, 409)
+    }
+
+    const [newMember] = await db.insert(roomMembers).values({
+      roomId,
+      displayName,
+      isHost: false,
+    }).returning()
+
+    // Notify SSE listeners
+    notifyListeners(room.inviteCode, "member-joined", newMember)
+
+    return c.json({ member: newMember }, 201)
   })
 
   // ─── GET /rooms/:id ──────────────────────────
@@ -251,7 +298,7 @@ const app = new Hono()
   // and payment tracking pages.
   .get("/:id", async (c) => {
     const roomId = c.req.param("id")
-    const memberId = getMemberCookie(c)
+    const memberId = getMemberCookie(c, roomId)
 
     // Verify the caller is a member of this room
     const member = await verifyRoomMember(roomId, memberId)
@@ -293,7 +340,7 @@ const app = new Hono()
   // Only forward transitions are allowed.
   .patch("/:id/status", zValidator("json", updateRoomStatusSchema), async (c) => {
     const roomId = c.req.param("id")
-    const memberId = getMemberCookie(c)
+    const memberId = getMemberCookie(c, roomId)
 
     const member = await verifyRoomMember(roomId, memberId)
     if (!member?.isHost) {
@@ -324,6 +371,9 @@ const app = new Hono()
       .where(eq(rooms.id, roomId))
       .returning()
 
+    // Notify SSE listeners so non-host members can react
+    notifyListeners(room.inviteCode, "status-changed", { status: newStatus })
+
     return c.json(updated)
   })
 
@@ -333,7 +383,7 @@ const app = new Hono()
   // (everyone shares by default — tap to deselect later).
   .post("/:id/items", zValidator("json", addRoomItemSchema), async (c) => {
     const roomId = c.req.param("id")
-    const memberId = getMemberCookie(c)
+    const memberId = getMemberCookie(c, roomId)
 
     const member = await verifyRoomMember(roomId, memberId)
     if (!member?.isHost) {
@@ -387,7 +437,7 @@ const app = new Hono()
   .delete("/:id/items/:itemId", async (c) => {
     const roomId = c.req.param("id")
     const itemId = c.req.param("itemId")
-    const memberId = getMemberCookie(c)
+    const memberId = getMemberCookie(c, roomId)
 
     const member = await verifyRoomMember(roomId, memberId)
     if (!member?.isHost) {
@@ -409,7 +459,7 @@ const app = new Hono()
   .put("/:id/items/:itemId/splits", zValidator("json", setRoomItemSplitsSchema), async (c) => {
     const roomId = c.req.param("id")
     const itemId = c.req.param("itemId")
-    const memberId = getMemberCookie(c)
+    const memberId = getMemberCookie(c, roomId)
 
     const member = await verifyRoomMember(roomId, memberId)
     if (!member?.isHost) {
@@ -458,7 +508,7 @@ const app = new Hono()
   // payment records.
   .post("/:id/finalize", async (c) => {
     const roomId = c.req.param("id")
-    const memberId = getMemberCookie(c)
+    const memberId = getMemberCookie(c, roomId)
 
     const member = await verifyRoomMember(roomId, memberId)
     if (!member?.isHost) {
@@ -506,13 +556,20 @@ const app = new Hono()
     // Delete any old payments and create new ones
     await db.delete(roomPayments).where(eq(roomPayments.roomId, roomId))
 
+    // Find host member ID so we can auto-mark them as paid
+    const hostMember = await db.query.roomMembers.findFirst({
+      where: and(eq(roomMembers.roomId, roomId), eq(roomMembers.isHost, true)),
+    })
+
     if (splitResult.splits.length > 0) {
       await db.insert(roomPayments).values(
         splitResult.splits.map((split) => ({
           roomId,
           memberId: split.memberId,
           amount: split.totalAmount.toFixed(2),
-          isPaid: false,
+          // Host doesn't owe themselves — auto-mark as paid
+          isPaid: split.memberId === hostMember?.id,
+          paidAt: split.memberId === hostMember?.id ? new Date() : null,
         }))
       )
     }
@@ -530,7 +587,7 @@ const app = new Hono()
   // know where to send money.
   .patch("/:id/payment-method", zValidator("json", setRoomPaymentMethodSchema), async (c) => {
     const roomId = c.req.param("id")
-    const memberId = getMemberCookie(c)
+    const memberId = getMemberCookie(c, roomId)
 
     const member = await verifyRoomMember(roomId, memberId)
     if (!member?.isHost) {
@@ -552,7 +609,7 @@ const app = new Hono()
   .patch("/:id/payments/:paymentId/toggle-paid", async (c) => {
     const roomId = c.req.param("id")
     const paymentId = c.req.param("paymentId")
-    const memberId = getMemberCookie(c)
+    const memberId = getMemberCookie(c, roomId)
 
     const member = await verifyRoomMember(roomId, memberId)
     if (!member?.isHost) {

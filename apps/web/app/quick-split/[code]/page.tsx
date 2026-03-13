@@ -5,13 +5,14 @@ import { useRouter } from "next/navigation";
 import { useQuery } from "@tanstack/react-query";
 import { QRCodeSVG } from "qrcode.react";
 import { roomQueries } from "@/lib/queries/rooms";
-import { useAdvanceRoomStatus, useJoinRoom } from "@/lib/mutations/rooms";
+import { useAdvanceRoomStatus, useAddPlaceholderMember } from "@/lib/mutations/rooms";
 
 // ─── SSE hook: subscribe to real-time member join events ───
 
 function useRoomSSE(
   code: string,
   onMemberJoined: () => void,
+  onStatusChanged: (status: string) => void,
 ) {
   useEffect(() => {
     const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001";
@@ -24,6 +25,11 @@ function useRoomSSE(
       onMemberJoined();
     });
 
+    eventSource.addEventListener("status-changed", (e) => {
+      const data = JSON.parse(e.data);
+      onStatusChanged(data.status);
+    });
+
     eventSource.addEventListener("error", () => {
       // SSE will auto-reconnect by default
     });
@@ -31,7 +37,7 @@ function useRoomSSE(
     return () => {
       eventSource.close();
     };
-  }, [code, onMemberJoined]);
+  }, [code, onMemberJoined, onStatusChanged]);
 }
 
 // ─── Main component ───
@@ -52,7 +58,14 @@ export default function RoomLobbyPage({
     refetch();
   }, [refetch]);
 
-  useRoomSSE(code, handleMemberJoined);
+  // SSE: redirect when host changes status
+  const handleStatusChanged = useCallback((status: string) => {
+    if (status === "splitting") {
+      router.push(`/quick-split/${code}/bill`);
+    }
+  }, [router, code]);
+
+  useRoomSSE(code, handleMemberJoined, handleStatusChanged);
 
   const room = data?.room;
   const currentMemberId = data?.currentMemberId;
@@ -63,13 +76,13 @@ export default function RoomLobbyPage({
   const advanceStatus = useAdvanceRoomStatus(room?.id ?? "");
 
   // Add placeholder member (host adds a name manually)
-  const joinRoom = useJoinRoom(code);
+  const addPlaceholder = useAddPlaceholderMember(room?.id ?? "");
   const [showAddMember, setShowAddMember] = useState(false);
   const [placeholderName, setPlaceholderName] = useState("");
 
   const handleAddPlaceholder = () => {
     if (!placeholderName.trim()) return;
-    joinRoom.mutate(
+    addPlaceholder.mutate(
       { displayName: placeholderName.trim() },
       {
         onSuccess: () => {
@@ -143,6 +156,7 @@ export default function RoomLobbyPage({
         <p className="text-center text-sm text-gray-500 md:text-base">
           Scan QR code to join room or share link
         </p>
+        <p className="break-all text-center text-xs text-gray-400">{joinUrl}</p>
 
         {/* Member grid */}
         <div className="grid w-full grid-cols-3 gap-2">
@@ -205,7 +219,7 @@ export default function RoomLobbyPage({
                 <button
                   type="button"
                   onClick={handleAddPlaceholder}
-                  disabled={!placeholderName.trim() || joinRoom.isPending}
+                  disabled={!placeholderName.trim() || addPlaceholder.isPending}
                   className="rounded-lg bg-gray-800 px-3 py-1.5 text-sm text-white disabled:opacity-40"
                 >
                   Add

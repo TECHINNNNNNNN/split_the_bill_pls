@@ -1,6 +1,6 @@
 "use client";
 
-import { use, useState } from "react";
+import { use, useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useQuery, useQueryClient, useMutation } from "@tanstack/react-query";
 import { roomQueries } from "@/lib/queries/rooms";
@@ -29,8 +29,10 @@ export default function BillDetailsPage({
   });
 
   const room = detailData?.room;
+  const currentMemberId = codeData?.currentMemberId;
   const members = room?.members ?? [];
   const items = room?.billItems ?? [];
+  const isHost = members.find((m) => m.id === currentMemberId)?.isHost ?? false;
 
   // Mutations
   const addItem = useAddRoomItem(roomId);
@@ -97,6 +99,13 @@ export default function BillDetailsPage({
     });
   };
 
+  // Auto-redirect non-host when host finalizes (status → payment)
+  useEffect(() => {
+    if (room && room.status === "payment") {
+      router.replace(`/quick-split/${code}/tracking`);
+    }
+  }, [room, room?.status, code, router]);
+
   // Calculate running total
   const total = items.reduce((sum, item) => sum + parseFloat(item.amount), 0);
 
@@ -104,6 +113,70 @@ export default function BillDetailsPage({
     return (
       <div className="flex min-h-svh items-center justify-center">
         <p className="text-gray-400">Loading...</p>
+      </div>
+    );
+  }
+
+  // Non-host: read-only waiting view
+  if (!isHost) {
+    return (
+      <div className="flex min-h-svh flex-col px-6 py-6 md:mx-auto md:max-w-lg md:py-12">
+        <h1 className="font-heading text-2xl font-bold text-gray-800 md:text-3xl">
+          Bill Details
+        </h1>
+        <p className="mt-1 text-sm text-gray-500">
+          The host is entering items. You&apos;ll be redirected when it&apos;s ready.
+        </p>
+
+        {/* Read-only items list */}
+        <div className="mt-6 flex flex-1 flex-col gap-4">
+          {items.length === 0 ? (
+            <p className="text-center text-sm text-gray-400">No items yet...</p>
+          ) : (
+            items.map((item) => {
+              const splitMemberIds = item.splits?.map((s: any) => s.memberId) ?? [];
+              return (
+                <div key={item.id} className="rounded-lg border border-gray-200 p-3">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="font-medium text-gray-800">{item.name}</p>
+                      <p className="text-sm text-gray-500">฿{parseFloat(item.amount).toFixed(2)}</p>
+                    </div>
+                  </div>
+                  <div className="mt-2 border-t border-gray-100 pt-2">
+                    <p className="mb-1.5 text-xs text-gray-500">Split Amongst</p>
+                    <div className="flex flex-wrap gap-1.5">
+                      {members.map((member) => {
+                        const isSelected = splitMemberIds.includes(member.id);
+                        return (
+                          <span
+                            key={member.id}
+                            className={`rounded px-2 py-0.5 text-xs font-medium ${
+                              isSelected ? "bg-gray-800 text-white" : "bg-gray-100 text-gray-400"
+                            }`}
+                          >
+                            {member.displayName}
+                          </span>
+                        );
+                      })}
+                    </div>
+                  </div>
+                </div>
+              );
+            })
+          )}
+        </div>
+
+        {/* Total */}
+        <div className="mt-8 border-t border-gray-200 pt-4">
+          <div className="flex items-center justify-between rounded-lg border border-gray-200 px-4 py-3">
+            <span className="text-lg font-medium text-gray-800">Total</span>
+            <span className="text-lg font-semibold text-gray-800">฿{total.toFixed(2)}</span>
+          </div>
+          <p className="mt-4 text-center text-sm text-gray-400">
+            Waiting for host to finalize...
+          </p>
+        </div>
       </div>
     );
   }

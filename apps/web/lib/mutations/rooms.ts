@@ -40,6 +40,27 @@ export function useJoinRoom(code: string) {
   });
 }
 
+export function useAddPlaceholderMember(roomId: string) {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (data: JoinRoom) => {
+      const res = await api.api.rooms[":id"].members.$post({
+        param: { id: roomId },
+        json: data,
+      });
+      if (!res.ok) {
+        const error = await res.json();
+        throw new Error((error as any).error || "Failed to add member");
+      }
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["rooms", "code"] });
+    },
+  });
+}
+
 export function useAdvanceRoomStatus(roomId: string) {
   const queryClient = useQueryClient();
 
