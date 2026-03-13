@@ -2,16 +2,24 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { useCreateRoom } from "@/lib/mutations/rooms";
 
 export default function QuickSplitPage() {
   const router = useRouter();
   const [name, setName] = useState("");
   const [splitters, setSplitters] = useState(1);
+  const createRoom = useCreateRoom();
 
   const handleCreateRoom = () => {
     if (!name.trim()) return;
-    // TODO: create room and navigate to it
-    console.log("Create room:", { name: name.trim(), splitters });
+    createRoom.mutate(
+      { hostName: name.trim(), expectedMembers: splitters },
+      {
+        onSuccess: (data) => {
+          router.push(`/quick-split/${data.room.inviteCode}`);
+        },
+      }
+    );
   };
 
   return (
@@ -68,10 +76,10 @@ export default function QuickSplitPage() {
         <button
           type="button"
           onClick={handleCreateRoom}
-          disabled={!name.trim()}
+          disabled={!name.trim() || createRoom.isPending}
           className="rounded-full border border-gray-300 px-8 py-2.5 text-sm font-medium text-gray-800 transition-colors hover:bg-gray-50 active:bg-gray-100 disabled:opacity-40 disabled:hover:bg-transparent md:px-10 md:py-3 md:text-base"
         >
-          Create Room
+          {createRoom.isPending ? "Creating..." : "Create Room"}
         </button>
       </div>
     </div>
