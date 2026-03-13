@@ -12,6 +12,7 @@ import {
   addRoomItemSchema,
   setRoomItemSplitsSchema,
   setRoomPaymentMethodSchema,
+  updateRoomStatusSchema,
 } from "@pladuk/shared/schemas"
 import { calculateSplit } from "@pladuk/shared/utils"
 
@@ -290,7 +291,7 @@ const app = new Hono()
   // Host advances the room through its lifecycle:
   // waiting → splitting → payment → settled
   // Only forward transitions are allowed.
-  .patch("/:id/status", async (c) => {
+  .patch("/:id/status", zValidator("json", updateRoomStatusSchema), async (c) => {
     const roomId = c.req.param("id")
     const memberId = getMemberCookie(c)
 
@@ -299,7 +300,7 @@ const app = new Hono()
       return c.json({ error: "Only the host can change status" }, 403)
     }
 
-    const body = await c.req.json<{ status: string }>()
+    const { status: newStatus } = c.req.valid("json")
     const statusOrder = ["waiting", "splitting", "payment", "settled"] as const
     type RoomStatus = typeof statusOrder[number]
 
@@ -312,14 +313,14 @@ const app = new Hono()
     }
 
     const currentIndex = statusOrder.indexOf(room.status as RoomStatus)
-    const newIndex = statusOrder.indexOf(body.status as RoomStatus)
+    const newIndex = statusOrder.indexOf(newStatus as RoomStatus)
 
     if (newIndex <= currentIndex) {
       return c.json({ error: "Can only move forward in status" }, 400)
     }
 
     const [updated] = await db.update(rooms)
-      .set({ status: body.status as RoomStatus })
+      .set({ status: newStatus as RoomStatus })
       .where(eq(rooms.id, roomId))
       .returning()
 

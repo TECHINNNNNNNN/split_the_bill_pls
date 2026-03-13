@@ -103,6 +103,10 @@ export const setRoomPaymentMethodSchema = z.object({
   promptpayType: promptpayTypeSchema,
 })
 
+export const updateRoomStatusSchema = z.object({
+  status: roomStatusSchema,
+})
+
 // ─── Derived Types ───────────────────────────
 
 export type CreateGroup = z.infer<typeof createGroupSchema>
