@@ -1,0 +1,258 @@
+"use client";
+
+import { use, useEffect, useState, useCallback } from "react";
+import { useRouter } from "next/navigation";
+import { useQuery } from "@tanstack/react-query";
+import { QRCodeSVG } from "qrcode.react";
+import { roomQueries } from "@/lib/queries/rooms";
+import { useAdvanceRoomStatus, useJoinRoom } from "@/lib/mutations/rooms";
+
+// ─── SSE hook: subscribe to real-time member join events ───
+
+function useRoomSSE(
+  code: string,
+  onMemberJoined: () => void,
+) {
+  useEffect(() => {
+    const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001";
+    const eventSource = new EventSource(
+      `${apiUrl}/api/rooms/code/${code}/stream`,
+      { withCredentials: true }
+    );
+
+    eventSource.addEventListener("member-joined", () => {
+      onMemberJoined();
+    });
+
+    eventSource.addEventListener("error", () => {
+      // SSE will auto-reconnect by default
+    });
+
+    return () => {
+      eventSource.close();
+    };
+  }, [code, onMemberJoined]);
+}
+
+// ─── Main component ───
+
+export default function RoomLobbyPage({
+  params,
+}: {
+  params: Promise<{ code: string }>;
+}) {
+  const { code } = use(params);
+  const router = useRouter();
+
+  // Fetch room data
+  const { data, refetch } = useQuery(roomQueries.byCode(code));
+
+  // SSE: refetch room data when a member joins
+  const handleMemberJoined = useCallback(() => {
+    refetch();
+  }, [refetch]);
+
+  useRoomSSE(code, handleMemberJoined);
+
+  const room = data?.room;
+  const currentMemberId = data?.currentMemberId;
+  const members = room?.members ?? [];
+  const isHost = members.find((m) => m.id === currentMemberId)?.isHost ?? false;
+
+  // Advance status mutation
+  const advanceStatus = useAdvanceRoomStatus(room?.id ?? "");
+
+  // Add placeholder member (host adds a name manually)
+  const joinRoom = useJoinRoom(code);
+  const [showAddMember, setShowAddMember] = useState(false);
+  const [placeholderName, setPlaceholderName] = useState("");
+
+  const handleAddPlaceholder = () => {
+    if (!placeholderName.trim()) return;
+    joinRoom.mutate(
+      { displayName: placeholderName.trim() },
+      {
+        onSuccess: () => {
+          setPlaceholderName("");
+          setShowAddMember(false);
+          refetch();
+        },
+      }
+    );
+  };
+
+  const handleStartSplitting = () => {
+    if (!room) return;
+    advanceStatus.mutate("splitting", {
+      onSuccess: () => {
+        router.push(`/quick-split/${code}/bill`);
+      },
+    });
+  };
+
+  const handleShareLink = async () => {
+    const joinUrl = `${window.location.origin}/quick-split/${code}/join`;
+    if (navigator.share) {
+      await navigator.share({ title: "Join my bill split!", url: joinUrl });
+    } else {
+      await navigator.clipboard.writeText(joinUrl);
+      alert("Link copied to clipboard!");
+    }
+  };
+
+  if (!room) {
+    return (
+      <div className="flex min-h-svh items-center justify-center">
+        <p className="text-gray-400">Loading room...</p>
+      </div>
+    );
+  }
+
+  const joinUrl = `${typeof window !== "undefined" ? window.location.origin : ""}/quick-split/${code}/join`;
+  const joinedCount = members.length;
+  const expectedCount = room.expectedMembers;
+
+  return (
+    <div className="flex min-h-svh flex-col items-center px-6 py-8 md:py-16">
+      <div className="flex w-full max-w-sm flex-col items-center gap-6">
+        {/* Member count */}
+        <div className="text-center">
+          <div className="font-heading text-4xl font-semibold text-gray-800 md:text-5xl">
+            <span>{joinedCount}</span>
+            <span className="text-lg font-normal text-gray-400 md:text-xl">
+              /{expectedCount}
+            </span>
+          </div>
+          <p className="mt-1 text-sm text-gray-500 md:text-base">
+            Members Joined
+          </p>
+        </div>
+
+        {/* QR Code */}
+        {isHost && (
+          <div className="rounded-xl bg-white p-4 shadow-sm">
+            <QRCodeSVG
+              value={joinUrl}
+              size={200}
+              level="M"
+              className="h-auto w-full max-w-[200px] md:max-w-[240px]"
+            />
+          </div>
+        )}
+
+        <p className="text-center text-sm text-gray-500 md:text-base">
+          Scan QR code to join room or share link
+        </p>
+
+        {/* Member grid */}
+        <div className="grid w-full grid-cols-3 gap-2">
+          {members.map((member) => (
+            <div
+              key={member.id}
+              className="rounded-lg border border-gray-200 bg-white px-3 py-2 text-center text-xs font-medium text-gray-700 md:text-sm"
+            >
+              {member.displayName}
+              {member.isHost && (
+                <span className="text-gray-400"> (host)</span>
+              )}
+            </div>
+          ))}
+          {/* Waiting slots */}
+          {Array.from({ length: Math.max(0, expectedCount - joinedCount) }).map(
+            (_, i) => (
+              <div
+                key={`waiting-${i}`}
+                className="rounded-lg border border-dashed border-gray-200 px-3 py-2 text-center text-xs text-gray-400 md:text-sm"
+              >
+                Waiting...
+              </div>
+            )
+          )}
+        </div>
+
+        {/* Actions (host only) */}
+        {isHost && (
+          <div className="flex flex-col items-center gap-3">
+            <button
+              type="button"
+              onClick={handleShareLink}
+              className="rounded-full border border-gray-300 px-6 py-2 text-sm font-medium text-gray-800 transition-colors hover:bg-gray-50 active:bg-gray-100 md:px-8 md:text-base"
+            >
+              Share Invite Link
+            </button>
+
+            {/* Add placeholder member */}
+            {!showAddMember ? (
+              <button
+                type="button"
+                onClick={() => setShowAddMember(true)}
+                className="text-sm text-gray-500 underline transition-colors hover:text-gray-800 md:text-base"
+              >
+                Add placeholder member
+              </button>
+            ) : (
+              <div className="flex items-center gap-2">
+                <input
+                  type="text"
+                  value={placeholderName}
+                  onChange={(e) => setPlaceholderName(e.target.value)}
+                  placeholder="Name"
+                  className="w-32 rounded-lg border border-gray-300 px-3 py-1.5 text-sm focus:border-gray-500 focus:outline-none"
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") handleAddPlaceholder();
+                  }}
+                />
+                <button
+                  type="button"
+                  onClick={handleAddPlaceholder}
+                  disabled={!placeholderName.trim() || joinRoom.isPending}
+                  className="rounded-lg bg-gray-800 px-3 py-1.5 text-sm text-white disabled:opacity-40"
+                >
+                  Add
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowAddMember(false);
+                    setPlaceholderName("");
+                  }}
+                  className="text-sm text-gray-400 hover:text-gray-600"
+                >
+                  Cancel
+                </button>
+              </div>
+            )}
+
+            {/* Start splitting */}
+            <button
+              type="button"
+              onClick={handleStartSplitting}
+              disabled={members.length < 2 || advanceStatus.isPending}
+              className="mt-4 rounded-full border border-gray-300 px-8 py-2.5 text-sm font-medium text-gray-800 transition-colors hover:bg-gray-50 active:bg-gray-100 disabled:opacity-40 md:px-10 md:py-3 md:text-base"
+            >
+              {advanceStatus.isPending ? "Starting..." : "Start Bill Splitting"}
+            </button>
+          </div>
+        )}
+
+        {/* Non-host view */}
+        {!isHost && currentMemberId && (
+          <p className="text-center text-sm text-gray-500">
+            Waiting for the host to start splitting...
+          </p>
+        )}
+
+        {/* Not a member yet — direct them to join */}
+        {!currentMemberId && (
+          <button
+            type="button"
+            onClick={() => router.push(`/quick-split/${code}/join`)}
+            className="rounded-full border border-gray-300 px-8 py-2.5 text-sm font-medium text-gray-800 transition-colors hover:bg-gray-50 active:bg-gray-100"
+          >
+            Join this room
+          </button>
+        )}
+      </div>
+    </div>
+  );
+}
