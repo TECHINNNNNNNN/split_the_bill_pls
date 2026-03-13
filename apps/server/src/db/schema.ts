@@ -1,4 +1,4 @@
-import { pgTable, text, timestamp, boolean, uuid, integer, numeric, pgEnum } from "drizzle-orm/pg-core";
+import { pgTable, text, timestamp, boolean, uuid, integer, numeric, pgEnum, unique } from "drizzle-orm/pg-core";
 import { relations } from "drizzle-orm";
 
 export const user = pgTable("user", {
@@ -151,6 +151,68 @@ export const pushSubscriptions = pgTable("push_subscriptions", {
 });
 
 // ════════════════════════════════════════════
+// Quick Split — Room Schema (anonymous, no auth)
+// ════════════════════════════════════════════
+
+export const roomStatusEnum = pgEnum("room_status", ["waiting", "splitting", "payment", "settled"]);
+
+export const rooms = pgTable("rooms", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  hostName: text("host_name").notNull(),
+  expectedMembers: integer("expected_members").notNull(),
+  inviteCode: text("invite_code").unique().notNull(),
+  promptpayId: text("promptpay_id"),
+  promptpayType: text("promptpay_type"),          // 'phone' or 'national_id'
+  status: roomStatusEnum("status").default("waiting").notNull(),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+});
+
+export const roomMembers = pgTable("room_members", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  roomId: uuid("room_id")
+    .references(() => rooms.id, { onDelete: "cascade" })
+    .notNull(),
+  displayName: text("display_name").notNull(),
+  isHost: boolean("is_host").default(false).notNull(),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+});
+
+export const roomBillItems = pgTable("room_bill_items", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  roomId: uuid("room_id")
+    .references(() => rooms.id, { onDelete: "cascade" })
+    .notNull(),
+  name: text("name").notNull(),
+  amount: numeric("amount", { precision: 10, scale: 2 }).notNull(),
+  sortOrder: integer("sort_order").default(0),
+});
+
+export const roomItemSplits = pgTable("room_item_splits", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  itemId: uuid("item_id")
+    .references(() => roomBillItems.id, { onDelete: "cascade" })
+    .notNull(),
+  memberId: uuid("member_id")
+    .references(() => roomMembers.id, { onDelete: "cascade" })
+    .notNull(),
+}, (t) => [
+  unique("room_item_splits_item_member_unique").on(t.itemId, t.memberId),
+]);
+
+export const roomPayments = pgTable("room_payments", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  roomId: uuid("room_id")
+    .references(() => rooms.id, { onDelete: "cascade" })
+    .notNull(),
+  memberId: uuid("member_id")
+    .references(() => roomMembers.id, { onDelete: "cascade" })
+    .notNull(),
+  amount: numeric("amount", { precision: 10, scale: 2 }).notNull(),
+  isPaid: boolean("is_paid").default(false).notNull(),
+  paidAt: timestamp("paid_at", { withTimezone: true }),
+});
+
+// ════════════════════════════════════════════
 // Drizzle Relations (for relational query builder)
 // ════════════════════════════════════════════
 
@@ -197,4 +259,33 @@ export const paymentsRelations = relations(payments, ({ one }) => ({
 
 export const pushSubscriptionsRelations = relations(pushSubscriptions, ({ one }) => ({
   member: one(groupMembers, { fields: [pushSubscriptions.memberId], references: [groupMembers.id] }),
+}));
+
+// ── Room Relations ──
+
+export const roomsRelations = relations(rooms, ({ many }) => ({
+  members: many(roomMembers),
+  billItems: many(roomBillItems),
+  payments: many(roomPayments),
+}));
+
+export const roomMembersRelations = relations(roomMembers, ({ one, many }) => ({
+  room: one(rooms, { fields: [roomMembers.roomId], references: [rooms.id] }),
+  itemSplits: many(roomItemSplits),
+  payments: many(roomPayments),
+}));
+
+export const roomBillItemsRelations = relations(roomBillItems, ({ one, many }) => ({
+  room: one(rooms, { fields: [roomBillItems.roomId], references: [rooms.id] }),
+  splits: many(roomItemSplits),
+}));
+
+export const roomItemSplitsRelations = relations(roomItemSplits, ({ one }) => ({
+  item: one(roomBillItems, { fields: [roomItemSplits.itemId], references: [roomBillItems.id] }),
+  member: one(roomMembers, { fields: [roomItemSplits.memberId], references: [roomMembers.id] }),
+}));
+
+export const roomPaymentsRelations = relations(roomPayments, ({ one }) => ({
+  room: one(rooms, { fields: [roomPayments.roomId], references: [rooms.id] }),
+  member: one(roomMembers, { fields: [roomPayments.memberId], references: [roomMembers.id] }),
 }));

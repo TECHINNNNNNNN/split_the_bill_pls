@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { signIn, useSession } from "@/lib/auth-client";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
@@ -11,7 +12,7 @@ export default function LoginPage() {
 
   useEffect(() => {
     if (!isPending && session) {
-      router.replace("/dashboard");
+      router.replace("/quick-split");
     }
   }, [isPending, session, router]);
 
@@ -19,40 +20,53 @@ export default function LoginPage() {
     setLoading(true);
     signIn.social({
       provider: "google",
-      callbackURL: `${window.location.origin}/dashboard`,
+      callbackURL: `${window.location.origin}/quick-split`,
     });
   };
 
   if (isPending || session) {
     return (
-      <div className="flex min-h-screen items-center justify-center">
+      <div className="flex min-h-svh items-center justify-center">
         <p className="text-gray-400">Loading...</p>
       </div>
     );
   }
 
   return (
-    <div className="flex min-h-screen flex-col items-center justify-center px-6">
-      <div className="mb-8 text-center">
-        <h1 className="font-heading text-4xl font-bold">PlaDuk</h1>
-        <p className="mt-2 text-gray-500">หารบิลง่ายๆ ไม่ต้องโหลดแอป</p>
+    <div className="flex min-h-svh flex-col items-center justify-center px-6">
+      <div className="flex flex-col items-center gap-3 text-center">
+        <h1 className="font-heading text-5xl font-bold tracking-tight md:text-6xl lg:text-7xl">
+          Pladuk
+        </h1>
+        <p className="text-base text-gray-500 md:text-lg">
+          Split bills, not friendship.
+        </p>
       </div>
 
-      <button
-        onClick={handleGoogleSignIn}
-        disabled={loading}
-        className="flex w-full max-w-sm items-center justify-center gap-3 rounded-xl border border-gray-200 bg-white px-6 py-3 font-medium text-gray-700 shadow-sm transition-colors hover:bg-gray-50 disabled:opacity-50"
-      >
-        <GoogleIcon />
-        {loading ? "Redirecting..." : "Sign in with Google"}
-      </button>
+      <div className="mt-10 flex flex-col items-center gap-4">
+        <Link
+          href="/quick-split"
+          className="rounded-full border border-gray-300 px-8 py-2.5 text-sm font-medium text-gray-800 transition-colors hover:bg-gray-50 active:bg-gray-100 md:px-10 md:py-3 md:text-base"
+        >
+          Quick Split
+        </Link>
+
+        <button
+          onClick={handleGoogleSignIn}
+          disabled={loading}
+          className="flex items-center gap-2 text-sm text-gray-500 transition-colors hover:text-gray-800 md:text-base"
+        >
+          <GoogleIcon />
+          {loading ? "Redirecting..." : "log in"}
+        </button>
+      </div>
     </div>
   );
 }
 
 function GoogleIcon() {
   return (
-    <svg viewBox="0 0 24 24" className="h-5 w-5">
+    <svg viewBox="0 0 24 24" className="h-4 w-4">
       <path
         d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 01-2.2 3.32v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.1z"
         fill="#4285F4"
