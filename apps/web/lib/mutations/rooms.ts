@@ -30,7 +30,7 @@ export function useJoinRoom(code: string) {
       });
       if (!res.ok) {
         const error = await res.json();
-        throw new Error((error as any).error || "Failed to join room");
+        throw new Error((error as { error?: string }).error || "Failed to join room");
       }
       return res.json();
     },
@@ -51,7 +51,7 @@ export function useAddPlaceholderMember(roomId: string) {
       });
       if (!res.ok) {
         const error = await res.json();
-        throw new Error((error as any).error || "Failed to add member");
+        throw new Error((error as { error?: string }).error || "Failed to add member");
       }
       return res.json();
     },

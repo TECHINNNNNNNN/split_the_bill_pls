@@ -134,7 +134,7 @@ export default function BillDetailsPage({
             <p className="text-center text-sm text-gray-400">No items yet...</p>
           ) : (
             items.map((item) => {
-              const splitMemberIds = item.splits?.map((s: any) => s.memberId) ?? [];
+              const splitMemberIds = item.splits?.map((s: { memberId: string }) => s.memberId) ?? [];
               return (
                 <div key={item.id} className="rounded-lg border border-gray-200 p-3">
                   <div className="flex items-center justify-between">
@@ -205,7 +205,7 @@ export default function BillDetailsPage({
       {/* Items list */}
       <div className="mt-6 flex flex-1 flex-col gap-4">
         {items.map((item) => {
-          const splitMemberIds = item.splits?.map((s: any) => s.memberId) ?? [];
+          const splitMemberIds = item.splits?.map((s: { memberId: string }) => s.memberId) ?? [];
 
           return (
             <div
