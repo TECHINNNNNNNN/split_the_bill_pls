@@ -76,6 +76,33 @@ export const updatePromptpaySchema = z.object({
   promptpayType: promptpayTypeSchema,
 })
 
+// ─── Room Schemas (Quick Split — anonymous) ─
+
+export const roomStatusSchema = z.enum(["waiting", "splitting", "payment", "settled"])
+
+export const createRoomSchema = z.object({
+  hostName: z.string().min(1).max(50),
+  expectedMembers: z.number().int().min(1),
+})
+
+export const joinRoomSchema = z.object({
+  displayName: z.string().min(1).max(50),
+})
+
+export const addRoomItemSchema = z.object({
+  name: z.string().min(1).max(200),
+  amount: z.number().positive(),
+})
+
+export const setRoomItemSplitsSchema = z.object({
+  memberIds: z.array(z.string().uuid()).min(1),
+})
+
+export const setRoomPaymentMethodSchema = z.object({
+  promptpayId: z.string().min(10).max(13),
+  promptpayType: promptpayTypeSchema,
+})
+
 // ─── Derived Types ───────────────────────────
 
 export type CreateGroup = z.infer<typeof createGroupSchema>
@@ -85,3 +112,10 @@ export type CreateBill = z.infer<typeof createBillSchema>
 export type SetClaims = z.infer<typeof setClaimsSchema>
 export type ClaimPayment = z.infer<typeof claimPaymentSchema>
 export type UpdatePromptpay = z.infer<typeof updatePromptpaySchema>
+
+export type RoomStatus = z.infer<typeof roomStatusSchema>
+export type CreateRoom = z.infer<typeof createRoomSchema>
+export type JoinRoom = z.infer<typeof joinRoomSchema>
+export type AddRoomItem = z.infer<typeof addRoomItemSchema>
+export type SetRoomItemSplits = z.infer<typeof setRoomItemSplitsSchema>
+export type SetRoomPaymentMethod = z.infer<typeof setRoomPaymentMethodSchema>
