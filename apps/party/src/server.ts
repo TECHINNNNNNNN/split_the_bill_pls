@@ -26,13 +26,17 @@ function generateItemId(): string {
 
 export default class RoomParty implements Party.Server {
   items: Map<string, CollabItem> = new Map()
+  locked = false
 
   constructor(readonly room: Party.Room) {}
 
   // New connection: send current state so late joiners are in sync
   onConnect(conn: Party.Connection) {
     conn.send(JSON.stringify({ type: "connected", data: { roomId: this.room.id } }))
-    conn.send(JSON.stringify({ type: "items:sync", data: { items: this.getItemsList() } }))
+    conn.send(JSON.stringify({
+      type: "items:sync",
+      data: { items: this.getItemsList(), locked: this.locked },
+    }))
   }
 
   // WebSocket messages from clients (collaborative editing)
@@ -43,6 +47,9 @@ export default class RoomParty implements Party.Server {
     } catch {
       return
     }
+
+    // Reject all item mutations when locked
+    if (this.locked && msg.type !== "state:request") return
 
     switch (msg.type) {
       case "item:add": {
@@ -124,11 +131,15 @@ export default class RoomParty implements Party.Server {
     // Parse the event and broadcast to all connected clients
     const message = await req.text()
 
-    // If status changed to "payment", clear items (editing is done)
+    // Handle server-side events that affect collab state
     try {
       const parsed = JSON.parse(message)
+      if (parsed.type === "bill-finalized") {
+        this.locked = true
+      }
       if (parsed.type === "status-changed" && parsed.data?.status === "payment") {
         this.items.clear()
+        this.locked = false
       }
     } catch {
       // Not JSON, just relay
@@ -146,7 +157,7 @@ export default class RoomParty implements Party.Server {
   private broadcastItems() {
     this.room.broadcast(JSON.stringify({
       type: "items:sync",
-      data: { items: this.getItemsList() },
+      data: { items: this.getItemsList(), locked: this.locked },
     }))
   }
 }

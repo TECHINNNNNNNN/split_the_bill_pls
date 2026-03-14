@@ -31,6 +31,7 @@ export function useBillCollab(
   },
 ) {
   const [items, setItems] = useState<CollabItem[]>([]);
+  const [isLocked, setIsLocked] = useState(false);
   const queryClient = useQueryClient();
 
   const socket = usePartySocket({
@@ -43,6 +44,13 @@ export function useBillCollab(
         switch (msg.type) {
           case "items:sync":
             setItems((msg.data.items as CollabItem[]) ?? []);
+            if (typeof msg.data.locked === "boolean") {
+              setIsLocked(msg.data.locked);
+            }
+            break;
+
+          case "bill-finalized":
+            setIsLocked(true);
             break;
 
           // Also handle the standard room events (same as useRoomSocket)
@@ -122,6 +130,7 @@ export function useBillCollab(
 
   return {
     items,
+    isLocked,
     addItem,
     deleteItem,
     toggleMember,

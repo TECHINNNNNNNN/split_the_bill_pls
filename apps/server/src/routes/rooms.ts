@@ -551,6 +551,12 @@ const app = new Hono()
     // Status stays "splitting" — host still needs to set payment method.
     // Status advances to "payment" when the host submits the payment page.
 
+    // Lock collaborative editing — members can no longer add/edit items
+    const room = await db.query.rooms.findFirst({ where: eq(rooms.id, roomId) })
+    if (room) {
+      notifyPartyKit(room.inviteCode, "bill-finalized", {})
+    }
+
     return c.json({ splits: splitResult.splits, totalAmount: subtotal })
   })
 

@@ -31,7 +31,7 @@ export default function BillDetailsPage({
   const isHost = members.find((m) => m.id === currentMemberId)?.isHost ?? false;
 
   // ─── Collaborative editing via PartyKit WebSocket ───
-  const { items, addItem, deleteItem, toggleMember, selectAll } = useBillCollab(
+  const { items, isLocked, addItem, deleteItem, toggleMember, selectAll } = useBillCollab(
     code,
     {
       currentMemberId,
@@ -128,8 +128,9 @@ export default function BillDetailsPage({
         )}
 
         {items.map((item) => {
-          // Can delete if you added it or you're the host
-          const canDelete = item.addedBy === currentMemberId || isHost;
+          // Can edit if not locked (or you're the host — host has already left this page)
+          const canEdit = !isLocked;
+          const canDelete = canEdit && (item.addedBy === currentMemberId || isHost);
 
           return (
             <div
@@ -160,19 +161,33 @@ export default function BillDetailsPage({
               <div className="mt-2 border-t border-gray-100 pt-2">
                 <div className="mb-1.5 flex items-center justify-between">
                   <p className="text-xs text-gray-500">Split Amongst</p>
-                  <label className="flex cursor-pointer items-center gap-1.5 text-xs text-gray-400">
-                    <input
-                      type="checkbox"
-                      checked={item.memberIds.length === members.length}
-                      onChange={() => selectAll(item.id)}
-                      className="h-3.5 w-3.5 rounded border-gray-300 accent-gray-800"
-                    />
-                    All
-                  </label>
+                  {canEdit && (
+                    <label className="flex cursor-pointer items-center gap-1.5 text-xs text-gray-400">
+                      <input
+                        type="checkbox"
+                        checked={item.memberIds.length === members.length}
+                        onChange={() => selectAll(item.id)}
+                        className="h-3.5 w-3.5 rounded border-gray-300 accent-gray-800"
+                      />
+                      All
+                    </label>
+                  )}
                 </div>
                 <div className="flex flex-wrap gap-1.5">
                   {members.map((member) => {
                     const isSelected = item.memberIds.includes(member.id);
+                    if (!canEdit) {
+                      return (
+                        <span
+                          key={member.id}
+                          className={`rounded px-2 py-0.5 text-xs font-medium ${
+                            isSelected ? "bg-gray-800 text-white" : "bg-gray-100 text-gray-400"
+                          }`}
+                        >
+                          {member.displayName}
+                        </span>
+                      );
+                    }
                     return (
                       <button
                         key={member.id}
@@ -197,8 +212,8 @@ export default function BillDetailsPage({
           );
         })}
 
-        {/* Add item form / button — available to everyone */}
-        {showForm ? (
+        {/* Add item form / button — hidden when locked */}
+        {isLocked ? null : showForm ? (
           <div className="rounded-lg border border-gray-200 p-3">
             <div className="flex gap-2">
               <input
@@ -279,7 +294,9 @@ export default function BillDetailsPage({
           </div>
         ) : (
           <p className="mt-4 text-center text-sm text-gray-400">
-            Waiting for host to finalize...
+            {isLocked
+              ? "Host is setting up payment method..."
+              : "Waiting for host to finalize..."}
           </p>
         )}
       </div>
