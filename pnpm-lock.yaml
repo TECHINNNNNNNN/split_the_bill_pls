@@ -96,6 +96,9 @@ importers:
       partysocket:
         specifier: ^1.1.16
         version: 1.1.16(react@19.2.3)
+      promptparse:
+        specifier: ^1.5.0
+        version: 1.5.0
       qrcode.react:
         specifier: ^4.2.0
         version: 4.2.0(react@19.2.3)
@@ -3039,6 +3042,10 @@ packages:
 
   printable-characters@1.0.42:
     resolution: {integrity: sha512-dKp+C4iXWK4vVYZmYSd0KBH5F/h1HoZRsbJ82AVKRO3PEo8L4lBS/vLwhVtpwwuYcoIsVY+1JYKR268yn480uQ==}
+
+  promptparse@1.5.0:
+    resolution: {integrity: sha512-1b0XnuhhQBiZY1ApxA/+KPcH6n+CiHj2Zha1QLPlFciMNZ9aNnSPxtmYIylQQW+U7Knr8+gGxbgFq3vFz0mBqA==}
+    engines: {pnpm: '>=8'}
 
   prop-types@15.8.1:
     resolution: {integrity: sha512-oj87CgZICdulUohogVAR7AjlC0327U4el4L6eAvOqCeudMDVU0NThNaV+b9Df4dXgSP1gXMTnPdhfe/2qDH5cg==}
@@ -6146,6 +6153,8 @@ snapshots:
   prelude-ls@1.2.1: {}
 
   printable-characters@1.0.42: {}
+
+  promptparse@1.5.0: {}
 
   prop-types@15.8.1:
     dependencies:

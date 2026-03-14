@@ -3,6 +3,8 @@
 import { use } from "react";
 import { useRouter } from "next/navigation";
 import { useQuery } from "@tanstack/react-query";
+import { QRCodeSVG } from "qrcode.react";
+import { anyId } from "promptparse/generate";
 import { roomQueries } from "@/lib/queries/rooms";
 import { useTogglePaid } from "@/lib/mutations/rooms";
 import { useRoomSocket } from "@/lib/hooks/use-room-socket";
@@ -67,31 +69,50 @@ export default function PaymentTrackingPage({
         {isHost ? "Track who has paid." : "See how much you owe."}
       </p>
 
-      {/* PromptPay info — shown to non-host members */}
-      {!isHost && room.promptpayId && (
-        <div className="mt-4 rounded-lg border border-gray-200 bg-gray-50 p-4">
-          <p className="text-sm font-medium text-gray-800">Pay via PromptPay</p>
-          <p className="mt-1 text-lg font-semibold text-gray-800">{room.promptpayId}</p>
-          <p className="mt-0.5 text-xs text-gray-500">
-            Send to {hostMember?.displayName}
-          </p>
-        </div>
-      )}
-
-      {/* Your amount — shown to non-host members */}
+      {/* PromptPay QR + amount — shown to non-host members */}
       {!isHost && currentMemberId && (() => {
         const myPayment = payments.find((p) => p.memberId === currentMemberId);
         if (!myPayment) return null;
+        const myAmount = parseFloat(myPayment.amount);
+
+        // Generate PromptPay QR payload if the host set up PromptPay
+        const qrPayload = room.promptpayId
+          ? anyId({
+              type: room.promptpayType === "national_id" ? "NATID" : "MSISDN",
+              target: room.promptpayId,
+              amount: myAmount,
+            })
+          : null;
+
         return (
-          <div className="mt-4 rounded-lg border border-gray-800 bg-gray-800 p-4 text-white">
-            <div className="flex items-center justify-between">
-              <span className="font-medium">You owe</span>
-              <span className="text-xl font-bold">฿{parseFloat(myPayment.amount).toFixed(2)}</span>
-            </div>
-            {myPayment.isPaid && (
-              <p className="mt-1 text-sm text-green-300">Marked as paid</p>
+          <>
+            {qrPayload && (
+              <div className="mt-4 flex flex-col items-center rounded-lg border border-gray-200 bg-white p-5">
+                <p className="text-sm font-medium text-gray-800">
+                  Scan to pay {hostMember?.displayName}
+                </p>
+                <div className="mt-3 rounded-lg bg-white p-2">
+                  <QRCodeSVG value={qrPayload} size={200} />
+                </div>
+                <p className="mt-3 text-2xl font-bold text-gray-800">
+                  ฿{myAmount.toFixed(2)}
+                </p>
+                <p className="mt-1 text-xs text-gray-400">
+                  PromptPay: {room.promptpayId}
+                </p>
+              </div>
             )}
-          </div>
+
+            <div className="mt-4 rounded-lg border border-gray-800 bg-gray-800 p-4 text-white">
+              <div className="flex items-center justify-between">
+                <span className="font-medium">You owe</span>
+                <span className="text-xl font-bold">฿{myAmount.toFixed(2)}</span>
+              </div>
+              {myPayment.isPaid && (
+                <p className="mt-1 text-sm text-green-300">Marked as paid</p>
+              )}
+            </div>
+          </>
         );
       })()}
 
