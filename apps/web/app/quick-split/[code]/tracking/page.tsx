@@ -276,19 +276,19 @@ export default function PaymentTrackingPage({
                     <button
                       type="button"
                       onClick={() => confirmPayment.mutate(payment.id)}
-                      disabled={confirmPayment.isPending}
+                      disabled={confirmPayment.isPending && confirmPayment.variables === payment.id}
                       className="flex-1 rounded-lg bg-green-600 px-3 py-1.5 text-xs font-medium text-white transition-colors hover:bg-green-700 disabled:opacity-40"
                     >
-                      {confirmPayment.isPending ? "..." : "Confirm"}
+                      {confirmPayment.isPending && confirmPayment.variables === payment.id ? "..." : "Confirm"}
                     </button>
                     {status === "claimed" && (
                       <button
                         type="button"
                         onClick={() => rejectPayment.mutate(payment.id)}
-                        disabled={rejectPayment.isPending}
+                        disabled={rejectPayment.isPending && rejectPayment.variables === payment.id}
                         className="flex-1 rounded-lg border border-red-200 px-3 py-1.5 text-xs font-medium text-red-600 transition-colors hover:bg-red-50 disabled:opacity-40"
                       >
-                        {rejectPayment.isPending ? "..." : "Reject"}
+                        {rejectPayment.isPending && rejectPayment.variables === payment.id ? "..." : "Reject"}
                       </button>
                     )}
                   </div>
