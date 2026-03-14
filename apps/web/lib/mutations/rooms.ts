@@ -61,6 +61,26 @@ export function useAddPlaceholderMember(roomId: string) {
   });
 }
 
+export function useRemoveMember(roomId: string) {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (memberId: string) => {
+      const res = await api.api.rooms[":id"].members[":memberId"].$delete({
+        param: { id: roomId, memberId },
+      });
+      if (!res.ok) {
+        const error = await res.json();
+        throw new Error((error as { error?: string }).error || "Failed to remove member");
+      }
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["rooms", "code"] });
+    },
+  });
+}
+
 export function useAdvanceRoomStatus(roomId: string) {
   const queryClient = useQueryClient();
 

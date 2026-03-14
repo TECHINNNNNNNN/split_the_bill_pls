@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { useQuery } from "@tanstack/react-query";
 import { QRCodeSVG } from "qrcode.react";
 import { roomQueries } from "@/lib/queries/rooms";
-import { useAdvanceRoomStatus, useAddPlaceholderMember } from "@/lib/mutations/rooms";
+import { useAdvanceRoomStatus, useAddPlaceholderMember, useRemoveMember } from "@/lib/mutations/rooms";
 
 // ─── SSE hook: subscribe to real-time member join events ───
 
@@ -23,6 +23,10 @@ function useRoomSSE(
 
     eventSource.addEventListener("member-joined", () => {
       onMemberJoined();
+    });
+
+    eventSource.addEventListener("member-removed", () => {
+      onMemberJoined(); // reuse same refetch callback
     });
 
     eventSource.addEventListener("status-changed", (e) => {
@@ -74,6 +78,9 @@ export default function RoomLobbyPage({
 
   // Advance status mutation
   const advanceStatus = useAdvanceRoomStatus(room?.id ?? "");
+
+  // Remove member (host kicks a guest)
+  const removeMember = useRemoveMember(room?.id ?? "");
 
   // Add placeholder member (host adds a name manually)
   const addPlaceholder = useAddPlaceholderMember(room?.id ?? "");
@@ -163,11 +170,21 @@ export default function RoomLobbyPage({
           {members.map((member) => (
             <div
               key={member.id}
-              className="rounded-lg border border-gray-200 bg-white px-3 py-2 text-center text-xs font-medium text-gray-700 md:text-sm"
+              className="relative rounded-lg border border-gray-200 bg-white px-3 py-2 text-center text-xs font-medium text-gray-700 md:text-sm"
             >
               {member.displayName}
               {member.isHost && (
                 <span className="text-gray-400"> (host)</span>
+              )}
+              {isHost && !member.isHost && (
+                <button
+                  type="button"
+                  onClick={() => removeMember.mutate(member.id, { onSuccess: () => refetch() })}
+                  className="absolute -right-1.5 -top-1.5 flex h-5 w-5 items-center justify-center rounded-full bg-gray-400 text-[10px] text-white transition-colors hover:bg-red-500"
+                  title={`Remove ${member.displayName}`}
+                >
+                  ✕
+                </button>
               )}
             </div>
           ))}

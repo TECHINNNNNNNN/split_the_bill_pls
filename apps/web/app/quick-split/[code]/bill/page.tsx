@@ -77,17 +77,17 @@ export default function BillDetailsPage({
 
   const handleToggleMember = (itemId: string, currentSplitMemberIds: string[], memberId: string) => {
     const isSelected = currentSplitMemberIds.includes(memberId);
-    let newMemberIds: string[];
+    const newMemberIds = isSelected
+      ? currentSplitMemberIds.filter((id) => id !== memberId)
+      : [...currentSplitMemberIds, memberId];
 
-    if (isSelected) {
-      // Deselect — but don't allow deselecting everyone
-      newMemberIds = currentSplitMemberIds.filter((id) => id !== memberId);
-      if (newMemberIds.length === 0) return;
-    } else {
-      // Select
-      newMemberIds = [...currentSplitMemberIds, memberId];
-    }
+    toggleSplit.mutate({ itemId, memberIds: newMemberIds });
+  };
 
+  const handleSelectAll = (itemId: string, currentSplitMemberIds: string[]) => {
+    const allSelected = currentSplitMemberIds.length === members.length;
+    // If all selected → deselect all. Otherwise → select all.
+    const newMemberIds = allSelected ? [] : members.map((m) => m.id);
     toggleSplit.mutate({ itemId, memberIds: newMemberIds });
   };
 

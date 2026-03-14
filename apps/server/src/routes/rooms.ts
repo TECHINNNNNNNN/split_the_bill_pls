@@ -302,6 +302,50 @@ const app = new Hono()
     return c.json({ member: newMember }, 201)
   })
 
+  // ─── DELETE /rooms/:id/members/:memberId ──────
+  // Host removes a guest from the lobby.
+  // Only works during "waiting" status. Cannot remove the host.
+  .delete("/:id/members/:memberId", async (c) => {
+    const roomId = c.req.param("id")
+    const targetMemberId = c.req.param("memberId")
+    const callerId = getMemberCookie(c, roomId)
+
+    const caller = await verifyRoomMember(roomId, callerId)
+    if (!caller?.isHost) {
+      return c.json({ error: "Only the host can remove members" }, 403)
+    }
+
+    const room = await db.query.rooms.findFirst({
+      where: eq(rooms.id, roomId),
+    })
+
+    if (!room) {
+      return c.json({ error: "Room not found" }, 404)
+    }
+
+    if (room.status !== "waiting") {
+      return c.json({ error: "Can only remove members while waiting" }, 400)
+    }
+
+    // Don't allow removing the host
+    const target = await verifyRoomMember(roomId, targetMemberId)
+    if (!target) {
+      return c.json({ error: "Member not found" }, 404)
+    }
+    if (target.isHost) {
+      return c.json({ error: "Cannot remove the host" }, 400)
+    }
+
+    await db.delete(roomMembers).where(
+      and(eq(roomMembers.id, targetMemberId), eq(roomMembers.roomId, roomId))
+    )
+
+    // Notify SSE listeners so lobby updates
+    notifyListeners(room.inviteCode, "member-removed", { memberId: targetMemberId })
+
+    return c.json({ success: true })
+  })
+
   // ─── GET /rooms/:id ──────────────────────────
   // Full room state: members, items (with their splits),
   // and payments. Used by bill details, payment method,
@@ -389,8 +433,7 @@ const app = new Hono()
 
   // ─── POST /rooms/:id/items ───────────────────
   // Host adds a bill item (e.g. "Diet Coke ฿45").
-  // Automatically creates splits for ALL members
-  // (everyone shares by default — tap to deselect later).
+  // Starts with NO splits — host selects who shares it.
   .post("/:id/items", zValidator("json", addRoomItemSchema), async (c) => {
     const roomId = c.req.param("id")
     const memberId = getMemberCookie(c, roomId)
@@ -414,19 +457,7 @@ const app = new Hono()
       sortOrder: existingItems.length,
     }).returning()
 
-    // Auto-split among ALL members
-    const members = await db.query.roomMembers.findMany({
-      where: eq(roomMembers.roomId, roomId),
-    })
-
-    if (members.length > 0) {
-      await db.insert(roomItemSplits).values(
-        members.map((m) => ({
-          itemId: item.id,
-          memberId: m.id,
-        }))
-      )
-    }
+    // No auto-splits — item starts with 0 people selected
 
     // Return the item with its splits
     const itemWithSplits = await db.query.roomBillItems.findFirst({
