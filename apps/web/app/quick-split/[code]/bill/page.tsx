@@ -100,11 +100,12 @@ export default function BillDetailsPage({
   };
 
   // Auto-redirect non-host when host finalizes (status → payment)
+  // Host navigates explicitly via the finalize button, so skip them here.
   useEffect(() => {
-    if (room && room.status === "payment") {
+    if (room && room.status === "payment" && !isHost) {
       router.replace(`/quick-split/${code}/tracking`);
     }
-  }, [room, room?.status, code, router]);
+  }, [room, room?.status, code, router, isHost]);
 
   // Calculate running total
   const total = items.reduce((sum, item) => sum + parseFloat(item.amount), 0);
@@ -234,13 +235,15 @@ export default function BillDetailsPage({
               <div className="mt-2 border-t border-gray-100 pt-2">
                 <div className="mb-1.5 flex items-center justify-between">
                   <p className="text-xs text-gray-500">Split Amongst</p>
-                  <button
-                    type="button"
-                    onClick={() => handleSelectAll(item.id, splitMemberIds)}
-                    className="text-xs text-gray-400 underline transition-colors hover:text-gray-600"
-                  >
-                    {splitMemberIds.length === members.length ? "Deselect All" : "Select All"}
-                  </button>
+                  <label className="flex cursor-pointer items-center gap-1.5 text-xs text-gray-400">
+                    <input
+                      type="checkbox"
+                      checked={splitMemberIds.length === members.length}
+                      onChange={() => handleSelectAll(item.id, splitMemberIds)}
+                      className="h-3.5 w-3.5 rounded border-gray-300 accent-gray-800"
+                    />
+                    All
+                  </label>
                 </div>
                 <div className="flex flex-wrap gap-1.5">
                   {members.map((member) => {
