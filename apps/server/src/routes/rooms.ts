@@ -629,7 +629,7 @@ const app = new Hono()
   })
 
   // ─── PATCH /rooms/:id/payments/:paymentId/confirm
-  // Host confirms a claimed payment.
+  // Host confirms a payment. Can confirm from unpaid (direct) or claimed.
   .patch("/:id/payments/:paymentId/confirm", async (c) => {
     const roomId = c.req.param("id")
     const paymentId = c.req.param("paymentId")
@@ -648,8 +648,8 @@ const app = new Hono()
       return c.json({ error: "Payment not found" }, 404)
     }
 
-    if (payment.status !== "claimed") {
-      return c.json({ error: "Can only confirm claimed payments" }, 400)
+    if (payment.status !== "claimed" && payment.status !== "unpaid") {
+      return c.json({ error: "Payment cannot be confirmed in its current state" }, 400)
     }
 
     const [updated] = await db.update(roomPayments)

@@ -270,8 +270,8 @@ export default function PaymentTrackingPage({
                   </div>
                 </div>
 
-                {/* Host actions for claimed payments */}
-                {isHost && status === "claimed" && (
+                {/* Host actions — confirm from unpaid or claimed, reject only claimed */}
+                {isHost && (status === "claimed" || status === "unpaid") && (
                   <div className="mt-3 flex gap-2 border-t border-gray-100 pt-3">
                     <button
                       type="button"
@@ -281,14 +281,16 @@ export default function PaymentTrackingPage({
                     >
                       {confirmPayment.isPending ? "..." : "Confirm"}
                     </button>
-                    <button
-                      type="button"
-                      onClick={() => rejectPayment.mutate(payment.id)}
-                      disabled={rejectPayment.isPending}
-                      className="flex-1 rounded-lg border border-red-200 px-3 py-1.5 text-xs font-medium text-red-600 transition-colors hover:bg-red-50 disabled:opacity-40"
-                    >
-                      {rejectPayment.isPending ? "..." : "Reject"}
-                    </button>
+                    {status === "claimed" && (
+                      <button
+                        type="button"
+                        onClick={() => rejectPayment.mutate(payment.id)}
+                        disabled={rejectPayment.isPending}
+                        className="flex-1 rounded-lg border border-red-200 px-3 py-1.5 text-xs font-medium text-red-600 transition-colors hover:bg-red-50 disabled:opacity-40"
+                      >
+                        {rejectPayment.isPending ? "..." : "Reject"}
+                      </button>
+                    )}
                   </div>
                 )}
               </div>
