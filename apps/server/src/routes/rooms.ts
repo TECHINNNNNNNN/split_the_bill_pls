@@ -13,6 +13,7 @@ import {
   setRoomItemSplitsSchema,
   setRoomPaymentMethodSchema,
   updateRoomStatusSchema,
+  finalizeRoomSchema,
 } from "@pladuk/shared/schemas"
 import { calculateSplit } from "@pladuk/shared/utils"
 
@@ -543,11 +544,11 @@ const app = new Hono()
   })
 
   // ─── POST /rooms/:id/finalize ────────────────
-  // Runs the calculateSplit() algorithm from the
-  // shared package. Takes all items and their splits,
-  // computes how much each person owes, and creates
-  // payment records.
-  .post("/:id/finalize", async (c) => {
+  // Accepts the full bill (items + who splits each)
+  // in one request. Creates items, splits, calculates
+  // payments, and advances status — all at once.
+  // No per-tap API calls needed during editing.
+  .post("/:id/finalize", zValidator("json", finalizeRoomSchema), async (c) => {
     const roomId = c.req.param("id")
     const memberId = getMemberCookie(c, roomId)
 
@@ -556,27 +557,51 @@ const app = new Hono()
       return c.json({ error: "Only the host can finalize" }, 403)
     }
 
-    // Fetch items with their splits
-    const items = await db.query.roomBillItems.findMany({
-      where: eq(roomBillItems.roomId, roomId),
-      with: { splits: true },
-    })
+    const { items: clientItems } = c.req.valid("json")
 
-    if (items.length === 0) {
-      return c.json({ error: "No items to split" }, 400)
+    // Clear any existing items/splits for this room (clean slate)
+    const existingItems = await db.query.roomBillItems.findMany({
+      where: eq(roomBillItems.roomId, roomId),
+    })
+    for (const item of existingItems) {
+      await db.delete(roomItemSplits).where(eq(roomItemSplits.itemId, item.id))
+    }
+    await db.delete(roomBillItems).where(eq(roomBillItems.roomId, roomId))
+
+    // Create all items and their splits
+    const createdItems = []
+    for (let i = 0; i < clientItems.length; i++) {
+      const ci = clientItems[i]
+      const [item] = await db.insert(roomBillItems).values({
+        roomId,
+        name: ci.name,
+        amount: ci.amount.toString(),
+        sortOrder: i,
+      }).returning()
+
+      if (ci.memberIds.length > 0) {
+        await db.insert(roomItemSplits).values(
+          ci.memberIds.map((mId) => ({
+            itemId: item.id,
+            memberId: mId,
+          }))
+        )
+      }
+
+      createdItems.push({ ...item, memberIds: ci.memberIds })
     }
 
     // Build inputs for calculateSplit()
-    const calcItems = items.map((item) => ({
+    const calcItems = createdItems.map((item) => ({
       id: item.id,
       name: item.name,
       totalPrice: parseFloat(item.amount),
     }))
 
-    const calcClaims = items.flatMap((item) =>
-      item.splits.map((split) => ({
+    const calcClaims = createdItems.flatMap((item) =>
+      item.memberIds.map((mId) => ({
         billItemId: item.id,
-        memberId: split.memberId,
+        memberId: mId,
       }))
     )
 
@@ -589,9 +614,7 @@ const app = new Hono()
       totalAmount: subtotal,
     }
 
-    // Get unique member IDs from all splits
-    const splitMemberIds = [...new Set(calcClaims.map((c) => c.memberId))]
-
+    const splitMemberIds = [...new Set(calcClaims.map((cl) => cl.memberId))]
     const splitResult = calculateSplit(calcItems, calcClaims, calcTotals, splitMemberIds)
 
     // Delete any old payments and create new ones
@@ -608,7 +631,6 @@ const app = new Hono()
           roomId,
           memberId: split.memberId,
           amount: split.totalAmount.toFixed(2),
-          // Host doesn't owe themselves — auto-mark as paid
           isPaid: split.memberId === hostMember?.id,
           paidAt: split.memberId === hostMember?.id ? new Date() : null,
         }))
@@ -619,6 +641,12 @@ const app = new Hono()
     await db.update(rooms)
       .set({ status: "payment" })
       .where(eq(rooms.id, roomId))
+
+    // Notify SSE so non-host members redirect
+    const room = await db.query.rooms.findFirst({ where: eq(rooms.id, roomId) })
+    if (room) {
+      notifyListeners(room.inviteCode, "status-changed", { status: "payment" })
+    }
 
     return c.json({ splits: splitResult.splits, totalAmount: subtotal })
   })

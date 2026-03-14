@@ -98,6 +98,14 @@ export const setRoomItemSplitsSchema = z.object({
   memberIds: z.array(z.string().uuid()).min(1),
 })
 
+export const finalizeRoomSchema = z.object({
+  items: z.array(z.object({
+    name: z.string().min(1).max(200),
+    amount: z.number().positive(),
+    memberIds: z.array(z.string().uuid()).min(1),
+  })).min(1),
+})
+
 export const setRoomPaymentMethodSchema = z.object({
   promptpayId: z.string().min(10).max(13),
   promptpayType: promptpayTypeSchema,
@@ -122,4 +130,5 @@ export type CreateRoom = z.infer<typeof createRoomSchema>
 export type JoinRoom = z.infer<typeof joinRoomSchema>
 export type AddRoomItem = z.infer<typeof addRoomItemSchema>
 export type SetRoomItemSplits = z.infer<typeof setRoomItemSplitsSchema>
+export type FinalizeRoom = z.infer<typeof finalizeRoomSchema>
 export type SetRoomPaymentMethod = z.infer<typeof setRoomPaymentMethodSchema>

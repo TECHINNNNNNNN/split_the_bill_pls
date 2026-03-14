@@ -5,6 +5,7 @@ import type {
   JoinRoom,
   AddRoomItem,
   SetRoomItemSplits,
+  FinalizeRoom,
   SetRoomPaymentMethod,
   RoomStatus,
 } from "@pladuk/shared/schemas";
@@ -156,9 +157,10 @@ export function useFinalizeRoom(roomId: string) {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async () => {
+    mutationFn: async (data: FinalizeRoom) => {
       const res = await api.api.rooms[":id"].finalize.$post({
         param: { id: roomId },
+        json: data,
       });
       if (!res.ok) throw new Error("Failed to finalize bill");
       return res.json();
