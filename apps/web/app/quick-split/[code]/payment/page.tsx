@@ -4,7 +4,7 @@ import { use, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useQuery } from "@tanstack/react-query";
 import { roomQueries } from "@/lib/queries/rooms";
-import { useSetPaymentMethod } from "@/lib/mutations/rooms";
+import { useSetPaymentMethod, useAdvanceRoomStatus } from "@/lib/mutations/rooms";
 
 type PaymentTab = "promptpay" | "bank" | "other";
 
@@ -28,6 +28,7 @@ export default function PaymentMethodPage({
   const payments = room?.payments ?? [];
 
   const setPaymentMethod = useSetPaymentMethod(roomId);
+  const advanceStatus = useAdvanceRoomStatus(roomId);
 
   const [activeTab, setActiveTab] = useState<PaymentTab>("promptpay");
   const [promptpayId, setPromptpayId] = useState("");
@@ -48,8 +49,12 @@ export default function PaymentMethodPage({
         }
       );
     } else {
-      // For bank/other, just navigate
-      router.push(`/quick-split/${code}/tracking`);
+      // For bank/other, advance status then navigate
+      advanceStatus.mutate("payment", {
+        onSuccess: () => {
+          router.push(`/quick-split/${code}/tracking`);
+        },
+      });
     }
   };
 

@@ -35,6 +35,9 @@ pnpm-debug.log*
 .DS_Store
 Thumbs.db
 
+# PartyKit local state
+.partykit/
+
 # deployment
 .vercel
 

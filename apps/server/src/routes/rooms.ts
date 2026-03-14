@@ -548,16 +548,8 @@ const app = new Hono()
       )
     }
 
-    // Advance status to "payment"
-    await db.update(rooms)
-      .set({ status: "payment" })
-      .where(eq(rooms.id, roomId))
-
-    // Notify PartyKit — non-host members redirect via WebSocket
-    const room = await db.query.rooms.findFirst({ where: eq(rooms.id, roomId) })
-    if (room) {
-      notifyPartyKit(room.inviteCode, "status-changed", { status: "payment" })
-    }
+    // Status stays "splitting" — host still needs to set payment method.
+    // Status advances to "payment" when the host submits the payment page.
 
     return c.json({ splits: splitResult.splits, totalAmount: subtotal })
   })
@@ -577,9 +569,12 @@ const app = new Hono()
     const { promptpayId, promptpayType } = c.req.valid("json")
 
     const [updated] = await db.update(rooms)
-      .set({ promptpayId, promptpayType })
+      .set({ promptpayId, promptpayType, status: "payment" })
       .where(eq(rooms.id, roomId))
       .returning()
+
+    // Notify PartyKit — non-host members redirect to tracking via WebSocket
+    notifyPartyKit(updated.inviteCode, "status-changed", { status: "payment" })
 
     return c.json(updated)
   })
