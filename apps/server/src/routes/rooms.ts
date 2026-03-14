@@ -226,6 +226,11 @@ const app = new Hono()
       return c.json({ error: "Room has already started" }, 400)
     }
 
+    // Check if room is full
+    if (room.members.length >= room.expectedMembers) {
+      return c.json({ error: "Room is full" }, 400)
+    }
+
     // Check for duplicate name in this room
     const nameExists = room.members.some(
       (m) => m.displayName.toLowerCase() === displayName.toLowerCase()
