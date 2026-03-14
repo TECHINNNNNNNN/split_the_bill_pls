@@ -232,7 +232,16 @@ export default function BillDetailsPage({
 
               {/* Split amongst chips */}
               <div className="mt-2 border-t border-gray-100 pt-2">
-                <p className="mb-1.5 text-xs text-gray-500">Split Amongst</p>
+                <div className="mb-1.5 flex items-center justify-between">
+                  <p className="text-xs text-gray-500">Split Amongst</p>
+                  <button
+                    type="button"
+                    onClick={() => handleSelectAll(item.id, splitMemberIds)}
+                    className="text-xs text-gray-400 underline transition-colors hover:text-gray-600"
+                  >
+                    {splitMemberIds.length === members.length ? "Deselect All" : "Select All"}
+                  </button>
+                </div>
                 <div className="flex flex-wrap gap-1.5">
                   {members.map((member) => {
                     const isSelected = splitMemberIds.includes(member.id);
