@@ -189,15 +189,49 @@ export function useSetPaymentMethod(roomId: string) {
   });
 }
 
-export function useTogglePaid(roomId: string) {
+export function useClaimPayment(roomId: string) {
   const queryClient = useQueryClient();
 
   return useMutation({
     mutationFn: async (paymentId: string) => {
-      const res = await api.api.rooms[":id"].payments[":paymentId"]["toggle-paid"].$patch({
+      const res = await api.api.rooms[":id"].payments[":paymentId"].claim.$patch({
         param: { id: roomId, paymentId },
       });
-      if (!res.ok) throw new Error("Failed to toggle payment");
+      if (!res.ok) throw new Error("Failed to claim payment");
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["rooms", roomId] });
+    },
+  });
+}
+
+export function useConfirmPayment(roomId: string) {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (paymentId: string) => {
+      const res = await api.api.rooms[":id"].payments[":paymentId"].confirm.$patch({
+        param: { id: roomId, paymentId },
+      });
+      if (!res.ok) throw new Error("Failed to confirm payment");
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["rooms", roomId] });
+    },
+  });
+}
+
+export function useRejectPayment(roomId: string) {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (paymentId: string) => {
+      const res = await api.api.rooms[":id"].payments[":paymentId"].reject.$patch({
+        param: { id: roomId, paymentId },
+      });
+      if (!res.ok) throw new Error("Failed to reject payment");
       return res.json();
     },
     onSuccess: () => {

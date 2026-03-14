@@ -208,8 +208,10 @@ export const roomPayments = pgTable("room_payments", {
     .references(() => roomMembers.id, { onDelete: "cascade" })
     .notNull(),
   amount: numeric("amount", { precision: 10, scale: 2 }).notNull(),
-  isPaid: boolean("is_paid").default(false).notNull(),
-  paidAt: timestamp("paid_at", { withTimezone: true }),
+  status: paymentStatusEnum("status").default("unpaid").notNull(),
+  claimedAt: timestamp("claimed_at", { withTimezone: true }),
+  confirmedAt: timestamp("confirmed_at", { withTimezone: true }),
+  rejectedAt: timestamp("rejected_at", { withTimezone: true }),
 });
 
 // ════════════════════════════════════════════

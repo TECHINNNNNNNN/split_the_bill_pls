@@ -6,8 +6,18 @@ import { useQuery } from "@tanstack/react-query";
 import { QRCodeSVG } from "qrcode.react";
 import { anyId } from "promptparse/generate";
 import { roomQueries } from "@/lib/queries/rooms";
-import { useTogglePaid } from "@/lib/mutations/rooms";
+import { useClaimPayment, useConfirmPayment, useRejectPayment } from "@/lib/mutations/rooms";
 import { useRoomSocket } from "@/lib/hooks/use-room-socket";
+
+type PaymentStatus = "unpaid" | "claimed" | "confirmed" | "rejected";
+
+// Status badge colors and labels
+const statusConfig: Record<PaymentStatus, { label: string; classes: string }> = {
+  unpaid: { label: "Unpaid", classes: "border-gray-300 text-gray-500" },
+  claimed: { label: "Claimed", classes: "border-yellow-300 bg-yellow-50 text-yellow-700" },
+  confirmed: { label: "Confirmed", classes: "border-green-200 bg-green-50 text-green-700" },
+  rejected: { label: "Rejected", classes: "border-red-200 bg-red-50 text-red-600" },
+};
 
 export default function PaymentTrackingPage({
   params,
@@ -24,7 +34,6 @@ export default function PaymentTrackingPage({
   const { data: detailData } = useQuery({
     ...roomQueries.detail(roomId),
     enabled: !!roomId,
-    // No polling — WebSocket push via useRoomSocket
   });
 
   const room = detailData?.room;
@@ -33,16 +42,17 @@ export default function PaymentTrackingPage({
   const isHost = members.find((m) => m.id === currentMemberId)?.isHost ?? false;
   const hostMember = members.find((m) => m.isHost);
 
-  const togglePaid = useTogglePaid(roomId);
+  const claimPayment = useClaimPayment(roomId);
+  const confirmPayment = useConfirmPayment(roomId);
+  const rejectPayment = useRejectPayment(roomId);
 
-  // WebSocket: instant updates when payments are toggled
+  // WebSocket: instant updates when payment statuses change
   useRoomSocket(code);
 
   const total = payments.reduce((sum, p) => sum + parseFloat(p.amount), 0);
-  const paidTotal = payments
-    .filter((p) => p.isPaid)
-    .reduce((sum, p) => sum + parseFloat(p.amount), 0);
-  const paidCount = payments.filter((p) => p.isPaid).length;
+  const confirmedPayments = payments.filter((p) => p.status === "confirmed");
+  const confirmedTotal = confirmedPayments.reduce((sum, p) => sum + parseFloat(p.amount), 0);
+  const confirmedCount = confirmedPayments.length;
 
   if (!room) {
     return (
@@ -69,14 +79,15 @@ export default function PaymentTrackingPage({
         {isHost ? "Track who has paid." : "See how much you owe."}
       </p>
 
-      {/* PromptPay QR + amount — shown to non-host members */}
+      {/* PromptPay QR + amount + claim button — shown to non-host members */}
       {!isHost && currentMemberId && (() => {
         const myPayment = payments.find((p) => p.memberId === currentMemberId);
         if (!myPayment) return null;
         const myAmount = parseFloat(myPayment.amount);
+        const status = myPayment.status as PaymentStatus;
 
         // Generate PromptPay QR payload if the host set up PromptPay
-        const qrPayload = room.promptpayId
+        const qrPayload = room.promptpayId && status !== "confirmed"
           ? anyId({
               type: room.promptpayType === "national_id" ? "NATID" : "MSISDN",
               target: room.promptpayId,
@@ -86,6 +97,7 @@ export default function PaymentTrackingPage({
 
         return (
           <>
+            {/* QR code — hide once confirmed */}
             {qrPayload && (
               <div className="mt-4 flex flex-col items-center rounded-lg border border-gray-200 bg-white p-5">
                 <p className="text-sm font-medium text-gray-800">
@@ -103,13 +115,60 @@ export default function PaymentTrackingPage({
               </div>
             )}
 
-            <div className="mt-4 rounded-lg border border-gray-800 bg-gray-800 p-4 text-white">
+            {/* Status card for the member */}
+            <div className={`mt-4 rounded-lg border p-4 ${
+              status === "confirmed"
+                ? "border-green-300 bg-green-50"
+                : "border-gray-800 bg-gray-800"
+            }`}>
               <div className="flex items-center justify-between">
-                <span className="font-medium">You owe</span>
-                <span className="text-xl font-bold">฿{myAmount.toFixed(2)}</span>
+                <span className={`font-medium ${
+                  status === "confirmed" ? "text-green-800" : "text-white"
+                }`}>
+                  {status === "confirmed" ? "Payment confirmed" : "You owe"}
+                </span>
+                <span className={`text-xl font-bold ${
+                  status === "confirmed" ? "text-green-800" : "text-white"
+                }`}>
+                  ฿{myAmount.toFixed(2)}
+                </span>
               </div>
-              {myPayment.isPaid && (
-                <p className="mt-1 text-sm text-green-300">Marked as paid</p>
+
+              {/* Action area based on status */}
+              {status === "unpaid" && (
+                <button
+                  type="button"
+                  onClick={() => claimPayment.mutate(myPayment.id)}
+                  disabled={claimPayment.isPending}
+                  className="mt-3 w-full rounded-lg bg-white px-4 py-2 text-sm font-medium text-gray-800 transition-colors hover:bg-gray-100 disabled:opacity-40"
+                >
+                  {claimPayment.isPending ? "Submitting..." : "I've Paid"}
+                </button>
+              )}
+              {status === "claimed" && (
+                <p className="mt-2 text-sm text-yellow-200">
+                  Waiting for host to confirm...
+                </p>
+              )}
+              {status === "confirmed" && (
+                <p className="mt-1 text-sm text-green-600">
+                  Thank you!
+                </p>
+              )}
+              {status === "rejected" && (
+                <>
+                  <p className="mt-2 text-sm text-red-300">
+                    Host rejected your claim. Please check and try again.
+                  </p>
+                  <button
+                    type="button"
+                    onClick={() => claimPayment.mutate(myPayment.id)}
+                    disabled={claimPayment.isPending}
+                    className="mt-2 w-full rounded-lg bg-white px-4 py-2 text-sm font-medium text-gray-800 transition-colors hover:bg-gray-100 disabled:opacity-40"
+                  >
+                    {claimPayment.isPending ? "Submitting..." : "I've Paid (Retry)"}
+                  </button>
+                </>
               )}
             </div>
           </>
@@ -120,23 +179,23 @@ export default function PaymentTrackingPage({
       <div className="mt-6 rounded-lg border border-gray-200 p-4">
         <div className="flex justify-between text-sm">
           <span className="text-gray-600">
-            {paidCount}/{payments.length} paid
+            {confirmedCount}/{payments.length} confirmed
           </span>
           <span className="text-gray-800">
-            ฿{paidTotal.toFixed(2)}/฿{total.toFixed(2)}
+            ฿{confirmedTotal.toFixed(2)}/฿{total.toFixed(2)}
           </span>
         </div>
         <div className="mt-2 h-2 overflow-hidden rounded-full bg-gray-100">
           <div
             className="h-full rounded-full bg-gray-800 transition-all duration-300"
             style={{
-              width: `${payments.length > 0 ? (paidCount / payments.length) * 100 : 0}%`,
+              width: `${payments.length > 0 ? (confirmedCount / payments.length) * 100 : 0}%`,
             }}
           />
         </div>
       </div>
 
-      {/* Host card (you) — if current user is host */}
+      {/* Host card */}
       {hostMember && (
         <div className="mt-4 rounded-lg border border-gray-200 p-4">
           <div className="flex items-center justify-between">
@@ -162,73 +221,79 @@ export default function PaymentTrackingPage({
       <div className="mt-2 space-y-2">
         {payments
           .filter((p) => p.memberId !== hostMember?.id)
-          .map((payment) => (
-            <div
-              key={payment.id}
-              className="rounded-lg border border-gray-200 p-4"
-            >
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  {/* Clock icon for unpaid */}
-                  {!payment.isPaid && (
-                    <svg
-                      className="h-4 w-4 text-gray-400"
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
-                      />
-                    </svg>
-                  )}
-                  {/* Checkmark for paid */}
-                  {payment.isPaid && (
-                    <svg
-                      className="h-4 w-4 text-green-500"
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M5 13l4 4L19 7"
-                      />
-                    </svg>
-                  )}
-                  <span className="font-medium text-gray-800">
-                    {payment.member?.displayName}
-                  </span>
+          .map((payment) => {
+            const status = payment.status as PaymentStatus;
+            const config = statusConfig[status];
+
+            return (
+              <div
+                key={payment.id}
+                className="rounded-lg border border-gray-200 p-4"
+              >
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    {/* Status icon */}
+                    {status === "confirmed" && (
+                      <svg className="h-4 w-4 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                      </svg>
+                    )}
+                    {status === "claimed" && (
+                      <svg className="h-4 w-4 text-yellow-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                      </svg>
+                    )}
+                    {status === "unpaid" && (
+                      <svg className="h-4 w-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                      </svg>
+                    )}
+                    {status === "rejected" && (
+                      <svg className="h-4 w-4 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                      </svg>
+                    )}
+                    <span className="font-medium text-gray-800">
+                      {payment.member?.displayName}
+                    </span>
+                  </div>
+
+                  <div className="flex items-center gap-3">
+                    <span className="text-gray-800">
+                      ฿{parseFloat(payment.amount).toFixed(2)}
+                    </span>
+
+                    {/* Status badge (always visible) */}
+                    <span className={`rounded-lg border px-2.5 py-0.5 text-xs font-medium ${config.classes}`}>
+                      {config.label}
+                    </span>
+                  </div>
                 </div>
 
-                <div className="flex items-center gap-3">
-                  <span className="text-gray-800">
-                    ฿{parseFloat(payment.amount).toFixed(2)}
-                  </span>
-
-                  {isHost && (
+                {/* Host actions for claimed payments */}
+                {isHost && status === "claimed" && (
+                  <div className="mt-3 flex gap-2 border-t border-gray-100 pt-3">
                     <button
                       type="button"
-                      onClick={() => togglePaid.mutate(payment.id)}
-                      disabled={togglePaid.isPending}
-                      className={`rounded-lg border px-3 py-1 text-xs font-medium transition-colors ${
-                        payment.isPaid
-                          ? "border-green-200 bg-green-50 text-green-700"
-                          : "border-gray-300 text-gray-600 hover:bg-gray-50"
-                      }`}
+                      onClick={() => confirmPayment.mutate(payment.id)}
+                      disabled={confirmPayment.isPending}
+                      className="flex-1 rounded-lg bg-green-600 px-3 py-1.5 text-xs font-medium text-white transition-colors hover:bg-green-700 disabled:opacity-40"
                     >
-                      {payment.isPaid ? "Paid" : "Mark Paid"}
+                      {confirmPayment.isPending ? "..." : "Confirm"}
                     </button>
-                  )}
-                </div>
+                    <button
+                      type="button"
+                      onClick={() => rejectPayment.mutate(payment.id)}
+                      disabled={rejectPayment.isPending}
+                      className="flex-1 rounded-lg border border-red-200 px-3 py-1.5 text-xs font-medium text-red-600 transition-colors hover:bg-red-50 disabled:opacity-40"
+                    >
+                      {rejectPayment.isPending ? "..." : "Reject"}
+                    </button>
+                  </div>
+                )}
               </div>
-            </div>
-          ))}
+            );
+          })}
       </div>
 
       {/* Back to Home */}

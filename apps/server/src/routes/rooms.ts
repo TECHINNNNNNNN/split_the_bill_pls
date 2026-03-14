@@ -542,8 +542,8 @@ const app = new Hono()
           roomId,
           memberId: split.memberId,
           amount: split.totalAmount.toFixed(2),
-          isPaid: split.memberId === hostMember?.id,
-          paidAt: split.memberId === hostMember?.id ? new Date() : null,
+          status: split.memberId === hostMember?.id ? "confirmed" as const : "unpaid" as const,
+          confirmedAt: split.memberId === hostMember?.id ? new Date() : null,
         }))
       )
     }
@@ -585,19 +585,18 @@ const app = new Hono()
     return c.json(updated)
   })
 
-  // ─── PATCH /rooms/:id/payments/:paymentId/toggle-paid
-  // Host marks a member as paid or unpaid.
-  .patch("/:id/payments/:paymentId/toggle-paid", async (c) => {
+  // ─── PATCH /rooms/:id/payments/:paymentId/claim
+  // Member claims they've paid. Transitions: unpaid → claimed, rejected → claimed.
+  .patch("/:id/payments/:paymentId/claim", async (c) => {
     const roomId = c.req.param("id")
     const paymentId = c.req.param("paymentId")
     const memberId = getMemberCookie(c, roomId)
 
     const member = await verifyRoomMember(roomId, memberId)
-    if (!member?.isHost) {
-      return c.json({ error: "Only the host can mark payments" }, 403)
+    if (!member) {
+      return c.json({ error: "Not a member of this room" }, 403)
     }
 
-    // Get the current payment
     const payment = await db.query.roomPayments.findFirst({
       where: and(eq(roomPayments.id, paymentId), eq(roomPayments.roomId, roomId)),
     })
@@ -606,20 +605,98 @@ const app = new Hono()
       return c.json({ error: "Payment not found" }, 404)
     }
 
-    // Toggle: if paid → unpaid, if unpaid → paid
-    const newIsPaid = !payment.isPaid
+    // Only the member who owes this payment can claim it
+    if (payment.memberId !== memberId) {
+      return c.json({ error: "You can only claim your own payment" }, 403)
+    }
+
+    // Can only claim from unpaid or rejected
+    if (payment.status !== "unpaid" && payment.status !== "rejected") {
+      return c.json({ error: "Payment cannot be claimed in its current state" }, 400)
+    }
+
     const [updated] = await db.update(roomPayments)
-      .set({
-        isPaid: newIsPaid,
-        paidAt: payment.isPaid ? null : new Date(),
-      })
+      .set({ status: "claimed", claimedAt: new Date(), rejectedAt: null })
       .where(eq(roomPayments.id, paymentId))
       .returning()
 
-    // Notify PartyKit — tracking page updates instantly
     const room = await db.query.rooms.findFirst({ where: eq(rooms.id, roomId) })
     if (room) {
-      notifyPartyKit(room.inviteCode, "payment-toggled", { paymentId, isPaid: newIsPaid })
+      notifyPartyKit(room.inviteCode, "payment-toggled", { paymentId, status: "claimed" })
+    }
+
+    return c.json(updated)
+  })
+
+  // ─── PATCH /rooms/:id/payments/:paymentId/confirm
+  // Host confirms a claimed payment.
+  .patch("/:id/payments/:paymentId/confirm", async (c) => {
+    const roomId = c.req.param("id")
+    const paymentId = c.req.param("paymentId")
+    const memberId = getMemberCookie(c, roomId)
+
+    const member = await verifyRoomMember(roomId, memberId)
+    if (!member?.isHost) {
+      return c.json({ error: "Only the host can confirm payments" }, 403)
+    }
+
+    const payment = await db.query.roomPayments.findFirst({
+      where: and(eq(roomPayments.id, paymentId), eq(roomPayments.roomId, roomId)),
+    })
+
+    if (!payment) {
+      return c.json({ error: "Payment not found" }, 404)
+    }
+
+    if (payment.status !== "claimed") {
+      return c.json({ error: "Can only confirm claimed payments" }, 400)
+    }
+
+    const [updated] = await db.update(roomPayments)
+      .set({ status: "confirmed", confirmedAt: new Date() })
+      .where(eq(roomPayments.id, paymentId))
+      .returning()
+
+    const room = await db.query.rooms.findFirst({ where: eq(rooms.id, roomId) })
+    if (room) {
+      notifyPartyKit(room.inviteCode, "payment-toggled", { paymentId, status: "confirmed" })
+    }
+
+    return c.json(updated)
+  })
+
+  // ─── PATCH /rooms/:id/payments/:paymentId/reject
+  // Host rejects a claimed payment. Member can re-claim.
+  .patch("/:id/payments/:paymentId/reject", async (c) => {
+    const roomId = c.req.param("id")
+    const paymentId = c.req.param("paymentId")
+    const memberId = getMemberCookie(c, roomId)
+
+    const member = await verifyRoomMember(roomId, memberId)
+    if (!member?.isHost) {
+      return c.json({ error: "Only the host can reject payments" }, 403)
+    }
+
+    const payment = await db.query.roomPayments.findFirst({
+      where: and(eq(roomPayments.id, paymentId), eq(roomPayments.roomId, roomId)),
+    })
+
+    if (!payment) {
+      return c.json({ error: "Payment not found" }, 404)
+    }
+
+    if (payment.status !== "claimed") {
+      return c.json({ error: "Can only reject claimed payments" }, 400)
+    }
+
+    const [updated] = await db.update(roomPayments)
+      .set({ status: "rejected", rejectedAt: new Date() })
+      .where(eq(roomPayments.id, paymentId))
+      .returning()
+
+    const room = await db.query.rooms.findFirst({ where: eq(rooms.id, roomId) })
+    if (room) {
+      notifyPartyKit(room.inviteCode, "payment-toggled", { paymentId, status: "rejected" })
     }
 
     return c.json(updated)
