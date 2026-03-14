@@ -1,0 +1,13 @@
+{
+  "name": "@pladuk/party",
+  "version": "0.0.0",
+  "private": true,
+  "scripts": {
+    "dev": "partykit dev",
+    "deploy": "partykit deploy"
+  },
+  "devDependencies": {
+    "partykit": "^0.0.111",
+    "typescript": "^5.7.3"
+  }
+}

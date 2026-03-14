@@ -1,10 +1,11 @@
 "use client";
 
-import { use, useState, useEffect } from "react";
+import { use, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useQuery } from "@tanstack/react-query";
 import { roomQueries } from "@/lib/queries/rooms";
 import { useFinalizeRoom } from "@/lib/mutations/rooms";
+import { useRoomSocket } from "@/lib/hooks/use-room-socket";
 
 // ─── Local item type (client-side only, no DB round-trips) ───
 
@@ -32,11 +33,10 @@ export default function BillDetailsPage({
   const { data: codeData } = useQuery(roomQueries.byCode(code));
   const roomId = codeData?.room?.id ?? "";
 
-  // Fetch full room details (for members list + status detection)
+  // Fetch full room details (for members list)
   const { data: detailData } = useQuery({
     ...roomQueries.detail(roomId),
     enabled: !!roomId,
-    refetchInterval: 5000,
   });
 
   const room = detailData?.room;
@@ -122,12 +122,14 @@ export default function BillDetailsPage({
     );
   };
 
-  // Auto-redirect non-host when host finalizes (status → payment)
-  useEffect(() => {
-    if (room && room.status === "payment" && !isHost) {
-      router.replace(`/quick-split/${code}/tracking`);
-    }
-  }, [room, room?.status, code, router, isHost]);
+  // WebSocket: auto-redirect non-host when host finalizes
+  useRoomSocket(code, {
+    onStatusChanged: (status) => {
+      if (status === "payment" && !isHost) {
+        router.replace(`/quick-split/${code}/tracking`);
+      }
+    },
+  });
 
   // Calculate running total from local state
   const total = localItems.reduce((sum, item) => sum + item.amount, 0);

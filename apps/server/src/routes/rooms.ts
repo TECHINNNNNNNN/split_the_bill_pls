@@ -1,5 +1,4 @@
 import { Hono } from "hono"
-import { streamSSE } from "hono/streaming"
 import { setCookie, getCookie } from "hono/cookie"
 import { zValidator } from "@hono/zod-validator"
 import { db } from "../db/index.js"
@@ -16,39 +15,7 @@ import {
   finalizeRoomSchema,
 } from "@pladuk/shared/schemas"
 import { calculateSplit } from "@pladuk/shared/utils"
-
-// ─── SSE: in-memory listener registry ────────
-// Maps invite code → array of callback functions.
-// When someone joins a room, we call every callback
-// for that room's code, which pushes the event to
-// all connected clients instantly.
-
-type SSEListener = (event: string, data: string) => void
-
-const roomListeners = new Map<string, Set<SSEListener>>()
-
-function addListener(code: string, listener: SSEListener) {
-  if (!roomListeners.has(code)) {
-    roomListeners.set(code, new Set())
-  }
-  roomListeners.get(code)!.add(listener)
-}
-
-function removeListener(code: string, listener: SSEListener) {
-  roomListeners.get(code)?.delete(listener)
-  if (roomListeners.get(code)?.size === 0) {
-    roomListeners.delete(code)
-  }
-}
-
-function notifyListeners(code: string, event: string, data: unknown) {
-  const listeners = roomListeners.get(code)
-  if (listeners) {
-    for (const listener of listeners) {
-      listener(event, JSON.stringify(data))
-    }
-  }
-}
+import { notifyPartyKit } from "../lib/partykit.js"
 
 // ─── Cookie helpers ──────────────────────────
 // We identify who's who via a per-room HTTP-only cookie.
@@ -150,62 +117,6 @@ const app = new Hono()
     return c.json({ room, currentMemberId })
   })
 
-  // ─── GET /rooms/code/:code/stream ────────────
-  // SSE endpoint. The client opens a persistent
-  // connection and receives events like:
-  //   event: member-joined
-  //   data: {"id":"...","displayName":"Opal",...}
-  //
-  // This is what makes the lobby feel instant.
-  .get("/code/:code/stream", async (c) => {
-    const code = c.req.param("code")
-
-    // Verify room exists
-    const room = await db.query.rooms.findFirst({
-      where: eq(rooms.inviteCode, code),
-    })
-
-    if (!room) {
-      return c.json({ error: "Room not found" }, 404)
-    }
-
-    return streamSSE(c, async (stream) => {
-      // Send an initial "connected" event
-      await stream.writeSSE({
-        event: "connected",
-        data: JSON.stringify({ roomId: room.id }),
-      })
-
-      // Register a listener that writes events to this stream
-      const listener: SSEListener = (event, data) => {
-        stream.writeSSE({ event, data }).catch(() => {
-          // Stream closed, will be cleaned up below
-        })
-      }
-
-      addListener(code, listener)
-
-      // Keep the connection alive with a heartbeat every 15s
-      // (prevents proxies/load balancers from closing idle connections)
-      const heartbeat = setInterval(() => {
-        stream.writeSSE({ event: "heartbeat", data: "" }).catch(() => {
-          clearInterval(heartbeat)
-        })
-      }, 15000)
-
-      // When the client disconnects, clean up
-      stream.onAbort(() => {
-        clearInterval(heartbeat)
-        removeListener(code, listener)
-      })
-
-      // Keep the stream open until the client disconnects
-      // We wait on a promise that never resolves — the stream
-      // stays open until the client closes it (onAbort fires)
-      await new Promise(() => {})
-    })
-  })
-
   // ─── POST /rooms/code/:code/join ─────────────
   // A friend joins the room by entering their name.
   // Sets a cookie so we know who they are.
@@ -248,8 +159,8 @@ const app = new Hono()
 
     setMemberCookie(c, room.id, member.id)
 
-    // Notify all SSE listeners — lobby updates instantly
-    notifyListeners(code, "member-joined", member)
+    // Notify PartyKit — lobby updates instantly via WebSocket
+    notifyPartyKit(code, "member-joined", { memberId: member.id })
 
     return c.json({ room, member }, 201)
   })
@@ -297,8 +208,8 @@ const app = new Hono()
       isHost: false,
     }).returning()
 
-    // Notify SSE listeners
-    notifyListeners(room.inviteCode, "member-joined", newMember)
+    // Notify PartyKit — lobby updates instantly via WebSocket
+    notifyPartyKit(room.inviteCode, "member-joined", { memberId: newMember.id })
 
     return c.json({ member: newMember }, 201)
   })
@@ -341,8 +252,8 @@ const app = new Hono()
       and(eq(roomMembers.id, targetMemberId), eq(roomMembers.roomId, roomId))
     )
 
-    // Notify SSE listeners so lobby updates
-    notifyListeners(room.inviteCode, "member-removed", { memberId: targetMemberId })
+    // Notify PartyKit — lobby updates instantly via WebSocket
+    notifyPartyKit(room.inviteCode, "member-removed", { memberId: targetMemberId })
 
     return c.json({ success: true })
   })
@@ -426,8 +337,8 @@ const app = new Hono()
       .where(eq(rooms.id, roomId))
       .returning()
 
-    // Notify SSE listeners so non-host members can react
-    notifyListeners(room.inviteCode, "status-changed", { status: newStatus })
+    // Notify PartyKit — non-host members redirect via WebSocket
+    notifyPartyKit(room.inviteCode, "status-changed", { status: newStatus })
 
     return c.json(updated)
   })
@@ -642,10 +553,10 @@ const app = new Hono()
       .set({ status: "payment" })
       .where(eq(rooms.id, roomId))
 
-    // Notify SSE so non-host members redirect
+    // Notify PartyKit — non-host members redirect via WebSocket
     const room = await db.query.rooms.findFirst({ where: eq(rooms.id, roomId) })
     if (room) {
-      notifyListeners(room.inviteCode, "status-changed", { status: "payment" })
+      notifyPartyKit(room.inviteCode, "status-changed", { status: "payment" })
     }
 
     return c.json({ splits: splitResult.splits, totalAmount: subtotal })
@@ -695,13 +606,20 @@ const app = new Hono()
     }
 
     // Toggle: if paid → unpaid, if unpaid → paid
+    const newIsPaid = !payment.isPaid
     const [updated] = await db.update(roomPayments)
       .set({
-        isPaid: !payment.isPaid,
+        isPaid: newIsPaid,
         paidAt: payment.isPaid ? null : new Date(),
       })
       .where(eq(roomPayments.id, paymentId))
       .returning()
+
+    // Notify PartyKit — tracking page updates instantly
+    const room = await db.query.rooms.findFirst({ where: eq(rooms.id, roomId) })
+    if (room) {
+      notifyPartyKit(room.inviteCode, "payment-toggled", { paymentId, isPaid: newIsPaid })
+    }
 
     return c.json(updated)
   })

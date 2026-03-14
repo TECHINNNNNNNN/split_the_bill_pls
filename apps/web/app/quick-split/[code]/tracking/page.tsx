@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useQuery } from "@tanstack/react-query";
 import { roomQueries } from "@/lib/queries/rooms";
 import { useTogglePaid } from "@/lib/mutations/rooms";
+import { useRoomSocket } from "@/lib/hooks/use-room-socket";
 
 export default function PaymentTrackingPage({
   params,
@@ -21,7 +22,7 @@ export default function PaymentTrackingPage({
   const { data: detailData } = useQuery({
     ...roomQueries.detail(roomId),
     enabled: !!roomId,
-    refetchInterval: 3000, // poll for payment updates
+    // No polling — WebSocket push via useRoomSocket
   });
 
   const room = detailData?.room;
@@ -31,6 +32,9 @@ export default function PaymentTrackingPage({
   const hostMember = members.find((m) => m.isHost);
 
   const togglePaid = useTogglePaid(roomId);
+
+  // WebSocket: instant updates when payments are toggled
+  useRoomSocket(code);
 
   const total = payments.reduce((sum, p) => sum + parseFloat(p.amount), 0);
   const paidTotal = payments

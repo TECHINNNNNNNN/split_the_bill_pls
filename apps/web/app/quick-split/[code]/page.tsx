@@ -1,48 +1,12 @@
 "use client";
 
-import { use, useEffect, useState, useCallback } from "react";
+import { use, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useQuery } from "@tanstack/react-query";
 import { QRCodeSVG } from "qrcode.react";
 import { roomQueries } from "@/lib/queries/rooms";
 import { useAdvanceRoomStatus, useAddPlaceholderMember, useRemoveMember } from "@/lib/mutations/rooms";
-
-// ─── SSE hook: subscribe to real-time member join events ───
-
-function useRoomSSE(
-  code: string,
-  onMemberJoined: () => void,
-  onStatusChanged: (status: string) => void,
-) {
-  useEffect(() => {
-    const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001";
-    const eventSource = new EventSource(
-      `${apiUrl}/api/rooms/code/${code}/stream`,
-      { withCredentials: true }
-    );
-
-    eventSource.addEventListener("member-joined", () => {
-      onMemberJoined();
-    });
-
-    eventSource.addEventListener("member-removed", () => {
-      onMemberJoined(); // reuse same refetch callback
-    });
-
-    eventSource.addEventListener("status-changed", (e) => {
-      const data = JSON.parse(e.data);
-      onStatusChanged(data.status);
-    });
-
-    eventSource.addEventListener("error", () => {
-      // SSE will auto-reconnect by default
-    });
-
-    return () => {
-      eventSource.close();
-    };
-  }, [code, onMemberJoined, onStatusChanged]);
-}
+import { useRoomSocket } from "@/lib/hooks/use-room-socket";
 
 // ─── Main component ───
 
@@ -55,21 +19,18 @@ export default function RoomLobbyPage({
   const router = useRouter();
 
   // Fetch room data
-  const { data, refetch } = useQuery(roomQueries.byCode(code));
+  const { data } = useQuery(roomQueries.byCode(code));
 
-  // SSE: refetch room data when a member joins
-  const handleMemberJoined = useCallback(() => {
-    refetch();
-  }, [refetch]);
-
-  // SSE: redirect when host changes status
-  const handleStatusChanged = useCallback((status: string) => {
-    if (status === "splitting") {
-      router.push(`/quick-split/${code}/bill`);
-    }
-  }, [router, code]);
-
-  useRoomSSE(code, handleMemberJoined, handleStatusChanged);
+  // WebSocket: real-time updates via PartyKit
+  // member-joined/removed → auto-invalidates React Query cache
+  // status-changed → redirect to bill page
+  useRoomSocket(code, {
+    onStatusChanged: (status) => {
+      if (status === "splitting") {
+        router.push(`/quick-split/${code}/bill`);
+      }
+    },
+  });
 
   const room = data?.room;
   const currentMemberId = data?.currentMemberId;
@@ -95,7 +56,6 @@ export default function RoomLobbyPage({
         onSuccess: () => {
           setPlaceholderName("");
           setShowAddMember(false);
-          refetch();
         },
       }
     );
@@ -179,7 +139,7 @@ export default function RoomLobbyPage({
               {isHost && !member.isHost && (
                 <button
                   type="button"
-                  onClick={() => removeMember.mutate(member.id, { onSuccess: () => refetch() })}
+                  onClick={() => removeMember.mutate(member.id)}
                   className="absolute -right-1.5 -top-1.5 flex h-5 w-5 items-center justify-center rounded-full bg-gray-400 text-[10px] text-white transition-colors hover:bg-red-500"
                   title={`Remove ${member.displayName}`}
                 >
