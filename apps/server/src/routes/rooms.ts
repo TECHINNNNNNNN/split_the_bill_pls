@@ -725,6 +725,15 @@ const app = new Hono()
     const room = await db.query.rooms.findFirst({ where: eq(rooms.id, roomId) })
     if (room) {
       notifyPartyKit(room.inviteCode, "payment-toggled", { paymentId, status: "confirmed" })
+
+      // Auto-settle: if all payments are now confirmed, advance room to "settled"
+      const allPayments = await db.query.roomPayments.findMany({
+        where: eq(roomPayments.roomId, roomId),
+      })
+      if (allPayments.length > 0 && allPayments.every(p => p.status === "confirmed")) {
+        await db.update(rooms).set({ status: "settled" }).where(eq(rooms.id, roomId))
+        notifyPartyKit(room.inviteCode, "status-changed", { status: "settled" })
+      }
     }
 
     return c.json(updated)
