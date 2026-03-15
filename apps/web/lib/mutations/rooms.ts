@@ -193,9 +193,16 @@ export function useClaimPayment(roomId: string) {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async (paymentId: string) => {
+    mutationFn: async (args: {
+      paymentId: string;
+      slipData?: { transRef: string; sendingBank: string };
+    }) => {
       const res = await api.api.rooms[":id"].payments[":paymentId"].claim.$patch({
-        param: { id: roomId, paymentId },
+        param: { id: roomId, paymentId: args.paymentId },
+        json: {
+          transRef: args.slipData?.transRef,
+          sendingBank: args.slipData?.sendingBank,
+        },
       });
       if (!res.ok) throw new Error("Failed to claim payment");
       return res.json();

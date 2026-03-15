@@ -111,6 +111,11 @@ export const setRoomPaymentMethodSchema = z.object({
   promptpayType: promptpayTypeSchema,
 })
 
+export const claimRoomPaymentSchema = z.object({
+  transRef: z.string().min(1).optional(),
+  sendingBank: z.string().min(1).optional(),
+})
+
 export const updateRoomStatusSchema = z.object({
   status: roomStatusSchema,
 })
@@ -132,3 +137,4 @@ export type AddRoomItem = z.infer<typeof addRoomItemSchema>
 export type SetRoomItemSplits = z.infer<typeof setRoomItemSplitsSchema>
 export type FinalizeRoom = z.infer<typeof finalizeRoomSchema>
 export type SetRoomPaymentMethod = z.infer<typeof setRoomPaymentMethodSchema>
+export type ClaimRoomPayment = z.infer<typeof claimRoomPaymentSchema>

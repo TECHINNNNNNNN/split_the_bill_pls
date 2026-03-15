@@ -13,6 +13,7 @@ import {
   setRoomPaymentMethodSchema,
   updateRoomStatusSchema,
   finalizeRoomSchema,
+  claimRoomPaymentSchema,
 } from "@pladuk/shared/schemas"
 import { calculateSplit } from "@pladuk/shared/utils"
 import { notifyPartyKit } from "../lib/partykit.js"
@@ -587,10 +588,12 @@ const app = new Hono()
 
   // ─── PATCH /rooms/:id/payments/:paymentId/claim
   // Member claims they've paid. Transitions: unpaid → claimed, rejected → claimed.
-  .patch("/:id/payments/:paymentId/claim", async (c) => {
+  // Optionally accepts slip QR data { transRef, sendingBank } for verification.
+  .patch("/:id/payments/:paymentId/claim", zValidator("json", claimRoomPaymentSchema), async (c) => {
     const roomId = c.req.param("id")
     const paymentId = c.req.param("paymentId")
     const memberId = getMemberCookie(c, roomId)
+    const body = c.req.valid("json")
 
     const member = await verifyRoomMember(roomId, memberId)
     if (!member) {
@@ -615,8 +618,47 @@ const app = new Hono()
       return c.json({ error: "Payment cannot be claimed in its current state" }, 400)
     }
 
+    // Store slip QR data if provided
+    const slipFields: Record<string, unknown> = {}
+    if (body.transRef && body.sendingBank) {
+      slipFields.slipTransRef = body.transRef
+      slipFields.slipSendingBank = body.sendingBank
+
+      // Verify slip via OpenVerifySlip API if configured
+      const apiKey = process.env.OPENVERIFYSLIP_API_KEY
+      if (apiKey) {
+        try {
+          const verifyRes = await fetch("https://api.openslipverify.com/api/verify", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              "Authorization": `Bearer ${apiKey}`,
+            },
+            body: JSON.stringify({
+              transRef: body.transRef,
+              sendingBank: body.sendingBank,
+            }),
+          })
+          if (verifyRes.ok) {
+            const result = await verifyRes.json() as { data?: { amount?: number } }
+            if (result.data?.amount != null) {
+              slipFields.slipVerifiedAmount = String(result.data.amount)
+              slipFields.slipVerifiedAt = new Date()
+            }
+          }
+        } catch {
+          // Verification failure is non-blocking — host can still confirm manually
+        }
+      }
+    }
+
     const [updated] = await db.update(roomPayments)
-      .set({ status: "claimed", claimedAt: new Date(), rejectedAt: null })
+      .set({
+        status: "claimed",
+        claimedAt: new Date(),
+        rejectedAt: null,
+        ...slipFields,
+      })
       .where(eq(roomPayments.id, paymentId))
       .returning()
 

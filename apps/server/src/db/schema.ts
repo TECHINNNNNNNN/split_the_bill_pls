@@ -212,6 +212,11 @@ export const roomPayments = pgTable("room_payments", {
   claimedAt: timestamp("claimed_at", { withTimezone: true }),
   confirmedAt: timestamp("confirmed_at", { withTimezone: true }),
   rejectedAt: timestamp("rejected_at", { withTimezone: true }),
+  // Slip verification fields
+  slipTransRef: text("slip_trans_ref"),
+  slipSendingBank: text("slip_sending_bank"),
+  slipVerifiedAmount: numeric("slip_verified_amount", { precision: 10, scale: 2 }),
+  slipVerifiedAt: timestamp("slip_verified_at", { withTimezone: true }),
 });
 
 // ════════════════════════════════════════════

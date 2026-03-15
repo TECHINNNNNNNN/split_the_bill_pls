@@ -1,6 +1,6 @@
 "use client";
 
-import { use } from "react";
+import { use, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { useQuery } from "@tanstack/react-query";
 import { QRCodeSVG } from "qrcode.react";
@@ -8,6 +8,7 @@ import { anyId } from "promptparse/generate";
 import { roomQueries } from "@/lib/queries/rooms";
 import { useClaimPayment, useConfirmPayment, useRejectPayment } from "@/lib/mutations/rooms";
 import { useRoomSocket } from "@/lib/hooks/use-room-socket";
+import { useSlipScanner } from "@/lib/hooks/use-slip-scanner";
 
 type PaymentStatus = "unpaid" | "claimed" | "confirmed" | "rejected";
 
@@ -19,6 +20,24 @@ const statusConfig: Record<PaymentStatus, { label: string; classes: string }> = 
   rejected: { label: "Rejected", classes: "border-red-200 bg-red-50 text-red-600" },
 };
 
+// Thai bank codes → display names
+const bankNames: Record<string, string> = {
+  "002": "BBL",
+  "004": "KBANK",
+  "006": "KTB",
+  "011": "TMBThanachart",
+  "014": "SCB",
+  "025": "KKP",
+  "030": "GSB",
+  "069": "KMA",
+  "022": "CIMBT",
+  "024": "UOB",
+  "034": "BAAC",
+  "066": "ISBT",
+  "065": "TISCO",
+  "073": "LH Bank",
+};
+
 export default function PaymentTrackingPage({
   params,
 }: {
@@ -26,6 +45,7 @@ export default function PaymentTrackingPage({
 }) {
   const { code } = use(params);
   const router = useRouter();
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const { data: codeData } = useQuery(roomQueries.byCode(code));
   const roomId = codeData?.room?.id ?? "";
@@ -45,6 +65,7 @@ export default function PaymentTrackingPage({
   const claimPayment = useClaimPayment(roomId);
   const confirmPayment = useConfirmPayment(roomId);
   const rejectPayment = useRejectPayment(roomId);
+  const { result: slipResult, scanSlip, reset: resetSlip } = useSlipScanner();
 
   // WebSocket: instant updates when payment statuses change
   useRoomSocket(code);
@@ -53,6 +74,23 @@ export default function PaymentTrackingPage({
   const confirmedPayments = payments.filter((p) => p.status === "confirmed");
   const confirmedTotal = confirmedPayments.reduce((sum, p) => sum + parseFloat(p.amount), 0);
   const confirmedCount = confirmedPayments.length;
+
+  // Handle slip file selection
+  const handleSlipUpload = async (e: React.ChangeEvent<HTMLInputElement>, paymentId: string) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const slipData = await scanSlip(file);
+
+    // Claim with slip data if QR was extracted, otherwise claim without
+    claimPayment.mutate({
+      paymentId,
+      slipData: slipData ?? undefined,
+    });
+
+    // Reset file input so the same file can be re-selected
+    if (fileInputRef.current) fileInputRef.current.value = "";
+  };
 
   if (!room) {
     return (
@@ -95,6 +133,8 @@ export default function PaymentTrackingPage({
             })
           : null;
 
+        const canClaim = status === "unpaid" || status === "rejected";
+
         return (
           <>
             {/* QR code — hide once confirmed */}
@@ -135,15 +175,66 @@ export default function PaymentTrackingPage({
               </div>
 
               {/* Action area based on status */}
-              {status === "unpaid" && (
-                <button
-                  type="button"
-                  onClick={() => claimPayment.mutate(myPayment.id)}
-                  disabled={claimPayment.isPending}
-                  className="mt-3 w-full rounded-lg bg-white px-4 py-2 text-sm font-medium text-gray-800 transition-colors hover:bg-gray-100 disabled:opacity-40"
-                >
-                  {claimPayment.isPending ? "Submitting..." : "I've Paid"}
-                </button>
+              {canClaim && (
+                <>
+                  {/* Slip scan feedback */}
+                  {slipResult.status === "scanning" && (
+                    <p className="mt-2 text-sm text-gray-300">
+                      Scanning slip QR...
+                    </p>
+                  )}
+                  {slipResult.status === "no-qr" && (
+                    <p className="mt-2 text-sm text-yellow-200">
+                      No QR found on slip — claiming without verification.
+                    </p>
+                  )}
+                  {slipResult.status === "success" && (
+                    <p className="mt-2 text-sm text-green-300">
+                      Slip QR detected — sending for verification.
+                    </p>
+                  )}
+                  {slipResult.status === "error" && (
+                    <p className="mt-2 text-sm text-red-300">
+                      {slipResult.message}
+                    </p>
+                  )}
+
+                  {/* Hidden file input for slip upload */}
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept="image/*"
+                    capture="environment"
+                    className="hidden"
+                    onChange={(e) => handleSlipUpload(e, myPayment.id)}
+                  />
+
+                  {/* Primary: Upload Slip */}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      resetSlip();
+                      fileInputRef.current?.click();
+                    }}
+                    disabled={claimPayment.isPending || slipResult.status === "scanning"}
+                    className="mt-3 flex w-full items-center justify-center gap-2 rounded-lg bg-white px-4 py-2 text-sm font-medium text-gray-800 transition-colors hover:bg-gray-100 disabled:opacity-40"
+                  >
+                    <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                    </svg>
+                    {claimPayment.isPending ? "Submitting..." : "Upload Slip & Claim"}
+                  </button>
+
+                  {/* Secondary: Claim without slip */}
+                  <button
+                    type="button"
+                    onClick={() => claimPayment.mutate({ paymentId: myPayment.id })}
+                    disabled={claimPayment.isPending || slipResult.status === "scanning"}
+                    className="mt-2 w-full text-center text-xs text-gray-400 underline transition-colors hover:text-gray-200 disabled:opacity-40"
+                  >
+                    {status === "rejected" ? "Claim without slip (retry)" : "I've paid (no slip)"}
+                  </button>
+                </>
               )}
               {status === "claimed" && (
                 <p className="mt-2 text-sm text-yellow-200">
@@ -155,20 +246,10 @@ export default function PaymentTrackingPage({
                   Thank you!
                 </p>
               )}
-              {status === "rejected" && (
-                <>
-                  <p className="mt-2 text-sm text-red-300">
-                    Host rejected your claim. Please check and try again.
-                  </p>
-                  <button
-                    type="button"
-                    onClick={() => claimPayment.mutate(myPayment.id)}
-                    disabled={claimPayment.isPending}
-                    className="mt-2 w-full rounded-lg bg-white px-4 py-2 text-sm font-medium text-gray-800 transition-colors hover:bg-gray-100 disabled:opacity-40"
-                  >
-                    {claimPayment.isPending ? "Submitting..." : "I've Paid (Retry)"}
-                  </button>
-                </>
+              {status === "rejected" && !canClaim && (
+                <p className="mt-2 text-sm text-red-300">
+                  Host rejected your claim. Please check and try again.
+                </p>
               )}
             </div>
           </>
@@ -224,6 +305,11 @@ export default function PaymentTrackingPage({
           .map((payment) => {
             const status = payment.status as PaymentStatus;
             const config = statusConfig[status];
+            const hasSlip = !!payment.slipTransRef;
+            const hasVerification = !!payment.slipVerifiedAmount;
+            const verifiedAmount = hasVerification ? parseFloat(payment.slipVerifiedAmount!) : null;
+            const owedAmount = parseFloat(payment.amount);
+            const amountMatches = verifiedAmount != null && Math.abs(verifiedAmount - owedAmount) < 0.01;
 
             return (
               <div
@@ -269,6 +355,38 @@ export default function PaymentTrackingPage({
                     </span>
                   </div>
                 </div>
+
+                {/* Slip verification info — visible to host */}
+                {isHost && hasSlip && (
+                  <div className="mt-2 flex flex-wrap items-center gap-2 text-xs">
+                    {/* Slip attached badge */}
+                    <span className="inline-flex items-center gap-1 rounded-md border border-blue-200 bg-blue-50 px-2 py-0.5 text-blue-700">
+                      <svg className="h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                      </svg>
+                      Slip: {bankNames[payment.slipSendingBank!] ?? payment.slipSendingBank}
+                    </span>
+
+                    {/* Verified amount badge */}
+                    {hasVerification && (
+                      <span className={`inline-flex items-center gap-1 rounded-md border px-2 py-0.5 ${
+                        amountMatches
+                          ? "border-green-200 bg-green-50 text-green-700"
+                          : "border-orange-200 bg-orange-50 text-orange-700"
+                      }`}>
+                        <svg className="h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          {amountMatches ? (
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                          ) : (
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.34 16.5c-.77.833.192 2.5 1.732 2.5z" />
+                          )}
+                        </svg>
+                        Verified: ฿{verifiedAmount!.toFixed(2)}
+                        {amountMatches ? " (match)" : " (mismatch!)"}
+                      </span>
+                    )}
+                  </div>
+                )}
 
                 {/* Host actions — confirm from unpaid or claimed, reject only claimed */}
                 {isHost && (status === "claimed" || status === "unpaid") && (
