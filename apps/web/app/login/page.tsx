@@ -12,7 +12,7 @@ export default function LoginPage() {
 
   useEffect(() => {
     if (!isPending && session) {
-      router.replace("/quick-split");
+      router.replace("/home");
     }
   }, [isPending, session, router]);
 
@@ -20,7 +20,7 @@ export default function LoginPage() {
     setLoading(true);
     signIn.social({
       provider: "google",
-      callbackURL: `${window.location.origin}/quick-split`,
+      callbackURL: `${window.location.origin}/home`,
     });
   };
 

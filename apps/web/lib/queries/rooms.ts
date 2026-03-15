@@ -15,6 +15,16 @@ export const roomQueries = {
       enabled: !!code,
     }),
 
+  my: () =>
+    queryOptions({
+      queryKey: ["rooms", "my"] as const,
+      queryFn: async () => {
+        const res = await api.api.rooms.my.$get();
+        if (!res.ok) throw new Error("Failed to fetch your rooms");
+        return res.json();
+      },
+    }),
+
   detail: (roomId: string) =>
     queryOptions({
       queryKey: ["rooms", roomId] as const,

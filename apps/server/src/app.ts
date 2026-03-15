@@ -23,7 +23,7 @@ app.use(
     })
 )
 
-app.on(["POST", "GET"], "/auth/**", (c) => {
+app.all("/auth/*", (c) => {
     return auth.handler(c.req.raw)
 })
 

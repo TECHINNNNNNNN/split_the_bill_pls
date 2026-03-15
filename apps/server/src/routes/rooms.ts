@@ -3,7 +3,7 @@ import { setCookie, getCookie } from "hono/cookie"
 import { zValidator } from "@hono/zod-validator"
 import { db } from "../db/index.js"
 import { rooms, roomMembers, roomBillItems, roomItemSplits, roomPayments } from "../db/schema.js"
-import { eq, and } from "drizzle-orm"
+import { eq, and, desc } from "drizzle-orm"
 import { randomUUID } from "node:crypto"
 import {
   createRoomSchema,
@@ -17,6 +17,8 @@ import {
 } from "@pladuk/shared/schemas"
 import { calculateSplit } from "@pladuk/shared/utils"
 import { notifyPartyKit } from "../lib/partykit.js"
+import { optionalAuth } from "../lib/middleware.js"
+import { requireAuth } from "../lib/middleware.js"
 
 // ─── Cookie helpers ──────────────────────────
 // We identify who's who via a per-room HTTP-only cookie.
@@ -71,8 +73,9 @@ const app = new Hono()
   // Host creates a new room. Returns the room and
   // the host's member record. Sets a cookie so we
   // know who the host is on future requests.
-  .post("/", zValidator("json", createRoomSchema), async (c) => {
+  .post("/", optionalAuth, zValidator("json", createRoomSchema), async (c) => {
     const { hostName, expectedMembers } = c.req.valid("json")
+    const user = c.get("user")
 
     const inviteCode = generateInviteCode()
 
@@ -80,6 +83,7 @@ const app = new Hono()
       hostName,
       expectedMembers,
       inviteCode,
+      createdByUserId: user?.id ?? null,
     }).returning()
 
     const [hostMember] = await db.insert(roomMembers).values({
@@ -91,6 +95,22 @@ const app = new Hono()
     setMemberCookie(c, room.id, hostMember.id)
 
     return c.json({ room, member: hostMember }, 201)
+  })
+
+  // ─── GET /rooms/my ─────────────────────────────
+  // Returns rooms created by the authenticated user,
+  // ordered by most recent first. Used by /home.
+  .get("/my", requireAuth, async (c) => {
+    const user = c.get("user")
+
+    const userRooms = await db.query.rooms.findMany({
+      where: eq(rooms.createdByUserId, user.id),
+      orderBy: desc(rooms.createdAt),
+      with: { members: true },
+      limit: 20,
+    })
+
+    return c.json(userRooms)
   })
 
   // ─── GET /rooms/code/:code ───────────────────

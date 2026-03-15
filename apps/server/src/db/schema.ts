@@ -164,6 +164,8 @@ export const rooms = pgTable("rooms", {
   promptpayId: text("promptpay_id"),
   promptpayType: text("promptpay_type"),          // 'phone' or 'national_id'
   status: roomStatusEnum("status").default("waiting").notNull(),
+  createdByUserId: text("created_by_user_id").references(() => user.id, { onDelete: "set null" }),
+  groupId: uuid("group_id").references(() => groups.id, { onDelete: "set null" }),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 });
 
@@ -228,12 +230,14 @@ export const userRelations = relations(user, ({ many }) => ({
   groups: many(groups),
   groupMemberships: many(groupMembers),
   bills: many(bills),
+  rooms: many(rooms),
 }));
 
 export const groupsRelations = relations(groups, ({ one, many }) => ({
   creator: one(user, { fields: [groups.createdBy], references: [user.id] }),
   members: many(groupMembers),
   bills: many(bills),
+  rooms: many(rooms),
 }));
 
 export const groupMembersRelations = relations(groupMembers, ({ one, many }) => ({
@@ -271,7 +275,9 @@ export const pushSubscriptionsRelations = relations(pushSubscriptions, ({ one })
 
 // ── Room Relations ──
 
-export const roomsRelations = relations(rooms, ({ many }) => ({
+export const roomsRelations = relations(rooms, ({ one, many }) => ({
+  createdBy: one(user, { fields: [rooms.createdByUserId], references: [user.id] }),
+  group: one(groups, { fields: [rooms.groupId], references: [groups.id] }),
   members: many(roomMembers),
   billItems: many(roomBillItems),
   payments: many(roomPayments),
