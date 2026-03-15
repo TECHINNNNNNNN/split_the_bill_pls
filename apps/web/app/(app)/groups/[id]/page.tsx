@@ -6,6 +6,7 @@ import { useState } from "react";
 import { useSession } from "@/lib/auth-client";
 import { groupQueries } from "@/lib/queries/groups";
 import { useDeleteGroupMember, useDeleteGroup, useStartGroupSplit } from "@/lib/mutations/groups";
+import { useGroupSocket } from "@/lib/hooks/use-group-socket";
 import Link from "next/link";
 import toast from "react-hot-toast";
 
@@ -13,6 +14,9 @@ export default function GroupDetailPage() {
   const { id } = useParams<{ id: string }>();
   const router = useRouter();
   const { data: session } = useSession();
+
+  // Real-time: auto-refresh when new members join
+  useGroupSocket(id);
   const { data: group, isLoading, error } = useQuery(groupQueries.detail(id));
 
   const [showSplitPicker, setShowSplitPicker] = useState(false);

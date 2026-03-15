@@ -132,7 +132,10 @@ const app = new Hono()
   })
 
   // ─── POST /rooms/invites/:id/accept ───────────
-  // Accept an invite: join the room as a member.
+  // Accept an invite. If the user was already added as a room
+  // member (e.g. group split auto-adds members), just set
+  // the cookie so they're identified. Otherwise, create a
+  // new room member.
   .post("/invites/:id/accept", requireAuth, async (c) => {
     const user = c.get("user")
     const inviteId = c.req.param("id")
@@ -143,7 +146,7 @@ const app = new Hono()
         eq(roomInvites.userId, user.id),
         eq(roomInvites.status, "pending"),
       ),
-      with: { room: true },
+      with: { room: { with: { members: true } } },
     })
 
     if (!invite) {
@@ -155,15 +158,30 @@ const app = new Hono()
       .set({ status: "accepted" })
       .where(eq(roomInvites.id, inviteId))
 
-    // Add user as room member
-    const [member] = await db.insert(roomMembers).values({
-      roomId: invite.roomId,
-      displayName: invite.displayName,
-      isHost: false,
-    }).returning()
+    // Check if already a room member (group split auto-adds)
+    const existingMember = invite.room.members.find(
+      m => m.displayName === invite.displayName && !m.isHost
+    )
+
+    let memberId: string
+
+    if (existingMember) {
+      // Already in the room — just need the cookie
+      memberId = existingMember.id
+    } else {
+      // Not in the room yet — add them
+      const [member] = await db.insert(roomMembers).values({
+        roomId: invite.roomId,
+        displayName: invite.displayName,
+        isHost: false,
+      }).returning()
+      memberId = member.id
+
+      notifyPartyKit(invite.room.inviteCode, "member-joined", { memberId })
+    }
 
     // Set per-room cookie so user is identified
-    setCookie(c, `room_member_${invite.roomId}`, member.id, {
+    setCookie(c, `room_member_${invite.roomId}`, memberId, {
       httpOnly: true,
       secure: process.env.NODE_ENV === "production",
       sameSite: process.env.NODE_ENV === "production" ? "None" : "Lax",
@@ -171,10 +189,7 @@ const app = new Hono()
       maxAge: 86400,
     })
 
-    // Notify other room members
-    notifyPartyKit(invite.room.inviteCode, "member-joined", { memberId: member.id })
-
-    return c.json({ member, inviteCode: invite.room.inviteCode })
+    return c.json({ memberId, inviteCode: invite.room.inviteCode })
   })
 
   // ─── POST /rooms/invites/:id/decline ──────────

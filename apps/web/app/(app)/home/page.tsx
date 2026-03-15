@@ -6,6 +6,7 @@ import { useQuery } from "@tanstack/react-query";
 import { groupQueries } from "@/lib/queries/groups";
 import { roomQueries } from "@/lib/queries/rooms";
 import { useAcceptInvite, useDeclineInvite } from "@/lib/mutations/rooms";
+import { useUserSocket } from "@/lib/hooks/use-user-socket";
 import { CreateGroupDialog } from "@/components/groups/create-group-dialog";
 import Image from "next/image";
 import Link from "next/link";
@@ -38,6 +39,9 @@ const STATUS_COLOR: Record<string, string> = {
 export default function HomePage() {
   const { data: session } = useSession();
   const router = useRouter();
+
+  // Real-time: receive invite notifications without page refresh
+  useUserSocket(session?.user.id);
   const { data: groups, isLoading: groupsLoading } = useQuery(groupQueries.all());
   const { data: myRooms, isLoading: roomsLoading } = useQuery(roomQueries.my());
   const { data: invites, isLoading: invitesLoading } = useQuery(roomQueries.invites());

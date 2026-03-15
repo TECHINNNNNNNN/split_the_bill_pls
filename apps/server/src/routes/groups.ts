@@ -7,6 +7,7 @@ import { zValidator } from "@hono/zod-validator"
 import { setCookie } from "hono/cookie"
 import { createGroupSchema, startGroupSplitSchema } from "@pladuk/shared/schemas"
 import { randomUUID } from "node:crypto"
+import { notifyPartyKit } from "../lib/partykit.js"
 
 const app = new Hono()
 
@@ -119,6 +120,9 @@ const app = new Hono()
       isGuest: false,
       userId: user.id,
     })
+
+    // Real-time: notify group detail page
+    notifyPartyKit(`group-${group.id}`, "member-joined", { displayName: user.name })
 
     return c.json({ groupId: group.id, alreadyMember: false }, 201)
   })
@@ -243,8 +247,17 @@ const app = new Hono()
       isHost: true,
     }).returning()
 
-    // Create invites for selected members
+    // Auto-add selected members to the room AND create invites
+    // so they appear on the invited user's /home as a navigation link
     if (selected.length > 0) {
+      await db.insert(roomMembers).values(
+        selected.map(m => ({
+          roomId: room.id,
+          displayName: m.displayName,
+          isHost: false,
+        }))
+      )
+
       await db.insert(roomInvites).values(
         selected.map(m => ({
           roomId: room.id,
@@ -252,6 +265,16 @@ const app = new Hono()
           invitedBy: user.id,
           displayName: m.displayName,
         }))
+      )
+
+      // Notify each invited user's personal channel
+      await Promise.all(
+        selected.map(m =>
+          notifyPartyKit(`user-${m.userId}`, "invite-received", {
+            roomInviteCode: inviteCode,
+            hostName: user.name,
+          })
+        )
       )
     }
 

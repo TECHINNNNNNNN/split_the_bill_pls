@@ -23,6 +23,8 @@ export const roomQueries = {
         if (!res.ok) throw new Error("Failed to fetch your rooms");
         return res.json();
       },
+      staleTime: 0,
+      refetchOnMount: "always",
     }),
 
   invites: () =>
@@ -33,6 +35,9 @@ export const roomQueries = {
         if (!res.ok) throw new Error("Failed to fetch invites");
         return res.json();
       },
+      staleTime: 0,
+      refetchOnMount: "always",
+      refetchInterval: 10_000,
     }),
 
   detail: (roomId: string) =>
