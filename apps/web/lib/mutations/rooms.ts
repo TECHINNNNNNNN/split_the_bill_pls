@@ -3,8 +3,6 @@ import { api } from "@/lib/api-client";
 import type {
   CreateRoom,
   JoinRoom,
-  AddRoomItem,
-  SetRoomItemSplits,
   FinalizeRoom,
   SetRoomPaymentMethod,
   RoomStatus,
@@ -131,59 +129,6 @@ export function useAdvanceRoomStatus(roomId: string) {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["rooms"] });
-    },
-  });
-}
-
-export function useAddRoomItem(roomId: string) {
-  const queryClient = useQueryClient();
-
-  return useMutation({
-    mutationFn: async (data: AddRoomItem) => {
-      const res = await api.api.rooms[":id"].items.$post({
-        param: { id: roomId },
-        json: data,
-      });
-      if (!res.ok) throw new Error("Failed to add item");
-      return res.json();
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["rooms", roomId] });
-    },
-  });
-}
-
-export function useDeleteRoomItem(roomId: string) {
-  const queryClient = useQueryClient();
-
-  return useMutation({
-    mutationFn: async (itemId: string) => {
-      const res = await api.api.rooms[":id"].items[":itemId"].$delete({
-        param: { id: roomId, itemId },
-      });
-      if (!res.ok) throw new Error("Failed to delete item");
-      return res.json();
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["rooms", roomId] });
-    },
-  });
-}
-
-export function useSetItemSplits(roomId: string, itemId: string) {
-  const queryClient = useQueryClient();
-
-  return useMutation({
-    mutationFn: async (data: SetRoomItemSplits) => {
-      const res = await api.api.rooms[":id"].items[":itemId"].splits.$put({
-        param: { id: roomId, itemId },
-        json: data,
-      });
-      if (!res.ok) throw new Error("Failed to update splits");
-      return res.json();
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["rooms", roomId] });
     },
   });
 }

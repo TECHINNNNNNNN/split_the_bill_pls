@@ -128,7 +128,7 @@ const app = new Hono()
   })
 
   // ─── GET /groups/:id ─────────────────────────
-  // Get one group's details, including members and bills.
+  // Get one group's details, including members.
   // Any group member can access it.
   .get("/:id", async (c) => {
     const user = c.get("user")
@@ -138,7 +138,6 @@ const app = new Hono()
       where: eq(groups.id, groupId),
       with: {
         members: true,
-        bills: true,
       },
     })
 
@@ -181,7 +180,7 @@ const app = new Hono()
 
   // ─── DELETE /groups/:id ─────────────────────
   // Delete a group. Only the creator can delete it.
-  // Cascade deletes members, bills, items, claims, payments.
+  // Cascade deletes members.
   // Rooms linked to this group get groupId set to NULL.
   .delete("/:id", async (c) => {
     const user = c.get("user")
@@ -245,6 +244,7 @@ const app = new Hono()
       roomId: room.id,
       displayName: user.name,
       isHost: true,
+      userId: user.id,
     }).returning()
 
     // Auto-add selected members to the room AND create invites
@@ -255,6 +255,7 @@ const app = new Hono()
           roomId: room.id,
           displayName: m.displayName,
           isHost: false,
+          userId: m.userId,
         }))
       )
 
@@ -283,7 +284,7 @@ const app = new Hono()
       secure: process.env.NODE_ENV === "production",
       sameSite: process.env.NODE_ENV === "production" ? "None" : "Lax",
       path: "/",
-      maxAge: 86400,
+      maxAge: 60 * 60 * 24 * 30, // 30 days
     })
 
     return c.json({ room, inviteCode: room.inviteCode }, 201)

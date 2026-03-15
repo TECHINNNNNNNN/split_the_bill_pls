@@ -7,7 +7,6 @@ import { useSession } from "@/lib/auth-client";
 import { groupQueries } from "@/lib/queries/groups";
 import { useDeleteGroupMember, useDeleteGroup, useStartGroupSplit } from "@/lib/mutations/groups";
 import { useGroupSocket } from "@/lib/hooks/use-group-socket";
-import Link from "next/link";
 import toast from "react-hot-toast";
 
 export default function GroupDetailPage() {
@@ -133,8 +132,6 @@ export default function GroupDetailPage() {
         <h1 className="font-heading text-2xl font-bold">{group.name}</h1>
         <p className="text-sm text-gray-500">
           {group.members.length} member{group.members.length !== 1 && "s"}
-          {" · "}
-          {group.bills.length} bill{group.bills.length !== 1 && "s"}
         </p>
       </div>
 
@@ -263,39 +260,6 @@ export default function GroupDetailPage() {
         )}
       </section>
 
-      {/* Bills */}
-      <section>
-        <div className="mb-3 flex items-center justify-between">
-          <h2 className="font-heading text-lg font-semibold">Bills</h2>
-          <Link
-            href={`/bills/new?groupId=${id}`}
-            className="rounded-lg bg-gray-900 px-3 py-1.5 text-sm font-medium text-white transition-colors hover:bg-gray-800"
-          >
-            + New Bill
-          </Link>
-        </div>
-
-        {group.bills.length === 0 ? (
-          <div className="rounded-xl border-2 border-dashed border-gray-200 py-8 text-center">
-            <p className="text-sm text-gray-400">No bills yet</p>
-          </div>
-        ) : (
-          <div className="space-y-2">
-            {group.bills.map((bill) => (
-              <Link
-                key={bill.id}
-                href={`/bills/${bill.id}`}
-                className="block rounded-xl border border-gray-100 bg-white p-4 shadow-sm transition-shadow hover:shadow-md"
-              >
-                <div className="flex items-center justify-between">
-                  <h3 className="text-sm font-semibold">{bill.name}</h3>
-                  <span className="text-xs text-gray-400">{bill.status}</span>
-                </div>
-              </Link>
-            ))}
-          </div>
-        )}
-      </section>
     </div>
   );
 }

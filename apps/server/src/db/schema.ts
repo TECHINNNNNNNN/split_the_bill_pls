@@ -54,7 +54,6 @@ export const verification = pgTable("verification", {
 // ════════════════════════════════════════════
 
 export const paymentStatusEnum = pgEnum("payment_status", ["unpaid", "claimed", "confirmed", "rejected"]);
-export const billStatusEnum = pgEnum("bill_status", ["draft", "active", "settled"]);
 
 export const groups = pgTable("groups", {
   id: uuid("id").primaryKey().defaultRandom(),
@@ -78,72 +77,13 @@ export const groupMembers = pgTable("group_members", {
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 });
 
-export const bills = pgTable("bills", {
-  id: uuid("id").primaryKey().defaultRandom(),
-  groupId: uuid("group_id")
-    .references(() => groups.id, { onDelete: "cascade" })
-    .notNull(),
-  paidBy: text("paid_by")
-    .references(() => user.id, { onDelete: "cascade" })
-    .notNull(),
-  name: text("name").notNull(),
-  subtotal: numeric("subtotal", { precision: 10, scale: 2 }).notNull(),
-  vatRate: numeric("vat_rate", { precision: 5, scale: 4 }),
-  vatAmount: numeric("vat_amount", { precision: 10, scale: 2 }),
-  serviceChargeRate: numeric("service_charge_rate", { precision: 5, scale: 4 }),
-  serviceChargeAmount: numeric("service_charge_amount", { precision: 10, scale: 2 }),
-  totalAmount: numeric("total_amount", { precision: 10, scale: 2 }).notNull(),
-  receiptImageUrl: text("receipt_image_url"),
-  shareToken: text("share_token").unique().notNull(),
-  status: billStatusEnum("status").default("active").notNull(),
-  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
-  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
-});
-
-export const billItems = pgTable("bill_items", {
-  id: uuid("id").primaryKey().defaultRandom(),
-  billId: uuid("bill_id")
-    .references(() => bills.id, { onDelete: "cascade" })
-    .notNull(),
-  name: text("name").notNull(),
-  quantity: integer("quantity").default(1).notNull(),
-  unitPrice: numeric("unit_price", { precision: 10, scale: 2 }).notNull(),
-  totalPrice: numeric("total_price", { precision: 10, scale: 2 }).notNull(),
-  sortOrder: integer("sort_order").default(0),
-});
-
-export const itemClaims = pgTable("item_claims", {
-  id: uuid("id").primaryKey().defaultRandom(),
-  billItemId: uuid("bill_item_id")
-    .references(() => billItems.id, { onDelete: "cascade" })
-    .notNull(),
-  memberId: uuid("member_id")
-    .references(() => groupMembers.id, { onDelete: "cascade" })
-    .notNull(),
-  shareAmount: numeric("share_amount", { precision: 10, scale: 2 }).notNull(),
-});
-
-export const payments = pgTable("payments", {
-  id: uuid("id").primaryKey().defaultRandom(),
-  billId: uuid("bill_id")
-    .references(() => bills.id, { onDelete: "cascade" })
-    .notNull(),
-  memberId: uuid("member_id")
-    .references(() => groupMembers.id, { onDelete: "cascade" })
-    .notNull(),
-  amount: numeric("amount", { precision: 10, scale: 2 }).notNull(),
-  status: paymentStatusEnum("status").default("unpaid").notNull(),
-  slipImageUrl: text("slip_image_url"),
-  claimedAt: timestamp("claimed_at", { withTimezone: true }),
-  confirmedAt: timestamp("confirmed_at", { withTimezone: true }),
-  rejectedAt: timestamp("rejected_at", { withTimezone: true }),
-  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
-});
+// ════════════════════════════════════════════
+// Push Notifications (for payment reminders)
+// ════════════════════════════════════════════
 
 export const pushSubscriptions = pgTable("push_subscriptions", {
   id: uuid("id").primaryKey().defaultRandom(),
-  memberId: uuid("member_id")
-    .references(() => groupMembers.id, { onDelete: "cascade" }),
+  userId: text("user_id").references(() => user.id, { onDelete: "cascade" }),
   endpoint: text("endpoint").notNull(),
   p256dh: text("p256dh").notNull(),
   auth: text("auth").notNull(),
@@ -151,7 +91,7 @@ export const pushSubscriptions = pgTable("push_subscriptions", {
 });
 
 // ════════════════════════════════════════════
-// Quick Split — Room Schema (anonymous, no auth)
+// Quick Split — Room Schema
 // ════════════════════════════════════════════
 
 export const roomInviteStatusEnum = pgEnum("room_invite_status", ["pending", "accepted", "declined"]);
@@ -176,6 +116,7 @@ export const roomMembers = pgTable("room_members", {
   roomId: uuid("room_id")
     .references(() => rooms.id, { onDelete: "cascade" })
     .notNull(),
+  userId: text("user_id").references(() => user.id, { onDelete: "set null" }),
   displayName: text("display_name").notNull(),
   isHost: boolean("is_host").default(false).notNull(),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
@@ -247,48 +188,18 @@ export const roomPayments = pgTable("room_payments", {
 export const userRelations = relations(user, ({ many }) => ({
   groups: many(groups),
   groupMemberships: many(groupMembers),
-  bills: many(bills),
   rooms: many(rooms),
 }));
 
 export const groupsRelations = relations(groups, ({ one, many }) => ({
   creator: one(user, { fields: [groups.createdBy], references: [user.id] }),
   members: many(groupMembers),
-  bills: many(bills),
   rooms: many(rooms),
 }));
 
-export const groupMembersRelations = relations(groupMembers, ({ one, many }) => ({
+export const groupMembersRelations = relations(groupMembers, ({ one }) => ({
   group: one(groups, { fields: [groupMembers.groupId], references: [groups.id] }),
   user: one(user, { fields: [groupMembers.userId], references: [user.id] }),
-  itemClaims: many(itemClaims),
-  payments: many(payments),
-}));
-
-export const billsRelations = relations(bills, ({ one, many }) => ({
-  group: one(groups, { fields: [bills.groupId], references: [groups.id] }),
-  payer: one(user, { fields: [bills.paidBy], references: [user.id] }),
-  items: many(billItems),
-  payments: many(payments),
-}));
-
-export const billItemsRelations = relations(billItems, ({ one, many }) => ({
-  bill: one(bills, { fields: [billItems.billId], references: [bills.id] }),
-  claims: many(itemClaims),
-}));
-
-export const itemClaimsRelations = relations(itemClaims, ({ one }) => ({
-  billItem: one(billItems, { fields: [itemClaims.billItemId], references: [billItems.id] }),
-  member: one(groupMembers, { fields: [itemClaims.memberId], references: [groupMembers.id] }),
-}));
-
-export const paymentsRelations = relations(payments, ({ one }) => ({
-  bill: one(bills, { fields: [payments.billId], references: [bills.id] }),
-  member: one(groupMembers, { fields: [payments.memberId], references: [groupMembers.id] }),
-}));
-
-export const pushSubscriptionsRelations = relations(pushSubscriptions, ({ one }) => ({
-  member: one(groupMembers, { fields: [pushSubscriptions.memberId], references: [groupMembers.id] }),
 }));
 
 // ── Room Relations ──

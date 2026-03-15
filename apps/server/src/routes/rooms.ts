@@ -28,7 +28,7 @@ import { requireAuth } from "../lib/middleware.js"
 // won't overwrite each other.
 
 const COOKIE_PREFIX = "room_member_"
-const COOKIE_MAX_AGE = 86400 // 24 hours
+const COOKIE_MAX_AGE = 60 * 60 * 24 * 30 // 30 days
 
 function setMemberCookie(c: any, roomId: string, memberId: string) {
   setCookie(c, `${COOKIE_PREFIX}${roomId}`, memberId, {
@@ -63,6 +63,28 @@ async function verifyRoomMember(roomId: string, memberId: string | undefined) {
   return member ?? null
 }
 
+// ─── Helper: resolve member ID from session or cookie ───
+// For logged-in users, look up by userId first (never expires).
+// Fall back to cookie for anonymous users.
+
+async function resolveMemberId(c: any, roomId: string): Promise<string | undefined> {
+  // 1. Try auth session — permanent identification for logged-in users
+  const user = c.get("user")
+  if (user?.id) {
+    const member = await db.query.roomMembers.findFirst({
+      where: and(eq(roomMembers.roomId, roomId), eq(roomMembers.userId, user.id)),
+    })
+    if (member) {
+      // Refresh the cookie so it stays alive
+      setMemberCookie(c, roomId, member.id)
+      return member.id
+    }
+  }
+
+  // 2. Fall back to cookie — for anonymous users or unlinked members
+  return getMemberCookie(c, roomId)
+}
+
 // ═════════════════════════════════════════════
 // Routes
 // ═════════════════════════════════════════════
@@ -90,6 +112,7 @@ const app = new Hono()
       roomId: room.id,
       displayName: hostName,
       isHost: true,
+      userId: user?.id ?? null,
     }).returning()
 
     setMemberCookie(c, room.id, hostMember.id)
@@ -166,14 +189,20 @@ const app = new Hono()
     let memberId: string
 
     if (existingMember) {
-      // Already in the room — just need the cookie
+      // Already in the room — link userId if not yet set
       memberId = existingMember.id
+      if (!existingMember.userId) {
+        await db.update(roomMembers)
+          .set({ userId: user.id })
+          .where(eq(roomMembers.id, existingMember.id))
+      }
     } else {
-      // Not in the room yet — add them
+      // Not in the room yet — add them with userId
       const [member] = await db.insert(roomMembers).values({
         roomId: invite.roomId,
         displayName: invite.displayName,
         isHost: false,
+        userId: user.id,
       }).returning()
       memberId = member.id
 
@@ -181,13 +210,7 @@ const app = new Hono()
     }
 
     // Set per-room cookie so user is identified
-    setCookie(c, `room_member_${invite.roomId}`, memberId, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
-      sameSite: process.env.NODE_ENV === "production" ? "None" : "Lax",
-      path: "/",
-      maxAge: 86400,
-    })
+    setMemberCookie(c, invite.roomId, memberId)
 
     return c.json({ memberId, inviteCode: invite.room.inviteCode })
   })
@@ -220,9 +243,9 @@ const app = new Hono()
   // ─── GET /rooms/code/:code ───────────────────
   // Public lookup by invite code. Used by the lobby
   // page and join page to display the room state.
-  // Also returns who the current user is (via cookie)
+  // Also returns who the current user is (via session or cookie)
   // so the frontend knows if they're the host.
-  .get("/code/:code", async (c) => {
+  .get("/code/:code", optionalAuth, async (c) => {
     const code = c.req.param("code")
 
     const room = await db.query.rooms.findFirst({
@@ -236,8 +259,8 @@ const app = new Hono()
       return c.json({ error: "Room not found" }, 404)
     }
 
-    // Tell the frontend who they are (if they have a cookie for this room)
-    const currentMemberId = getMemberCookie(c, room.id) ?? null
+    // Identify caller: auth session first, cookie fallback
+    const currentMemberId = await resolveMemberId(c, room.id) ?? null
 
     return c.json({ room, currentMemberId })
   })
@@ -294,9 +317,9 @@ const app = new Hono()
   // Host adds a placeholder member (someone without a
   // phone). Does NOT set a cookie — the host's cookie
   // stays intact. Notifies SSE listeners.
-  .post("/:id/members", zValidator("json", joinRoomSchema), async (c) => {
+  .post("/:id/members", optionalAuth, zValidator("json", joinRoomSchema), async (c) => {
     const roomId = c.req.param("id")
-    const memberId = getMemberCookie(c, roomId)
+    const memberId = await resolveMemberId(c, roomId)
 
     const member = await verifyRoomMember(roomId, memberId)
     if (!member?.isHost) {
@@ -342,10 +365,10 @@ const app = new Hono()
   // ─── DELETE /rooms/:id/members/:memberId ──────
   // Host removes a guest from the lobby.
   // Only works during "waiting" status. Cannot remove the host.
-  .delete("/:id/members/:memberId", async (c) => {
+  .delete("/:id/members/:memberId", optionalAuth, async (c) => {
     const roomId = c.req.param("id")
     const targetMemberId = c.req.param("memberId")
-    const callerId = getMemberCookie(c, roomId)
+    const callerId = await resolveMemberId(c, roomId)
 
     const caller = await verifyRoomMember(roomId, callerId)
     if (!caller?.isHost) {
@@ -387,9 +410,9 @@ const app = new Hono()
   // Full room state: members, items (with their splits),
   // and payments. Used by bill details, payment method,
   // and payment tracking pages.
-  .get("/:id", async (c) => {
+  .get("/:id", optionalAuth, async (c) => {
     const roomId = c.req.param("id")
-    const memberId = getMemberCookie(c, roomId)
+    const memberId = await resolveMemberId(c, roomId)
 
     // Verify the caller is a member of this room
     const member = await verifyRoomMember(roomId, memberId)
@@ -429,9 +452,9 @@ const app = new Hono()
   // Host advances the room through its lifecycle:
   // waiting → splitting → payment → settled
   // Only forward transitions are allowed.
-  .patch("/:id/status", zValidator("json", updateRoomStatusSchema), async (c) => {
+  .patch("/:id/status", optionalAuth, zValidator("json", updateRoomStatusSchema), async (c) => {
     const roomId = c.req.param("id")
-    const memberId = getMemberCookie(c, roomId)
+    const memberId = await resolveMemberId(c, roomId)
 
     const member = await verifyRoomMember(roomId, memberId)
     if (!member?.isHost) {
@@ -471,9 +494,9 @@ const app = new Hono()
   // ─── POST /rooms/:id/items ───────────────────
   // Host adds a bill item (e.g. "Diet Coke ฿45").
   // Starts with NO splits — host selects who shares it.
-  .post("/:id/items", zValidator("json", addRoomItemSchema), async (c) => {
+  .post("/:id/items", optionalAuth, zValidator("json", addRoomItemSchema), async (c) => {
     const roomId = c.req.param("id")
-    const memberId = getMemberCookie(c, roomId)
+    const memberId = await resolveMemberId(c, roomId)
 
     const member = await verifyRoomMember(roomId, memberId)
     if (!member?.isHost) {
@@ -512,10 +535,10 @@ const app = new Hono()
   // ─── DELETE /rooms/:id/items/:itemId ─────────
   // Host removes an item. Cascade delete handles
   // removing its splits automatically.
-  .delete("/:id/items/:itemId", async (c) => {
+  .delete("/:id/items/:itemId", optionalAuth, async (c) => {
     const roomId = c.req.param("id")
     const itemId = c.req.param("itemId")
-    const memberId = getMemberCookie(c, roomId)
+    const memberId = await resolveMemberId(c, roomId)
 
     const member = await verifyRoomMember(roomId, memberId)
     if (!member?.isHost) {
@@ -534,10 +557,10 @@ const app = new Hono()
   // existing splits with the new set of member IDs.
   // This is called when the host taps member chips
   // to toggle them on/off for a specific item.
-  .put("/:id/items/:itemId/splits", zValidator("json", setRoomItemSplitsSchema), async (c) => {
+  .put("/:id/items/:itemId/splits", optionalAuth, zValidator("json", setRoomItemSplitsSchema), async (c) => {
     const roomId = c.req.param("id")
     const itemId = c.req.param("itemId")
-    const memberId = getMemberCookie(c, roomId)
+    const memberId = await resolveMemberId(c, roomId)
 
     const member = await verifyRoomMember(roomId, memberId)
     if (!member?.isHost) {
@@ -584,9 +607,9 @@ const app = new Hono()
   // in one request. Creates items, splits, calculates
   // payments, and advances status — all at once.
   // No per-tap API calls needed during editing.
-  .post("/:id/finalize", zValidator("json", finalizeRoomSchema), async (c) => {
+  .post("/:id/finalize", optionalAuth, zValidator("json", finalizeRoomSchema), async (c) => {
     const roomId = c.req.param("id")
-    const memberId = getMemberCookie(c, roomId)
+    const memberId = await resolveMemberId(c, roomId)
 
     const member = await verifyRoomMember(roomId, memberId)
     if (!member?.isHost) {
@@ -688,9 +711,9 @@ const app = new Hono()
   // ─── PATCH /rooms/:id/payment-method ─────────
   // Host enters their PromptPay details so friends
   // know where to send money.
-  .patch("/:id/payment-method", zValidator("json", setRoomPaymentMethodSchema), async (c) => {
+  .patch("/:id/payment-method", optionalAuth, zValidator("json", setRoomPaymentMethodSchema), async (c) => {
     const roomId = c.req.param("id")
-    const memberId = getMemberCookie(c, roomId)
+    const memberId = await resolveMemberId(c, roomId)
 
     const member = await verifyRoomMember(roomId, memberId)
     if (!member?.isHost) {
@@ -713,10 +736,10 @@ const app = new Hono()
   // ─── PATCH /rooms/:id/payments/:paymentId/claim
   // Member claims they've paid. Transitions: unpaid → claimed, rejected → claimed.
   // Optionally accepts slip QR data { transRef, sendingBank } for verification.
-  .patch("/:id/payments/:paymentId/claim", zValidator("json", claimRoomPaymentSchema), async (c) => {
+  .patch("/:id/payments/:paymentId/claim", optionalAuth, zValidator("json", claimRoomPaymentSchema), async (c) => {
     const roomId = c.req.param("id")
     const paymentId = c.req.param("paymentId")
-    const memberId = getMemberCookie(c, roomId)
+    const memberId = await resolveMemberId(c, roomId)
     const body = c.req.valid("json")
 
     const member = await verifyRoomMember(roomId, memberId)
@@ -799,10 +822,10 @@ const app = new Hono()
 
   // ─── PATCH /rooms/:id/payments/:paymentId/confirm
   // Host confirms a payment. Can confirm from unpaid (direct) or claimed.
-  .patch("/:id/payments/:paymentId/confirm", async (c) => {
+  .patch("/:id/payments/:paymentId/confirm", optionalAuth, async (c) => {
     const roomId = c.req.param("id")
     const paymentId = c.req.param("paymentId")
-    const memberId = getMemberCookie(c, roomId)
+    const memberId = await resolveMemberId(c, roomId)
 
     const member = await verifyRoomMember(roomId, memberId)
     if (!member?.isHost) {
@@ -845,10 +868,10 @@ const app = new Hono()
 
   // ─── PATCH /rooms/:id/payments/:paymentId/reject
   // Host rejects a claimed payment. Member can re-claim.
-  .patch("/:id/payments/:paymentId/reject", async (c) => {
+  .patch("/:id/payments/:paymentId/reject", optionalAuth, async (c) => {
     const roomId = c.req.param("id")
     const paymentId = c.req.param("paymentId")
-    const memberId = getMemberCookie(c, roomId)
+    const memberId = await resolveMemberId(c, roomId)
 
     const member = await verifyRoomMember(roomId, memberId)
     if (!member?.isHost) {
