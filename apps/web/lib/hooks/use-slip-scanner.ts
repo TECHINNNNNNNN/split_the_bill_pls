@@ -4,19 +4,20 @@ import { useState, useCallback } from "react";
 import { slipVerify } from "promptparse/validate";
 import imageCompression from "browser-image-compression";
 
-type SlipData = {
+export type SlipData = {
   transRef: string;
   sendingBank: string;
 };
 
-type SlipScanOutput = {
+export type SlipScanOutput = {
   slipData: SlipData | null;
   slipImage: string; // compressed base64 data URL
 };
 
-type SlipScanResult =
+export type SlipScanResult =
   | { status: "idle" }
-  | { status: "scanning" }
+  | { status: "compressing" }
+  | { status: "scanning-qr" }
   | { status: "success"; data: SlipData }
   | { status: "no-qr" }
   | { status: "error"; message: string };
@@ -30,9 +31,11 @@ type SlipScanResult =
  */
 export function useSlipScanner() {
   const [result, setResult] = useState<SlipScanResult>({ status: "idle" });
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
 
   const scanSlip = useCallback(async (file: File): Promise<SlipScanOutput | null> => {
-    setResult({ status: "scanning" });
+    setResult({ status: "compressing" });
+    setPreviewUrl(null);
 
     try {
       // Compress the image before processing
@@ -49,6 +52,10 @@ export function useSlipScanner() {
         reader.onerror = reject;
         reader.readAsDataURL(compressed);
       });
+
+      // Set preview immediately after compression
+      setPreviewUrl(slipImage);
+      setResult({ status: "scanning-qr" });
 
       // Create an ImageBitmap from the compressed file for BarcodeDetector
       const bitmap = await createImageBitmap(compressed);
@@ -92,7 +99,8 @@ export function useSlipScanner() {
 
   const reset = useCallback(() => {
     setResult({ status: "idle" });
+    setPreviewUrl(null);
   }, []);
 
-  return { result, scanSlip, reset };
+  return { result, previewUrl, scanSlip, reset };
 }
