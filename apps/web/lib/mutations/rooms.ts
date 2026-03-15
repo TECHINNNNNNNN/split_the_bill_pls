@@ -10,6 +10,41 @@ import type {
   RoomStatus,
 } from "@pladuk/shared/schemas";
 
+export function useAcceptInvite() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (inviteId: string) => {
+      const res = await api.api.rooms.invites[":id"].accept.$post({
+        param: { id: inviteId },
+      });
+      if (!res.ok) throw new Error("Failed to accept invite");
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["rooms", "invites"] });
+      queryClient.invalidateQueries({ queryKey: ["rooms", "my"] });
+    },
+  });
+}
+
+export function useDeclineInvite() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (inviteId: string) => {
+      const res = await api.api.rooms.invites[":id"].decline.$post({
+        param: { id: inviteId },
+      });
+      if (!res.ok) throw new Error("Failed to decline invite");
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["rooms", "invites"] });
+    },
+  });
+}
+
 export function useCreateRoom() {
   return useMutation({
     mutationFn: async (data: CreateRoom) => {

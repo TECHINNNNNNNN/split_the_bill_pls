@@ -154,6 +154,8 @@ export const pushSubscriptions = pgTable("push_subscriptions", {
 // Quick Split — Room Schema (anonymous, no auth)
 // ════════════════════════════════════════════
 
+export const roomInviteStatusEnum = pgEnum("room_invite_status", ["pending", "accepted", "declined"]);
+
 export const roomStatusEnum = pgEnum("room_status", ["waiting", "splitting", "payment", "settled"]);
 
 export const rooms = pgTable("rooms", {
@@ -200,6 +202,22 @@ export const roomItemSplits = pgTable("room_item_splits", {
 }, (t) => [
   unique("room_item_splits_item_member_unique").on(t.itemId, t.memberId),
 ]);
+
+export const roomInvites = pgTable("room_invites", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  roomId: uuid("room_id")
+    .references(() => rooms.id, { onDelete: "cascade" })
+    .notNull(),
+  userId: text("user_id")
+    .references(() => user.id, { onDelete: "cascade" })
+    .notNull(),
+  invitedBy: text("invited_by")
+    .references(() => user.id, { onDelete: "cascade" })
+    .notNull(),
+  displayName: text("display_name").notNull(),
+  status: roomInviteStatusEnum("status").default("pending").notNull(),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+});
 
 export const roomPayments = pgTable("room_payments", {
   id: uuid("id").primaryKey().defaultRandom(),
@@ -281,6 +299,7 @@ export const roomsRelations = relations(rooms, ({ one, many }) => ({
   members: many(roomMembers),
   billItems: many(roomBillItems),
   payments: many(roomPayments),
+  invites: many(roomInvites),
 }));
 
 export const roomMembersRelations = relations(roomMembers, ({ one, many }) => ({
@@ -297,6 +316,11 @@ export const roomBillItemsRelations = relations(roomBillItems, ({ one, many }) =
 export const roomItemSplitsRelations = relations(roomItemSplits, ({ one }) => ({
   item: one(roomBillItems, { fields: [roomItemSplits.itemId], references: [roomBillItems.id] }),
   member: one(roomMembers, { fields: [roomItemSplits.memberId], references: [roomMembers.id] }),
+}));
+
+export const roomInvitesRelations = relations(roomInvites, ({ one }) => ({
+  room: one(rooms, { fields: [roomInvites.roomId], references: [rooms.id] }),
+  user: one(user, { fields: [roomInvites.userId], references: [user.id] }),
 }));
 
 export const roomPaymentsRelations = relations(roomPayments, ({ one }) => ({

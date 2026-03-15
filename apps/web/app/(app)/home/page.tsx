@@ -5,9 +5,12 @@ import { useSession, signOut } from "@/lib/auth-client";
 import { useQuery } from "@tanstack/react-query";
 import { groupQueries } from "@/lib/queries/groups";
 import { roomQueries } from "@/lib/queries/rooms";
+import { useAcceptInvite, useDeclineInvite } from "@/lib/mutations/rooms";
 import { CreateGroupDialog } from "@/components/groups/create-group-dialog";
 import Image from "next/image";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
+import toast from "react-hot-toast";
 
 function roomHref(code: string, status: string) {
   switch (status) {
@@ -34,9 +37,15 @@ const STATUS_COLOR: Record<string, string> = {
 
 export default function HomePage() {
   const { data: session } = useSession();
+  const router = useRouter();
   const { data: groups, isLoading: groupsLoading } = useQuery(groupQueries.all());
   const { data: myRooms, isLoading: roomsLoading } = useQuery(roomQueries.my());
+  const { data: invites, isLoading: invitesLoading } = useQuery(roomQueries.invites());
   const [showCreateGroup, setShowCreateGroup] = useState(false);
+  const [showJoinGroup, setShowJoinGroup] = useState(false);
+  const [groupCode, setGroupCode] = useState("");
+  const acceptInvite = useAcceptInvite();
+  const declineInvite = useDeclineInvite();
 
   return (
     <div>
@@ -81,6 +90,59 @@ export default function HomePage() {
         <span className="text-2xl">+</span>
       </Link>
 
+      {/* Pending Invites */}
+      {!invitesLoading && invites && invites.length > 0 && (
+        <section className="mb-6">
+          <h2 className="font-heading mb-3 text-lg font-semibold">Pending Invites</h2>
+          <div className="space-y-2">
+            {invites.map((invite) => (
+              <div
+                key={invite.id}
+                className="flex items-center justify-between rounded-xl border border-blue-100 bg-blue-50 p-3"
+              >
+                <div>
+                  <p className="text-sm font-medium">
+                    {invite.room.hostName}&apos;s split
+                  </p>
+                  <p className="text-xs text-gray-500">
+                    You&apos;re invited as {invite.displayName}
+                  </p>
+                </div>
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => {
+                      acceptInvite.mutate(invite.id, {
+                        onSuccess: (data) => {
+                          toast.success("Joined!");
+                          router.push(`/quick-split/${data.inviteCode}`);
+                        },
+                        onError: () => toast.error("Failed to accept"),
+                      });
+                    }}
+                    disabled={acceptInvite.isPending}
+                    className="rounded-lg bg-gray-900 px-3 py-1.5 text-xs font-medium text-white transition-colors hover:bg-gray-800 disabled:opacity-40"
+                  >
+                    Join
+                  </button>
+                  <button
+                    onClick={() => {
+                      declineInvite.mutate(invite.id, {
+                        onSuccess: () => toast.success("Declined"),
+                        onError: () => toast.error("Failed to decline"),
+                      });
+                    }}
+                    disabled={declineInvite.isPending}
+                    className="rounded-lg border border-gray-200 px-3 py-1.5 text-xs text-gray-500 transition-colors hover:bg-gray-100 disabled:opacity-40"
+                  >
+                    Decline
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        </section>
+      )}
+
       {/* Recent Splits */}
       <section className="mb-6">
         <h2 className="font-heading mb-3 text-lg font-semibold">Recent Splits</h2>
@@ -117,13 +179,57 @@ export default function HomePage() {
       <section>
         <div className="mb-3 flex items-center justify-between">
           <h2 className="font-heading text-lg font-semibold">Your Groups</h2>
-          <button
-            onClick={() => setShowCreateGroup(true)}
-            className="rounded-lg bg-gray-900 px-3 py-1.5 text-sm font-medium text-white transition-colors hover:bg-gray-800"
-          >
-            + New
-          </button>
+          <div className="flex gap-2">
+            <button
+              onClick={() => setShowJoinGroup(!showJoinGroup)}
+              className="rounded-lg border border-gray-200 px-3 py-1.5 text-sm text-gray-600 transition-colors hover:bg-gray-50"
+            >
+              Join
+            </button>
+            <button
+              onClick={() => setShowCreateGroup(true)}
+              className="rounded-lg bg-gray-900 px-3 py-1.5 text-sm font-medium text-white transition-colors hover:bg-gray-800"
+            >
+              + New
+            </button>
+          </div>
         </div>
+
+        {/* Join group by code */}
+        {showJoinGroup && (
+          <form
+            onSubmit={(e) => {
+              e.preventDefault();
+              const trimmed = groupCode.trim();
+              if (!trimmed) return;
+              router.push(`/groups/join/${trimmed}`);
+            }}
+            className="mb-3 flex gap-2"
+          >
+            <input
+              type="text"
+              placeholder="Enter group code"
+              value={groupCode}
+              onChange={(e) => setGroupCode(e.target.value)}
+              autoFocus
+              className="flex-1 rounded-xl border border-gray-200 px-4 py-2.5 text-sm outline-none transition-colors focus:border-gray-400"
+            />
+            <button
+              type="submit"
+              disabled={!groupCode.trim()}
+              className="rounded-xl bg-gray-900 px-4 py-2.5 text-sm font-medium text-white transition-colors hover:bg-gray-800 disabled:opacity-40"
+            >
+              Go
+            </button>
+            <button
+              type="button"
+              onClick={() => { setShowJoinGroup(false); setGroupCode(""); }}
+              className="rounded-xl border border-gray-200 px-3 py-2.5 text-sm text-gray-500 transition-colors hover:bg-gray-50"
+            >
+              Cancel
+            </button>
+          </form>
+        )}
 
         {groupsLoading ? (
           <p className="text-sm text-gray-400">Loading...</p>

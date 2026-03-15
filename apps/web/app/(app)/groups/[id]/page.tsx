@@ -3,23 +3,24 @@
 import { useParams, useRouter } from "next/navigation";
 import { useQuery } from "@tanstack/react-query";
 import { useState } from "react";
+import { useSession } from "@/lib/auth-client";
 import { groupQueries } from "@/lib/queries/groups";
-import { useAddGroupMember, useDeleteGroupMember, useStartGroupSplit } from "@/lib/mutations/groups";
+import { useDeleteGroupMember, useDeleteGroup, useStartGroupSplit } from "@/lib/mutations/groups";
 import Link from "next/link";
 import toast from "react-hot-toast";
 
 export default function GroupDetailPage() {
   const { id } = useParams<{ id: string }>();
   const router = useRouter();
+  const { data: session } = useSession();
   const { data: group, isLoading, error } = useQuery(groupQueries.detail(id));
 
-  const [showAddMember, setShowAddMember] = useState(false);
-  const [memberName, setMemberName] = useState("");
   const [showSplitPicker, setShowSplitPicker] = useState(false);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [showSettings, setShowSettings] = useState(false);
 
-  const addMember = useAddGroupMember(id);
   const deleteMember = useDeleteGroupMember(id);
+  const deleteGroup = useDeleteGroup();
   const startSplit = useStartGroupSplit(id);
 
   if (isLoading) {
@@ -40,25 +41,7 @@ export default function GroupDetailPage() {
     );
   }
 
-  const handleAddMember = (e: React.FormEvent) => {
-    e.preventDefault();
-    const trimmed = memberName.trim();
-    if (!trimmed) return;
-
-    addMember.mutate(
-      { displayName: trimmed, isGuest: true },
-      {
-        onSuccess: () => {
-          setMemberName("");
-          setShowAddMember(false);
-          toast.success(`${trimmed} added!`);
-        },
-        onError: () => {
-          toast.error("Failed to add member");
-        },
-      }
-    );
-  };
+  const isCreator = group.createdBy === session?.user.id;
 
   const handleDeleteMember = (memberId: string, name: string) => {
     if (!confirm(`Remove ${name} from the group?`)) return;
@@ -67,6 +50,29 @@ export default function GroupDetailPage() {
       onSuccess: () => toast.success(`${name} removed`),
       onError: () => toast.error("Failed to remove member"),
     });
+  };
+
+  const handleDeleteGroup = () => {
+    if (!confirm(`Delete "${group.name}"? This will remove all members and bills. This cannot be undone.`)) return;
+
+    deleteGroup.mutate(id, {
+      onSuccess: () => {
+        toast.success("Group deleted");
+        router.push("/home");
+      },
+      onError: () => toast.error("Failed to delete group"),
+    });
+  };
+
+  const handleShareLink = async () => {
+    const url = `${window.location.origin}/groups/join/${group.inviteCode}`;
+    try {
+      await navigator.clipboard.writeText(url);
+      toast.success("Invite link copied!");
+    } catch {
+      // Fallback: show the code
+      toast.success(`Code: ${group.inviteCode}`);
+    }
   };
 
   const toggleMember = (memberId: string) => {
@@ -104,12 +110,22 @@ export default function GroupDetailPage() {
     <div>
       {/* Header */}
       <div className="mb-6">
-        <button
-          onClick={() => router.push("/home")}
-          className="mb-2 text-sm text-gray-400 hover:text-gray-600"
-        >
-          ← Back
-        </button>
+        <div className="mb-2 flex items-center justify-between">
+          <button
+            onClick={() => router.push("/home")}
+            className="text-sm text-gray-400 hover:text-gray-600"
+          >
+            &larr; Back
+          </button>
+          {isCreator && (
+            <button
+              onClick={() => setShowSettings(!showSettings)}
+              className="text-sm text-gray-400 hover:text-gray-600"
+            >
+              Settings
+            </button>
+          )}
+        </div>
         <h1 className="font-heading text-2xl font-bold">{group.name}</h1>
         <p className="text-sm text-gray-500">
           {group.members.length} member{group.members.length !== 1 && "s"}
@@ -118,8 +134,35 @@ export default function GroupDetailPage() {
         </p>
       </div>
 
+      {/* Settings Panel (creator only) */}
+      {showSettings && isCreator && (
+        <div className="mb-6 rounded-xl border border-gray-200 bg-white p-4">
+          <h3 className="font-heading mb-3 font-semibold">Group Settings</h3>
+          <div className="rounded-lg border border-red-200 bg-red-50 p-3">
+            <p className="mb-2 text-sm text-red-700">
+              Deleting this group will permanently remove all members, bills, and payment records.
+            </p>
+            <button
+              onClick={handleDeleteGroup}
+              disabled={deleteGroup.isPending}
+              className="rounded-lg bg-red-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-red-700 disabled:opacity-40"
+            >
+              {deleteGroup.isPending ? "Deleting..." : "Delete Group"}
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Invite Friends */}
+      <button
+        onClick={handleShareLink}
+        className="mb-4 w-full rounded-xl border border-dashed border-gray-300 py-3 text-center text-sm text-gray-500 transition-colors hover:border-gray-400 hover:text-gray-700"
+      >
+        Share invite link &middot; Code: {group.inviteCode}
+      </button>
+
       {/* Start Split CTA */}
-      {!showSplitPicker && group.members.length > 0 && (
+      {!showSplitPicker && group.members.length > 1 && (
         <button
           onClick={() => {
             setSelectedIds(new Set(group.members.map(m => m.id)));
@@ -131,11 +174,11 @@ export default function GroupDetailPage() {
         </button>
       )}
 
-      {/* Member Picker */}
+      {/* Member Picker for Split */}
       {showSplitPicker && (
         <div className="mb-6 rounded-xl border border-gray-200 bg-white p-4">
           <div className="mb-3 flex items-center justify-between">
-            <h3 className="font-heading font-semibold">Who's splitting?</h3>
+            <h3 className="font-heading font-semibold">Who&apos;s splitting?</h3>
             <button
               onClick={toggleAll}
               className="text-sm text-gray-500 hover:text-gray-800"
@@ -143,6 +186,10 @@ export default function GroupDetailPage() {
               {selectedIds.size === group.members.length ? "Deselect all" : "Select all"}
             </button>
           </div>
+
+          <p className="mb-3 text-xs text-gray-400">
+            Selected members will be invited to join the split room.
+          </p>
 
           <ul className="mb-4 space-y-2">
             {group.members.map((member) => (
@@ -155,9 +202,6 @@ export default function GroupDetailPage() {
                     className="h-4 w-4 rounded border-gray-300"
                   />
                   <span className="text-sm">{member.displayName}</span>
-                  {member.isGuest && (
-                    <span className="text-xs text-gray-400">Guest</span>
-                  )}
                 </label>
               </li>
             ))}
@@ -183,51 +227,11 @@ export default function GroupDetailPage() {
 
       {/* Members */}
       <section className="mb-8">
-        <div className="mb-3 flex items-center justify-between">
-          <h2 className="font-heading text-lg font-semibold">Members</h2>
-          <button
-            onClick={() => setShowAddMember(true)}
-            className="rounded-lg bg-gray-900 px-3 py-1.5 text-sm font-medium text-white transition-colors hover:bg-gray-800"
-          >
-            + Add
-          </button>
-        </div>
-
-        {/* Add member inline form */}
-        {showAddMember && (
-          <form onSubmit={handleAddMember} className="mb-3 flex gap-2">
-            <input
-              type="text"
-              placeholder="Friend's name"
-              value={memberName}
-              onChange={(e) => setMemberName(e.target.value)}
-              maxLength={100}
-              autoFocus
-              className="flex-1 rounded-xl border border-gray-200 px-4 py-2.5 text-sm outline-none transition-colors focus:border-gray-400"
-            />
-            <button
-              type="submit"
-              disabled={!memberName.trim() || addMember.isPending}
-              className="rounded-xl bg-gray-900 px-4 py-2.5 text-sm font-medium text-white transition-colors hover:bg-gray-800 disabled:opacity-40"
-            >
-              {addMember.isPending ? "..." : "Add"}
-            </button>
-            <button
-              type="button"
-              onClick={() => {
-                setShowAddMember(false);
-                setMemberName("");
-              }}
-              className="rounded-xl border border-gray-200 px-3 py-2.5 text-sm text-gray-500 transition-colors hover:bg-gray-50"
-            >
-              Cancel
-            </button>
-          </form>
-        )}
+        <h2 className="font-heading mb-3 text-lg font-semibold">Members</h2>
 
         {group.members.length === 0 ? (
           <p className="text-sm text-gray-400">
-            No members yet. Add friends to start splitting bills.
+            No members yet. Share the invite link above.
           </p>
         ) : (
           <ul className="space-y-2">
@@ -236,22 +240,19 @@ export default function GroupDetailPage() {
                 key={member.id}
                 className="flex items-center justify-between rounded-xl border border-gray-100 bg-white px-4 py-3"
               >
-                <div>
-                  <span className="text-sm font-medium">
-                    {member.displayName}
-                  </span>
-                  {member.isGuest && (
-                    <span className="ml-2 text-xs text-gray-400">Guest</span>
-                  )}
-                </div>
-                <button
-                  onClick={() =>
-                    handleDeleteMember(member.id, member.displayName)
-                  }
-                  className="text-xs text-gray-400 transition-colors hover:text-red-500"
-                >
-                  Remove
-                </button>
+                <span className="text-sm font-medium">
+                  {member.displayName}
+                </span>
+                {isCreator && member.userId !== session?.user.id && (
+                  <button
+                    onClick={() =>
+                      handleDeleteMember(member.id, member.displayName)
+                    }
+                    className="text-xs text-gray-400 transition-colors hover:text-red-500"
+                  >
+                    Remove
+                  </button>
+                )}
               </li>
             ))}
           </ul>

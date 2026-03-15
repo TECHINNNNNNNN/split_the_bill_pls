@@ -2,7 +2,7 @@ import { Hono } from "hono"
 import { setCookie, getCookie } from "hono/cookie"
 import { zValidator } from "@hono/zod-validator"
 import { db } from "../db/index.js"
-import { rooms, roomMembers, roomBillItems, roomItemSplits, roomPayments } from "../db/schema.js"
+import { rooms, roomMembers, roomBillItems, roomItemSplits, roomPayments, roomInvites } from "../db/schema.js"
 import { eq, and, desc } from "drizzle-orm"
 import { randomUUID } from "node:crypto"
 import {
@@ -113,6 +113,95 @@ const app = new Hono()
     return c.json(userRooms)
   })
 
+  // ─── GET /rooms/invites ───────────────────────
+  // Returns pending room invites for the logged-in user.
+  // Used by /home to show "You've been invited" section.
+  .get("/invites", requireAuth, async (c) => {
+    const user = c.get("user")
+
+    const invites = await db.query.roomInvites.findMany({
+      where: and(
+        eq(roomInvites.userId, user.id),
+        eq(roomInvites.status, "pending"),
+      ),
+      with: { room: true },
+      orderBy: desc(roomInvites.createdAt),
+    })
+
+    return c.json(invites)
+  })
+
+  // ─── POST /rooms/invites/:id/accept ───────────
+  // Accept an invite: join the room as a member.
+  .post("/invites/:id/accept", requireAuth, async (c) => {
+    const user = c.get("user")
+    const inviteId = c.req.param("id")
+
+    const invite = await db.query.roomInvites.findFirst({
+      where: and(
+        eq(roomInvites.id, inviteId),
+        eq(roomInvites.userId, user.id),
+        eq(roomInvites.status, "pending"),
+      ),
+      with: { room: true },
+    })
+
+    if (!invite) {
+      return c.json({ error: "Invite not found" }, 404)
+    }
+
+    // Mark invite as accepted
+    await db.update(roomInvites)
+      .set({ status: "accepted" })
+      .where(eq(roomInvites.id, inviteId))
+
+    // Add user as room member
+    const [member] = await db.insert(roomMembers).values({
+      roomId: invite.roomId,
+      displayName: invite.displayName,
+      isHost: false,
+    }).returning()
+
+    // Set per-room cookie so user is identified
+    setCookie(c, `room_member_${invite.roomId}`, member.id, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: process.env.NODE_ENV === "production" ? "None" : "Lax",
+      path: "/",
+      maxAge: 86400,
+    })
+
+    // Notify other room members
+    notifyPartyKit(invite.room.inviteCode, "member-joined", { memberId: member.id })
+
+    return c.json({ member, inviteCode: invite.room.inviteCode })
+  })
+
+  // ─── POST /rooms/invites/:id/decline ──────────
+  // Decline an invite.
+  .post("/invites/:id/decline", requireAuth, async (c) => {
+    const user = c.get("user")
+    const inviteId = c.req.param("id")
+
+    const invite = await db.query.roomInvites.findFirst({
+      where: and(
+        eq(roomInvites.id, inviteId),
+        eq(roomInvites.userId, user.id),
+        eq(roomInvites.status, "pending"),
+      ),
+    })
+
+    if (!invite) {
+      return c.json({ error: "Invite not found" }, 404)
+    }
+
+    await db.update(roomInvites)
+      .set({ status: "declined" })
+      .where(eq(roomInvites.id, inviteId))
+
+    return c.json({ success: true })
+  })
+
   // ─── GET /rooms/code/:code ───────────────────
   // Public lookup by invite code. Used by the lobby
   // page and join page to display the room state.
@@ -159,8 +248,8 @@ const app = new Hono()
       return c.json({ error: "Room has already started" }, 400)
     }
 
-    // Check if room is full
-    if (room.members.length >= room.expectedMembers) {
+    // Check if room is full (skip for group-created rooms — open-ended)
+    if (!room.groupId && room.members.length >= room.expectedMembers) {
       return c.json({ error: "Room is full" }, 400)
     }
 
@@ -210,8 +299,8 @@ const app = new Hono()
       return c.json({ error: "Room not found" }, 404)
     }
 
-    // Check if room is full
-    if (room.members.length >= room.expectedMembers) {
+    // Check if room is full (skip for group-created rooms — open-ended)
+    if (!room.groupId && room.members.length >= room.expectedMembers) {
       return c.json({ error: "Room is full" }, 400)
     }
 

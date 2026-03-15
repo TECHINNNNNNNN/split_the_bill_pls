@@ -25,6 +25,16 @@ export const roomQueries = {
       },
     }),
 
+  invites: () =>
+    queryOptions({
+      queryKey: ["rooms", "invites"] as const,
+      queryFn: async () => {
+        const res = await api.api.rooms.invites.$get();
+        if (!res.ok) throw new Error("Failed to fetch invites");
+        return res.json();
+      },
+    }),
+
   detail: (roomId: string) =>
     queryOptions({
       queryKey: ["rooms", roomId] as const,

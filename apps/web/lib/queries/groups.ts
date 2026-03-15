@@ -12,6 +12,19 @@ export const groupQueries = {
       },
     }),
 
+  preview: (code: string) =>
+    queryOptions({
+      queryKey: ["groups", "join", code] as const,
+      queryFn: async () => {
+        const res = await api.api.groups.join[":code"].$get({
+          param: { code },
+        });
+        if (!res.ok) throw new Error("Group not found");
+        return res.json();
+      },
+      enabled: !!code,
+    }),
+
   detail: (groupId: string) =>
     queryOptions({
       queryKey: ["groups", groupId] as const,

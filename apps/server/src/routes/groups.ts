@@ -1,11 +1,11 @@
 import { Hono } from "hono"
 import { db } from "../db/index.js"
-import { groups, groupMembers, rooms, roomMembers } from "../db/schema.js"
+import { groups, groupMembers, rooms, roomMembers, roomInvites } from "../db/schema.js"
 import { requireAuth } from "../lib/middleware.js"
-import { eq, and, inArray } from "drizzle-orm"
+import { eq, and } from "drizzle-orm"
 import { zValidator } from "@hono/zod-validator"
 import { setCookie } from "hono/cookie"
-import { createGroupSchema, addGroupMemberSchema, startGroupSplitSchema } from "@pladuk/shared/schemas"
+import { createGroupSchema, startGroupSplitSchema } from "@pladuk/shared/schemas"
 import { randomUUID } from "node:crypto"
 
 const app = new Hono()
@@ -14,28 +14,30 @@ const app = new Hono()
   .use(requireAuth)
 
   // ─── GET /groups ─────────────────────────────
-  // List all groups the logged-in user created.
+  // List all groups the logged-in user is a member of.
   // Returns groups with their members, newest first.
   .get("/", async (c) => {
     const user = c.get("user")
 
-    const userGroups = await db.query.groups.findMany({
-      where: eq(groups.createdBy, user.id),
+    // Find all groups where user is a member (not just creator)
+    const memberships = await db.query.groupMembers.findMany({
+      where: eq(groupMembers.userId, user.id),
       with: {
-        members: true,
+        group: {
+          with: { members: true },
+        },
       },
-      orderBy: (groups, { desc }) => [desc(groups.createdAt)],
     })
+
+    const userGroups = memberships
+      .map(m => m.group)
+      .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
 
     return c.json(userGroups)
   })
 
   // ─── POST /groups ────────────────────────────
   // Create a new group. Only needs a name.
-  // zValidator automatically validates the request body
-  // against createGroupSchema ({ name: string }).
-  // If validation fails, Hono returns 400 with error details
-  // before our code even runs.
   .post("/", zValidator("json", createGroupSchema), async (c) => {
     const user = c.get("user")
     const { name } = c.req.valid("json")
@@ -61,18 +63,75 @@ const app = new Hono()
     return c.json(group[0], 201)
   })
 
+  // ─── GET /groups/join/:code ────────────────────
+  // Preview a group before joining. Returns group name
+  // and member count so the join page can show what
+  // you're about to join. Requires login.
+  .get("/join/:code", async (c) => {
+    const user = c.get("user")
+    const code = c.req.param("code")
+
+    const group = await db.query.groups.findFirst({
+      where: eq(groups.inviteCode, code),
+      with: { members: true },
+    })
+
+    if (!group) {
+      return c.json({ error: "Group not found" }, 404)
+    }
+
+    const alreadyMember = group.members.some(m => m.userId === user.id)
+
+    return c.json({
+      id: group.id,
+      name: group.name,
+      memberCount: group.members.length,
+      alreadyMember,
+    })
+  })
+
+  // ─── POST /groups/join/:code ───────────────────
+  // Join a group by invite code. Adds the logged-in
+  // user as a non-guest member. Prevents duplicates.
+  .post("/join/:code", async (c) => {
+    const user = c.get("user")
+    const code = c.req.param("code")
+
+    const group = await db.query.groups.findFirst({
+      where: eq(groups.inviteCode, code),
+      with: { members: true },
+    })
+
+    if (!group) {
+      return c.json({ error: "Group not found" }, 404)
+    }
+
+    // Check if already a member
+    const existing = group.members.find(m => m.userId === user.id)
+    if (existing) {
+      return c.json({ groupId: group.id, alreadyMember: true })
+    }
+
+    await db.insert(groupMembers).values({
+      id: randomUUID(),
+      groupId: group.id,
+      displayName: user.name,
+      isGuest: false,
+      userId: user.id,
+    })
+
+    return c.json({ groupId: group.id, alreadyMember: false }, 201)
+  })
+
   // ─── GET /groups/:id ─────────────────────────
   // Get one group's details, including members and bills.
-  // Only the group creator can access it.
+  // Any group member can access it.
   .get("/:id", async (c) => {
     const user = c.get("user")
     const groupId = c.req.param("id")
 
     const group = await db.query.groups.findFirst({
-      where: and(
-        eq(groups.id, groupId),
-        eq(groups.createdBy, user.id),  // ownership check
-      ),
+      where: eq(groups.id, groupId),
       with: {
         members: true,
         bills: true,
@@ -83,37 +142,13 @@ const app = new Hono()
       return c.json({ error: "Group not found" }, 404)
     }
 
-    return c.json(group)
-  })
-
-  // ─── POST /groups/:id/members ────────────────
-  // Add a member to a group.
-  // Members can be guests (just a display name, no account)
-  // or linked to a real user (userId).
-  // This is the "friends never need accounts" feature.
-  .post("/:id/members", zValidator("json", addGroupMemberSchema), async (c) => {
-    const user = c.get("user")
-    const groupId = c.req.param("id")
-    const { displayName, isGuest, userId } = c.req.valid("json")
-
-    // Only the group creator can add members
-    const group = await db.query.groups.findFirst({
-      where: and(eq(groups.id, groupId), eq(groups.createdBy, user.id)),
-    })
-
-    if (!group) {
+    // Check user is a member of this group
+    const isMember = group.members.some(m => m.userId === user.id)
+    if (!isMember) {
       return c.json({ error: "Group not found" }, 404)
     }
 
-    const member = await db.insert(groupMembers).values({
-      id: randomUUID(),
-      groupId,
-      displayName,
-      isGuest: isGuest ?? true,
-      userId: userId ?? null,
-    }).returning()
-
-    return c.json(member[0], 201)
+    return c.json(group)
   })
 
   // ─── DELETE /groups/:id/members/:memberId ────
@@ -133,8 +168,6 @@ const app = new Hono()
       return c.json({ error: "Group not found" }, 404)
     }
 
-    // Delete where both member ID and group ID match
-    // (prevents deleting a member from a different group)
     await db.delete(groupMembers).where(
       and(eq(groupMembers.id, memberId), eq(groupMembers.groupId, groupId))
     )
@@ -142,17 +175,39 @@ const app = new Hono()
     return c.json({ success: true })
   })
 
+  // ─── DELETE /groups/:id ─────────────────────
+  // Delete a group. Only the creator can delete it.
+  // Cascade deletes members, bills, items, claims, payments.
+  // Rooms linked to this group get groupId set to NULL.
+  .delete("/:id", async (c) => {
+    const user = c.get("user")
+    const groupId = c.req.param("id")
+
+    const group = await db.query.groups.findFirst({
+      where: and(eq(groups.id, groupId), eq(groups.createdBy, user.id)),
+    })
+
+    if (!group) {
+      return c.json({ error: "Group not found" }, 404)
+    }
+
+    await db.delete(groups).where(eq(groups.id, groupId))
+
+    return c.json({ success: true })
+  })
+
   // ─── POST /groups/:id/split ────────────────
-  // Start a quick split from a group. Creates a room
-  // with selected group members as placeholders.
-  // The creator becomes the host.
+  // Start a quick split from a group. Creates a room,
+  // adds the host, and sends invites to selected group
+  // members (who must be logged-in users with userId).
+  // Any group member can start a split.
   .post("/:id/split", zValidator("json", startGroupSplitSchema), async (c) => {
     const user = c.get("user")
     const groupId = c.req.param("id")
     const { memberIds } = c.req.valid("json")
 
     const group = await db.query.groups.findFirst({
-      where: and(eq(groups.id, groupId), eq(groups.createdBy, user.id)),
+      where: eq(groups.id, groupId),
       with: { members: true },
     })
 
@@ -160,10 +215,17 @@ const app = new Hono()
       return c.json({ error: "Group not found" }, 404)
     }
 
-    const selected = group.members.filter(m => memberIds.includes(m.id))
-    if (selected.length === 0) {
-      return c.json({ error: "No valid members selected" }, 400)
+    // Verify the user is a member
+    const isMember = group.members.some(m => m.userId === user.id)
+    if (!isMember) {
+      return c.json({ error: "Group not found" }, 404)
     }
+
+    // Filter to selected members that are logged-in users (have userId)
+    // Exclude the current user (they'll be the host)
+    const selected = group.members.filter(
+      m => memberIds.includes(m.id) && m.userId && m.userId !== user.id
+    )
 
     const inviteCode = randomUUID().replace(/-/g, "").slice(0, 6).toUpperCase()
     const [room] = await db.insert(rooms).values({
@@ -174,18 +236,21 @@ const app = new Hono()
       groupId,
     }).returning()
 
+    // Add host as room member
     const [hostMember] = await db.insert(roomMembers).values({
       roomId: room.id,
       displayName: user.name,
       isHost: true,
     }).returning()
 
+    // Create invites for selected members
     if (selected.length > 0) {
-      await db.insert(roomMembers).values(
+      await db.insert(roomInvites).values(
         selected.map(m => ({
           roomId: room.id,
+          userId: m.userId!,
+          invitedBy: user.id,
           displayName: m.displayName,
-          isHost: false,
         }))
       )
     }
