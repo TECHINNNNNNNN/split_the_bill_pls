@@ -59,3 +59,11 @@ jobs:
         run: flyctl deploy --remote-only
         env:
           FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
+
+      - name: Deploy PartyKit
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        run: npx partykit deploy
+        working-directory: apps/party
+        env:
+          PARTYKIT_LOGIN: ${{ secrets.PARTYKIT_LOGIN }}
+          PARTYKIT_TOKEN: ${{ secrets.PARTYKIT_TOKEN }}
