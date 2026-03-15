@@ -618,8 +618,11 @@ const app = new Hono()
       return c.json({ error: "Payment cannot be claimed in its current state" }, 400)
     }
 
-    // Store slip QR data if provided
+    // Store slip data if provided
     const slipFields: Record<string, unknown> = {}
+    if (body.slipImage) {
+      slipFields.slipImageData = body.slipImage
+    }
     if (body.transRef && body.sendingBank) {
       slipFields.slipTransRef = body.transRef
       slipFields.slipSendingBank = body.sendingBank
@@ -732,7 +735,15 @@ const app = new Hono()
     }
 
     const [updated] = await db.update(roomPayments)
-      .set({ status: "rejected", rejectedAt: new Date() })
+      .set({
+        status: "rejected",
+        rejectedAt: new Date(),
+        slipTransRef: null,
+        slipSendingBank: null,
+        slipImageData: null,
+        slipVerifiedAmount: null,
+        slipVerifiedAt: null,
+      })
       .where(eq(roomPayments.id, paymentId))
       .returning()
 

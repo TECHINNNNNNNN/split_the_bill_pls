@@ -2,10 +2,16 @@
 
 import { useState, useCallback } from "react";
 import { slipVerify } from "promptparse/validate";
+import imageCompression from "browser-image-compression";
 
 type SlipData = {
   transRef: string;
   sendingBank: string;
+};
+
+type SlipScanOutput = {
+  slipData: SlipData | null;
+  slipImage: string; // compressed base64 data URL
 };
 
 type SlipScanResult =
@@ -18,18 +24,34 @@ type SlipScanResult =
 /**
  * Hook that extracts slip verification data from a payment slip image.
  *
- * Pipeline: image → BarcodeDetector (QR extraction) → promptparse slipVerify()
- * Returns { transRef, sendingBank } which can be sent to the server for verification.
+ * Pipeline: compress image → BarcodeDetector (QR extraction) → promptparse slipVerify()
+ * Returns { slipData, slipImage } — slipData has { transRef, sendingBank } if QR found,
+ * slipImage is always the compressed base64 for the host to view.
  */
 export function useSlipScanner() {
   const [result, setResult] = useState<SlipScanResult>({ status: "idle" });
 
-  const scanSlip = useCallback(async (file: File) => {
+  const scanSlip = useCallback(async (file: File): Promise<SlipScanOutput | null> => {
     setResult({ status: "scanning" });
 
     try {
-      // Create an ImageBitmap from the file for BarcodeDetector
-      const bitmap = await createImageBitmap(file);
+      // Compress the image before processing
+      const compressed = await imageCompression(file, {
+        maxSizeMB: 0.3,
+        maxWidthOrHeight: 1200,
+        useWebWorker: true,
+      });
+
+      // Convert compressed image to base64 data URL
+      const slipImage = await new Promise<string>((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(reader.result as string);
+        reader.onerror = reject;
+        reader.readAsDataURL(compressed);
+      });
+
+      // Create an ImageBitmap from the compressed file for BarcodeDetector
+      const bitmap = await createImageBitmap(compressed);
 
       // Use BarcodeDetector API (with polyfill fallback)
       let BarcodeDetectorImpl: typeof BarcodeDetector;
@@ -37,7 +59,6 @@ export function useSlipScanner() {
       if ("BarcodeDetector" in globalThis) {
         BarcodeDetectorImpl = globalThis.BarcodeDetector;
       } else {
-        // Load polyfill dynamically
         const { BarcodeDetector: Polyfill } = await import("barcode-detector");
         BarcodeDetectorImpl = Polyfill as unknown as typeof BarcodeDetector;
       }
@@ -45,11 +66,6 @@ export function useSlipScanner() {
       const detector = new BarcodeDetectorImpl({ formats: ["qr_code"] });
       const barcodes = await detector.detect(bitmap);
       bitmap.close();
-
-      if (barcodes.length === 0) {
-        setResult({ status: "no-qr" });
-        return null;
-      }
 
       // Try each detected QR code — find the first valid slip QR
       for (const barcode of barcodes) {
@@ -60,13 +76,13 @@ export function useSlipScanner() {
             sendingBank: parsed.sendingBank,
           };
           setResult({ status: "success", data });
-          return data;
+          return { slipData: data, slipImage };
         }
       }
 
-      // QR codes found but none are valid slip QR
+      // No valid slip QR found — still return the image so host can view it
       setResult({ status: "no-qr" });
-      return null;
+      return { slipData: null, slipImage };
     } catch (err) {
       const message = err instanceof Error ? err.message : "Failed to scan slip";
       setResult({ status: "error", message });

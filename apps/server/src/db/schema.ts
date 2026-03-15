@@ -215,6 +215,7 @@ export const roomPayments = pgTable("room_payments", {
   // Slip verification fields
   slipTransRef: text("slip_trans_ref"),
   slipSendingBank: text("slip_sending_bank"),
+  slipImageData: text("slip_image_data"),
   slipVerifiedAmount: numeric("slip_verified_amount", { precision: 10, scale: 2 }),
   slipVerifiedAt: timestamp("slip_verified_at", { withTimezone: true }),
 });

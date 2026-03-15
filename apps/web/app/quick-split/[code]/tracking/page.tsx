@@ -1,6 +1,6 @@
 "use client";
 
-import { use, useRef } from "react";
+import { use, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useQuery } from "@tanstack/react-query";
 import { QRCodeSVG } from "qrcode.react";
@@ -46,6 +46,7 @@ export default function PaymentTrackingPage({
   const { code } = use(params);
   const router = useRouter();
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const [slipModalImage, setSlipModalImage] = useState<string | null>(null);
 
   const { data: codeData } = useQuery(roomQueries.byCode(code));
   const roomId = codeData?.room?.id ?? "";
@@ -80,12 +81,13 @@ export default function PaymentTrackingPage({
     const file = e.target.files?.[0];
     if (!file) return;
 
-    const slipData = await scanSlip(file);
+    const output = await scanSlip(file);
 
-    // Claim with slip data if QR was extracted, otherwise claim without
+    // Claim with slip data + image
     claimPayment.mutate({
       paymentId,
-      slipData: slipData ?? undefined,
+      slipData: output?.slipData ?? undefined,
+      slipImage: output?.slipImage,
     });
 
     // Reset file input so the same file can be re-selected
@@ -305,7 +307,7 @@ export default function PaymentTrackingPage({
           .map((payment) => {
             const status = payment.status as PaymentStatus;
             const config = statusConfig[status];
-            const hasSlip = !!payment.slipTransRef;
+            const hasSlip = !!payment.slipTransRef || !!payment.slipImageData;
             const hasVerification = !!payment.slipVerifiedAmount;
             const verifiedAmount = hasVerification ? parseFloat(payment.slipVerifiedAmount!) : null;
             const owedAmount = parseFloat(payment.amount);
@@ -359,13 +361,31 @@ export default function PaymentTrackingPage({
                 {/* Slip verification info — visible to host */}
                 {isHost && hasSlip && (
                   <div className="mt-2 flex flex-wrap items-center gap-2 text-xs">
-                    {/* Slip attached badge */}
-                    <span className="inline-flex items-center gap-1 rounded-md border border-blue-200 bg-blue-50 px-2 py-0.5 text-blue-700">
+                    {/* Slip badge — clickable to view slip image */}
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (payment.slipImageData) {
+                          setSlipModalImage(payment.slipImageData);
+                        }
+                      }}
+                      className={`inline-flex items-center gap-1 rounded-md border border-blue-200 bg-blue-50 px-2 py-0.5 text-blue-700 ${
+                        payment.slipImageData ? "cursor-pointer hover:bg-blue-100" : "cursor-default"
+                      }`}
+                    >
                       <svg className="h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                       </svg>
-                      Slip: {bankNames[payment.slipSendingBank!] ?? payment.slipSendingBank}
-                    </span>
+                      {payment.slipSendingBank
+                        ? `Slip: ${bankNames[payment.slipSendingBank] ?? payment.slipSendingBank}`
+                        : "Slip attached"}
+                      {payment.slipImageData && (
+                        <svg className="ml-0.5 h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                        </svg>
+                      )}
+                    </button>
 
                     {/* Verified amount badge */}
                     {hasVerification && (
@@ -426,6 +446,35 @@ export default function PaymentTrackingPage({
           Back to Home
         </button>
       </div>
+
+      {/* Slip image modal — shown when host taps a slip badge */}
+      {slipModalImage && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-6"
+          onClick={() => setSlipModalImage(null)}
+        >
+          <div
+            className="relative max-h-[80vh] max-w-md overflow-hidden rounded-xl bg-white shadow-2xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <button
+              type="button"
+              onClick={() => setSlipModalImage(null)}
+              className="absolute right-3 top-3 rounded-full bg-black/50 p-1.5 text-white transition-colors hover:bg-black/70"
+            >
+              <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src={slipModalImage}
+              alt="Payment slip"
+              className="max-h-[80vh] w-full object-contain"
+            />
+          </div>
+        </div>
+      )}
     </div>
   );
 }

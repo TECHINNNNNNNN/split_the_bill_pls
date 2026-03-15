@@ -114,6 +114,7 @@ export const setRoomPaymentMethodSchema = z.object({
 export const claimRoomPaymentSchema = z.object({
   transRef: z.string().min(1).optional(),
   sendingBank: z.string().min(1).optional(),
+  slipImage: z.string().optional(),
 })
 
 export const updateRoomStatusSchema = z.object({
