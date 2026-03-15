@@ -4,7 +4,7 @@ import { useParams, useRouter } from "next/navigation";
 import { useQuery } from "@tanstack/react-query";
 import { useState } from "react";
 import { groupQueries } from "@/lib/queries/groups";
-import { useAddGroupMember, useDeleteGroupMember } from "@/lib/mutations/groups";
+import { useAddGroupMember, useDeleteGroupMember, useStartGroupSplit } from "@/lib/mutations/groups";
 import Link from "next/link";
 import toast from "react-hot-toast";
 
@@ -15,8 +15,12 @@ export default function GroupDetailPage() {
 
   const [showAddMember, setShowAddMember] = useState(false);
   const [memberName, setMemberName] = useState("");
+  const [showSplitPicker, setShowSplitPicker] = useState(false);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+
   const addMember = useAddGroupMember(id);
   const deleteMember = useDeleteGroupMember(id);
+  const startSplit = useStartGroupSplit(id);
 
   if (isLoading) {
     return <p className="text-gray-400">Loading group...</p>;
@@ -27,10 +31,10 @@ export default function GroupDetailPage() {
       <div className="text-center">
         <p className="text-red-500">Group not found</p>
         <button
-          onClick={() => router.push("/dashboard")}
+          onClick={() => router.push("/home")}
           className="mt-2 text-sm text-gray-500 underline"
         >
-          Back to dashboard
+          Back to home
         </button>
       </div>
     );
@@ -65,12 +69,43 @@ export default function GroupDetailPage() {
     });
   };
 
+  const toggleMember = (memberId: string) => {
+    setSelectedIds(prev => {
+      const next = new Set(prev);
+      if (next.has(memberId)) next.delete(memberId);
+      else next.add(memberId);
+      return next;
+    });
+  };
+
+  const toggleAll = () => {
+    if (selectedIds.size === group.members.length) {
+      setSelectedIds(new Set());
+    } else {
+      setSelectedIds(new Set(group.members.map(m => m.id)));
+    }
+  };
+
+  const handleStartSplit = () => {
+    startSplit.mutate(
+      { memberIds: Array.from(selectedIds) },
+      {
+        onSuccess: (data) => {
+          router.push(`/quick-split/${data.inviteCode}`);
+        },
+        onError: () => {
+          toast.error("Failed to start split");
+        },
+      }
+    );
+  };
+
   return (
     <div>
       {/* Header */}
       <div className="mb-6">
         <button
-          onClick={() => router.push("/dashboard")}
+          onClick={() => router.push("/home")}
           className="mb-2 text-sm text-gray-400 hover:text-gray-600"
         >
           ← Back
@@ -82,6 +117,69 @@ export default function GroupDetailPage() {
           {group.bills.length} bill{group.bills.length !== 1 && "s"}
         </p>
       </div>
+
+      {/* Start Split CTA */}
+      {!showSplitPicker && group.members.length > 0 && (
+        <button
+          onClick={() => {
+            setSelectedIds(new Set(group.members.map(m => m.id)));
+            setShowSplitPicker(true);
+          }}
+          className="mb-6 w-full rounded-xl bg-gray-900 py-3 text-center font-medium text-white transition-colors hover:bg-gray-800"
+        >
+          Start a Split
+        </button>
+      )}
+
+      {/* Member Picker */}
+      {showSplitPicker && (
+        <div className="mb-6 rounded-xl border border-gray-200 bg-white p-4">
+          <div className="mb-3 flex items-center justify-between">
+            <h3 className="font-heading font-semibold">Who's splitting?</h3>
+            <button
+              onClick={toggleAll}
+              className="text-sm text-gray-500 hover:text-gray-800"
+            >
+              {selectedIds.size === group.members.length ? "Deselect all" : "Select all"}
+            </button>
+          </div>
+
+          <ul className="mb-4 space-y-2">
+            {group.members.map((member) => (
+              <li key={member.id}>
+                <label className="flex cursor-pointer items-center gap-3 rounded-lg px-2 py-2 transition-colors hover:bg-gray-50">
+                  <input
+                    type="checkbox"
+                    checked={selectedIds.has(member.id)}
+                    onChange={() => toggleMember(member.id)}
+                    className="h-4 w-4 rounded border-gray-300"
+                  />
+                  <span className="text-sm">{member.displayName}</span>
+                  {member.isGuest && (
+                    <span className="text-xs text-gray-400">Guest</span>
+                  )}
+                </label>
+              </li>
+            ))}
+          </ul>
+
+          <div className="flex gap-2">
+            <button
+              onClick={handleStartSplit}
+              disabled={selectedIds.size === 0 || startSplit.isPending}
+              className="flex-1 rounded-xl bg-gray-900 py-2.5 text-sm font-medium text-white transition-colors hover:bg-gray-800 disabled:opacity-40"
+            >
+              {startSplit.isPending ? "Creating..." : `Split with ${selectedIds.size} member${selectedIds.size !== 1 ? "s" : ""}`}
+            </button>
+            <button
+              onClick={() => setShowSplitPicker(false)}
+              className="rounded-xl border border-gray-200 px-4 py-2.5 text-sm text-gray-500 transition-colors hover:bg-gray-50"
+            >
+              Cancel
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Members */}
       <section className="mb-8">

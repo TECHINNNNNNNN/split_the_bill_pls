@@ -1,10 +1,11 @@
 import { Hono } from "hono"
 import { db } from "../db/index.js"
-import { groups, groupMembers } from "../db/schema.js"
+import { groups, groupMembers, rooms, roomMembers } from "../db/schema.js"
 import { requireAuth } from "../lib/middleware.js"
-import { eq, and } from "drizzle-orm"
+import { eq, and, inArray } from "drizzle-orm"
 import { zValidator } from "@hono/zod-validator"
-import { createGroupSchema, addGroupMemberSchema } from "@pladuk/shared/schemas"
+import { setCookie } from "hono/cookie"
+import { createGroupSchema, addGroupMemberSchema, startGroupSplitSchema } from "@pladuk/shared/schemas"
 import { randomUUID } from "node:crypto"
 
 const app = new Hono()
@@ -139,6 +140,65 @@ const app = new Hono()
     )
 
     return c.json({ success: true })
+  })
+
+  // ─── POST /groups/:id/split ────────────────
+  // Start a quick split from a group. Creates a room
+  // with selected group members as placeholders.
+  // The creator becomes the host.
+  .post("/:id/split", zValidator("json", startGroupSplitSchema), async (c) => {
+    const user = c.get("user")
+    const groupId = c.req.param("id")
+    const { memberIds } = c.req.valid("json")
+
+    const group = await db.query.groups.findFirst({
+      where: and(eq(groups.id, groupId), eq(groups.createdBy, user.id)),
+      with: { members: true },
+    })
+
+    if (!group) {
+      return c.json({ error: "Group not found" }, 404)
+    }
+
+    const selected = group.members.filter(m => memberIds.includes(m.id))
+    if (selected.length === 0) {
+      return c.json({ error: "No valid members selected" }, 400)
+    }
+
+    const inviteCode = randomUUID().replace(/-/g, "").slice(0, 6).toUpperCase()
+    const [room] = await db.insert(rooms).values({
+      hostName: user.name,
+      expectedMembers: selected.length + 1,
+      inviteCode,
+      createdByUserId: user.id,
+      groupId,
+    }).returning()
+
+    const [hostMember] = await db.insert(roomMembers).values({
+      roomId: room.id,
+      displayName: user.name,
+      isHost: true,
+    }).returning()
+
+    if (selected.length > 0) {
+      await db.insert(roomMembers).values(
+        selected.map(m => ({
+          roomId: room.id,
+          displayName: m.displayName,
+          isHost: false,
+        }))
+      )
+    }
+
+    setCookie(c, `room_member_${room.id}`, hostMember.id, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: process.env.NODE_ENV === "production" ? "None" : "Lax",
+      path: "/",
+      maxAge: 86400,
+    })
+
+    return c.json({ room, inviteCode: room.inviteCode }, 201)
   })
 
 export default app

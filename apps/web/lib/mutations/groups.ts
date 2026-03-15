@@ -1,6 +1,6 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { api } from "@/lib/api-client";
-import type { CreateGroup, AddGroupMember } from "@pladuk/shared/schemas";
+import type { CreateGroup, AddGroupMember, StartGroupSplit } from "@pladuk/shared/schemas";
 
 export function useCreateGroup() {
   const queryClient = useQueryClient();
@@ -31,6 +31,19 @@ export function useAddGroupMember(groupId: string) {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["groups"] });
+    },
+  });
+}
+
+export function useStartGroupSplit(groupId: string) {
+  return useMutation({
+    mutationFn: async (data: StartGroupSplit) => {
+      const res = await api.api.groups[":id"].split.$post({
+        param: { id: groupId },
+        json: data,
+      });
+      if (!res.ok) throw new Error("Failed to start split");
+      return res.json();
     },
   });
 }
