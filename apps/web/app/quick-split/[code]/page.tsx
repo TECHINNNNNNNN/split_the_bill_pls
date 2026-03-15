@@ -142,7 +142,7 @@ export default function RoomLobbyPage({
           <button
             type="button"
             onClick={handleCopyLink}
-            className="rounded-xl bg-white p-4 shadow-sm transition-shadow hover:shadow-md active:shadow-sm"
+            className="group relative rounded-xl bg-white p-4 shadow-sm transition-shadow hover:shadow-md active:shadow-sm"
             title="Tap to copy invite link"
           >
             <QRCodeSVG
@@ -151,6 +151,10 @@ export default function RoomLobbyPage({
               level="M"
               className="h-auto w-full max-w-[200px] md:max-w-[240px]"
             />
+            {/* Copy hint overlay */}
+            <span className="absolute inset-0 flex items-end justify-center rounded-xl bg-black/0 pb-2 text-[11px] font-medium text-transparent transition-all group-hover:bg-black/5 group-hover:text-gray-500">
+              Tap to copy link
+            </span>
           </button>
         )}
 
@@ -160,9 +164,19 @@ export default function RoomLobbyPage({
         <button
           type="button"
           onClick={handleCopyLink}
-          className="break-all text-center text-xs text-gray-400 transition-colors hover:text-gray-600 active:text-gray-800"
+          className="group flex items-center gap-1.5 break-all text-center text-xs text-gray-400 transition-colors hover:text-gray-600 active:text-gray-800"
           title="Tap to copy"
         >
+          {/* Copy icon */}
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            viewBox="0 0 20 20"
+            fill="currentColor"
+            className="h-3.5 w-3.5 shrink-0 opacity-50 transition-opacity group-hover:opacity-100"
+          >
+            <path d="M7 3.5A1.5 1.5 0 0 1 8.5 2h3.879a1.5 1.5 0 0 1 1.06.44l3.122 3.12A1.5 1.5 0 0 1 17 6.622V12.5a1.5 1.5 0 0 1-1.5 1.5h-1v-3.379a3 3 0 0 0-.879-2.121L10.5 5.379A3 3 0 0 0 8.379 4.5H7v-1Z" />
+            <path d="M4.5 6A1.5 1.5 0 0 0 3 7.5v9A1.5 1.5 0 0 0 4.5 18h7a1.5 1.5 0 0 0 1.5-1.5v-5.879a1.5 1.5 0 0 0-.44-1.06L9.44 6.439A1.5 1.5 0 0 0 8.378 6H4.5Z" />
+          </svg>
           {joinUrl}
         </button>
 
