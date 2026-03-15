@@ -90,11 +90,23 @@ export default function RoomLobbyPage({
   const handleShareLink = async () => {
     const joinUrl = `${window.location.origin}/quick-split/${code}/join`;
     if (navigator.share) {
-      await navigator.share({ title: "Join my bill split!", url: joinUrl });
+      try {
+        await navigator.share({ title: "Join my bill split!", url: joinUrl });
+      } catch (err) {
+        // User cancelled the share dialog — not an error
+        if (err instanceof Error && err.name === "AbortError") return;
+        throw err;
+      }
     } else {
       await navigator.clipboard.writeText(joinUrl);
       toast.success("Link copied! Share it with your friends 🔗");
     }
+  };
+
+  const handleCopyLink = async () => {
+    const url = `${window.location.origin}/quick-split/${code}/join`;
+    await navigator.clipboard.writeText(url);
+    toast.success("Link copied! 🔗");
   };
 
   if (!room) {
@@ -125,22 +137,34 @@ export default function RoomLobbyPage({
           </p>
         </div>
 
-        {/* QR Code */}
+        {/* QR Code — tap to copy link */}
         {isHost && (
-          <div className="rounded-xl bg-white p-4 shadow-sm">
+          <button
+            type="button"
+            onClick={handleCopyLink}
+            className="rounded-xl bg-white p-4 shadow-sm transition-shadow hover:shadow-md active:shadow-sm"
+            title="Tap to copy invite link"
+          >
             <QRCodeSVG
               value={joinUrl}
               size={200}
               level="M"
               className="h-auto w-full max-w-[200px] md:max-w-[240px]"
             />
-          </div>
+          </button>
         )}
 
         <p className="text-center text-sm text-gray-500 md:text-base">
           Scan QR code to join room or share link
         </p>
-        <p className="break-all text-center text-xs text-gray-400">{joinUrl}</p>
+        <button
+          type="button"
+          onClick={handleCopyLink}
+          className="break-all text-center text-xs text-gray-400 transition-colors hover:text-gray-600 active:text-gray-800"
+          title="Tap to copy"
+        >
+          {joinUrl}
+        </button>
 
         {/* Member grid */}
         <div className="grid w-full grid-cols-3 gap-2">
