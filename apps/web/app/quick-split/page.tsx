@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import toast from "react-hot-toast";
 import { useCreateRoom } from "@/lib/mutations/rooms";
 
 export default function QuickSplitPage() {
@@ -17,6 +18,9 @@ export default function QuickSplitPage() {
       {
         onSuccess: (data) => {
           router.push(`/quick-split/${data.room.inviteCode}`);
+        },
+        onError: () => {
+          toast.error("Couldn't create room — try again 😅");
         },
       }
     );

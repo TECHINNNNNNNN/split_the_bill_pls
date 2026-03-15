@@ -3,6 +3,7 @@
 import { use, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useQuery } from "@tanstack/react-query";
+import toast from "react-hot-toast";
 import { roomQueries } from "@/lib/queries/rooms";
 import { useSetPaymentMethod, useAdvanceRoomStatus } from "@/lib/mutations/rooms";
 
@@ -46,6 +47,9 @@ export default function PaymentMethodPage({
           onSuccess: () => {
             router.push(`/quick-split/${code}/tracking`);
           },
+          onError: () => {
+            toast.error("Couldn't save PromptPay — check your number 🔢");
+          },
         }
       );
     } else {
@@ -53,6 +57,9 @@ export default function PaymentMethodPage({
       advanceStatus.mutate("payment", {
         onSuccess: () => {
           router.push(`/quick-split/${code}/tracking`);
+        },
+        onError: () => {
+          toast.error("Something went wrong — try again 😬");
         },
       });
     }

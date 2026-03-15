@@ -4,6 +4,7 @@ import { use, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useQuery } from "@tanstack/react-query";
 import { QRCodeSVG } from "qrcode.react";
+import toast from "react-hot-toast";
 import { roomQueries } from "@/lib/queries/rooms";
 import { useAdvanceRoomStatus, useAddPlaceholderMember, useRemoveMember } from "@/lib/mutations/rooms";
 import { useRoomSocket } from "@/lib/hooks/use-room-socket";
@@ -50,12 +51,25 @@ export default function RoomLobbyPage({
 
   const handleAddPlaceholder = () => {
     if (!placeholderName.trim()) return;
+    if (members.length >= (room?.expectedMembers ?? 0)) {
+      toast.error("Room is full! Can't add more people 🙅");
+      return;
+    }
     addPlaceholder.mutate(
       { displayName: placeholderName.trim() },
       {
         onSuccess: () => {
           setPlaceholderName("");
           setShowAddMember(false);
+        },
+        onError: (err) => {
+          if (err.message.includes("full")) {
+            toast.error("Room is full! Can't add more people 🙅");
+          } else if (err.message.includes("Name") || err.message.includes("name")) {
+            toast.error("That name's already taken!");
+          } else {
+            toast.error("Couldn't add — try again");
+          }
         },
       }
     );
@@ -67,6 +81,9 @@ export default function RoomLobbyPage({
       onSuccess: () => {
         router.push(`/quick-split/${code}/bill`);
       },
+      onError: () => {
+        toast.error("Couldn't start splitting — try again 😬");
+      },
     });
   };
 
@@ -76,7 +93,7 @@ export default function RoomLobbyPage({
       await navigator.share({ title: "Join my bill split!", url: joinUrl });
     } else {
       await navigator.clipboard.writeText(joinUrl);
-      alert("Link copied to clipboard!");
+      toast.success("Link copied! Share it with your friends 🔗");
     }
   };
 
@@ -139,7 +156,9 @@ export default function RoomLobbyPage({
               {isHost && !member.isHost && (
                 <button
                   type="button"
-                  onClick={() => removeMember.mutate(member.id)}
+                  onClick={() => removeMember.mutate(member.id, {
+                    onError: () => toast.error("Couldn't remove — try again"),
+                  })}
                   className="absolute -right-1.5 -top-1.5 flex h-5 w-5 items-center justify-center rounded-full bg-gray-400 text-[10px] text-white transition-colors hover:bg-red-500"
                   title={`Remove ${member.displayName}`}
                 >

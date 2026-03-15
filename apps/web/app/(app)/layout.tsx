@@ -3,7 +3,6 @@
 import { useSession } from "@/lib/auth-client";
 import { useRouter } from "next/navigation";
 import { useEffect } from "react";
-import { Toaster } from "react-hot-toast";
 
 export default function AppLayout({ children }: { children: React.ReactNode }) {
   const { data: session, isPending } = useSession();
@@ -30,7 +29,6 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
       <main className="mx-auto min-h-screen max-w-lg px-4 py-6">
         {children}
       </main>
-      <Toaster position="bottom-center" />
     </>
   );
 }

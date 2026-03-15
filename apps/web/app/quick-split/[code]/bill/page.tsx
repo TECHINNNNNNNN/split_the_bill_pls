@@ -3,6 +3,7 @@
 import { use, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useQuery } from "@tanstack/react-query";
+import toast from "react-hot-toast";
 import { roomQueries } from "@/lib/queries/rooms";
 import { useFinalizeRoom } from "@/lib/mutations/rooms";
 import { useBillCollab } from "@/lib/hooks/use-bill-collab";
@@ -67,7 +68,7 @@ export default function BillDetailsPage({
     // Validate: every item must have at least 1 person
     const hasEmpty = items.some((item) => item.memberIds.length === 0);
     if (hasEmpty) {
-      alert("Every item must be assigned to at least one person.");
+      toast.error("Oops! Every item needs at least one person assigned 🍽️");
       return;
     }
 
@@ -82,6 +83,9 @@ export default function BillDetailsPage({
       {
         onSuccess: () => {
           router.push(`/quick-split/${code}/payment`);
+        },
+        onError: () => {
+          toast.error("Couldn't finalize — try again 😵");
         },
       }
     );

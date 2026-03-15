@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useQuery } from "@tanstack/react-query";
 import { QRCodeSVG } from "qrcode.react";
 import { anyId } from "promptparse/generate";
+import toast from "react-hot-toast";
 import { roomQueries } from "@/lib/queries/rooms";
 import { useClaimPayment, useConfirmPayment, useRejectPayment } from "@/lib/mutations/rooms";
 import { useRoomSocket } from "@/lib/hooks/use-room-socket";
@@ -84,11 +85,16 @@ export default function PaymentTrackingPage({
     const output = await scanSlip(file);
 
     // Claim with slip data + image
-    claimPayment.mutate({
-      paymentId,
-      slipData: output?.slipData ?? undefined,
-      slipImage: output?.slipImage,
-    });
+    claimPayment.mutate(
+      {
+        paymentId,
+        slipData: output?.slipData ?? undefined,
+        slipImage: output?.slipImage,
+      },
+      {
+        onError: () => toast.error("Couldn't submit — try again 😅"),
+      }
+    );
 
     // Reset file input so the same file can be re-selected
     if (fileInputRef.current) fileInputRef.current.value = "";
@@ -230,7 +236,12 @@ export default function PaymentTrackingPage({
                   {/* Secondary: Claim without slip */}
                   <button
                     type="button"
-                    onClick={() => claimPayment.mutate({ paymentId: myPayment.id })}
+                    onClick={() => claimPayment.mutate(
+                      { paymentId: myPayment.id },
+                      {
+                        onError: () => toast.error("Couldn't submit — try again 😅"),
+                      }
+                    )}
                     disabled={claimPayment.isPending || slipResult.status === "scanning"}
                     className="mt-2 w-full text-center text-xs text-gray-400 underline transition-colors hover:text-gray-200 disabled:opacity-40"
                   >
@@ -413,7 +424,10 @@ export default function PaymentTrackingPage({
                   <div className="mt-3 flex gap-2 border-t border-gray-100 pt-3">
                     <button
                       type="button"
-                      onClick={() => confirmPayment.mutate(payment.id)}
+                      onClick={() => confirmPayment.mutate(payment.id, {
+                        onSuccess: () => toast.success(`${payment.member?.displayName} confirmed! 🎉`),
+                        onError: () => toast.error("Couldn't confirm — try again"),
+                      })}
                       disabled={confirmPayment.isPending && confirmPayment.variables === payment.id}
                       className="flex-1 rounded-lg bg-green-600 px-3 py-1.5 text-xs font-medium text-white transition-colors hover:bg-green-700 disabled:opacity-40"
                     >
@@ -422,7 +436,10 @@ export default function PaymentTrackingPage({
                     {status === "claimed" && (
                       <button
                         type="button"
-                        onClick={() => rejectPayment.mutate(payment.id)}
+                        onClick={() => rejectPayment.mutate(payment.id, {
+                          onSuccess: () => toast(`${payment.member?.displayName}'s claim rejected`, { icon: "🚫" }),
+                          onError: () => toast.error("Couldn't reject — try again"),
+                        })}
                         disabled={rejectPayment.isPending && rejectPayment.variables === payment.id}
                         className="flex-1 rounded-lg border border-red-200 px-3 py-1.5 text-xs font-medium text-red-600 transition-colors hover:bg-red-50 disabled:opacity-40"
                       >
