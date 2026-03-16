@@ -229,3 +229,20 @@ export function useRejectPayment(roomId: string) {
     },
   });
 }
+
+export function useUnconfirmPayment(roomId: string) {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (paymentId: string) => {
+      const res = await api.api.rooms[":id"].payments[":paymentId"].unconfirm.$patch({
+        param: { id: roomId, paymentId },
+      });
+      if (!res.ok) throw new Error("Failed to unconfirm payment");
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["rooms", roomId] });
+    },
+  });
+}

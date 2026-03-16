@@ -906,4 +906,49 @@ const app = new Hono()
     return c.json(updated)
   })
 
+  // ─── PATCH /rooms/:id/payments/:paymentId/unconfirm
+  // Host reverts a confirmed payment back to claimed (or unpaid if no claim data).
+  .patch("/:id/payments/:paymentId/unconfirm", optionalAuth, async (c) => {
+    const roomId = c.req.param("id")
+    const paymentId = c.req.param("paymentId")
+    const memberId = await resolveMemberId(c, roomId)
+
+    const member = await verifyRoomMember(roomId, memberId)
+    if (!member?.isHost) {
+      return c.json({ error: "Only the host can unconfirm payments" }, 403)
+    }
+
+    const payment = await db.query.roomPayments.findFirst({
+      where: and(eq(roomPayments.id, paymentId), eq(roomPayments.roomId, roomId)),
+    })
+
+    if (!payment) {
+      return c.json({ error: "Payment not found" }, 404)
+    }
+
+    if (payment.status !== "confirmed") {
+      return c.json({ error: "Payment is not confirmed" }, 400)
+    }
+
+    // Revert to "claimed" if there was a claim, otherwise back to "unpaid"
+    const revertStatus = payment.claimedAt ? "claimed" as const : "unpaid" as const
+
+    const [updated] = await db.update(roomPayments)
+      .set({ status: revertStatus, confirmedAt: null })
+      .where(eq(roomPayments.id, paymentId))
+      .returning()
+
+    // If room was settled, revert it back to payment
+    const room = await db.query.rooms.findFirst({ where: eq(rooms.id, roomId) })
+    if (room) {
+      if (room.status === "settled") {
+        await db.update(rooms).set({ status: "payment" }).where(eq(rooms.id, roomId))
+        notifyPartyKit(room.inviteCode, "status-changed", { status: "payment" })
+      }
+      notifyPartyKit(room.inviteCode, "payment-toggled", { paymentId, status: revertStatus })
+    }
+
+    return c.json(updated)
+  })
+
 export default app

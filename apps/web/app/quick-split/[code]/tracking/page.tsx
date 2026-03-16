@@ -7,7 +7,7 @@ import { QRCodeSVG } from "qrcode.react";
 import { anyId } from "promptparse/generate";
 import toast from "react-hot-toast";
 import { roomQueries } from "@/lib/queries/rooms";
-import { useClaimPayment, useConfirmPayment, useRejectPayment } from "@/lib/mutations/rooms";
+import { useClaimPayment, useConfirmPayment, useRejectPayment, useUnconfirmPayment } from "@/lib/mutations/rooms";
 import { useRoomSocket } from "@/lib/hooks/use-room-socket";
 import { useSlipScanner } from "@/lib/hooks/use-slip-scanner";
 import type { SlipScanOutput } from "@/lib/hooks/use-slip-scanner";
@@ -242,6 +242,7 @@ export default function PaymentTrackingPage({
   const claimPayment = useClaimPayment(roomId);
   const confirmPayment = useConfirmPayment(roomId);
   const rejectPayment = useRejectPayment(roomId);
+  const unconfirmPayment = useUnconfirmPayment(roomId);
   const { result: slipResult, previewUrl, scanSlip, reset: resetSlip } = useSlipScanner();
 
   // WebSocket: instant updates when payment statuses change
@@ -709,6 +710,24 @@ export default function PaymentTrackingPage({
                 )}
 
                 {/* Host actions — confirm from any non-confirmed state, reject only claimed */}
+                {/* Host: undo a confirmed payment */}
+                {isHost && status === "confirmed" && (
+                  <div className="mt-3 flex border-t border-gray-100 pt-3">
+                    <button
+                      type="button"
+                      onClick={() => unconfirmPayment.mutate(payment.id, {
+                        onSuccess: () => toast(`${payment.member?.displayName} unconfirmed`, { icon: "↩️" }),
+                        onError: () => toast.error("Couldn't unconfirm — try again"),
+                      })}
+                      disabled={unconfirmPayment.isPending && unconfirmPayment.variables === payment.id}
+                      className="rounded-lg border border-gray-300 px-3 py-1.5 text-xs font-medium text-gray-600 transition-colors hover:bg-gray-50 disabled:opacity-40"
+                    >
+                      {unconfirmPayment.isPending && unconfirmPayment.variables === payment.id ? "..." : "Undo Confirm"}
+                    </button>
+                  </div>
+                )}
+
+                {/* Host: confirm/reject actions for non-confirmed payments */}
                 {isHost && status !== "confirmed" && (
                   <div className="mt-3 flex gap-2 border-t border-gray-100 pt-3">
                     <button
