@@ -220,7 +220,7 @@ export default function PaymentTrackingPage({
     | { step: "scanning"; paymentId: string }
     | { step: "preview"; paymentId: string; output: SlipScanOutput }
     | { step: "submitting"; paymentId: string; output: SlipScanOutput }
-    | { step: "done" }; // claimed successfully — hold until server status catches up
+    | { step: "done"; previousStatus: string }; // hold until server status changes from what it was
 
   const [slipFlow, setSlipFlow] = useState<SlipFlowState>({ step: "idle" });
 
@@ -274,7 +274,7 @@ export default function PaymentTrackingPage({
   };
 
   // Submit the scanned slip
-  const handleConfirmClaim = () => {
+  const handleConfirmClaim = (currentStatus: string) => {
     if (slipFlow.step !== "preview") return;
     const { paymentId, output } = slipFlow;
     setSlipFlow({ step: "submitting", paymentId, output });
@@ -287,7 +287,7 @@ export default function PaymentTrackingPage({
       },
       {
         onSuccess: () => {
-          setSlipFlow({ step: "done" });
+          setSlipFlow({ step: "done", previousStatus: currentStatus });
           resetSlip();
         },
         onError: () => {
@@ -347,8 +347,8 @@ export default function PaymentTrackingPage({
           : null;
 
         const canClaim = status === "unpaid" || status === "rejected";
-        // Once server catches up (claimed, rejected, or confirmed), clear the "done" hold
-        if (slipFlow.step === "done" && status !== "unpaid") {
+        // Once server status changes from what it was when we submitted, clear the "done" hold
+        if (slipFlow.step === "done" && status !== slipFlow.previousStatus) {
           // Schedule reset to avoid setState during render
           queueMicrotask(() => setSlipFlow({ step: "idle" }));
         }
@@ -435,7 +435,7 @@ export default function PaymentTrackingPage({
                   <div className="flex gap-2">
                     <button
                       type="button"
-                      onClick={handleConfirmClaim}
+                      onClick={() => handleConfirmClaim(status)}
                       disabled={slipFlow.step === "submitting"}
                       className="flex-1 rounded-lg bg-white px-3 py-2 text-sm font-medium text-gray-800 transition-colors hover:bg-gray-100 disabled:opacity-40"
                     >
