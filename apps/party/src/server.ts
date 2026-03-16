@@ -10,11 +10,17 @@ interface CollabItem {
   addedBy: string
 }
 
+interface BillExtras {
+  vatRate: number | null       // e.g. 0.07 for 7%, null = off
+  serviceChargeRate: number | null
+}
+
 type ClientMessage =
   | { type: "item:add"; data: { name: string; amount: number; memberId: string } }
   | { type: "item:delete"; data: { itemId: string; memberId: string; isHost: boolean } }
   | { type: "item:toggle-member"; data: { itemId: string; targetMemberId: string } }
   | { type: "item:select-all"; data: { itemId: string; allMemberIds: string[] } }
+  | { type: "extras:update"; data: Partial<BillExtras> }
   | { type: "state:request" }
 
 // ─── Server ───
@@ -27,6 +33,7 @@ function generateItemId(): string {
 export default class RoomParty implements Party.Server {
   items: Map<string, CollabItem> = new Map()
   locked = false
+  extras: BillExtras = { vatRate: null, serviceChargeRate: null }
 
   constructor(readonly room: Party.Room) {}
 
@@ -35,7 +42,7 @@ export default class RoomParty implements Party.Server {
     conn.send(JSON.stringify({ type: "connected", data: { roomId: this.room.id } }))
     conn.send(JSON.stringify({
       type: "items:sync",
-      data: { items: this.getItemsList(), locked: this.locked },
+      data: { items: this.getItemsList(), locked: this.locked, extras: this.extras },
     }))
   }
 
@@ -103,6 +110,14 @@ export default class RoomParty implements Party.Server {
         break
       }
 
+      case "extras:update": {
+        const { vatRate, serviceChargeRate } = msg.data
+        if (vatRate !== undefined) this.extras.vatRate = vatRate
+        if (serviceChargeRate !== undefined) this.extras.serviceChargeRate = serviceChargeRate
+        this.broadcastItems()
+        break
+      }
+
       case "state:request": {
         // Already handled in onConnect, but allow explicit re-request
         // Note: onMessage doesn't have the connection reference,
@@ -157,7 +172,7 @@ export default class RoomParty implements Party.Server {
   private broadcastItems() {
     this.room.broadcast(JSON.stringify({
       type: "items:sync",
-      data: { items: this.getItemsList(), locked: this.locked },
+      data: { items: this.getItemsList(), locked: this.locked, extras: this.extras },
     }))
   }
 }

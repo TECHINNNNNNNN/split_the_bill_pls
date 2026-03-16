@@ -60,7 +60,7 @@ async function verifyViaSlipOK(
   // SlipOK returns 400 for invalid slips but still includes data in some cases
   const body = await res.json() as SlipOKResponse
 
-  if (!body.data?.amount == null) return null
+  if (body.data?.amount == null) return null
 
   return {
     amount: body.data.amount,

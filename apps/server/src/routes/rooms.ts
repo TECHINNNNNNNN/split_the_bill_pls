@@ -617,7 +617,7 @@ const app = new Hono()
       return c.json({ error: "Only the host can finalize" }, 403)
     }
 
-    const { items: clientItems } = c.req.valid("json")
+    const { items: clientItems, vatRate, serviceChargeRate } = c.req.valid("json")
 
     // Clear any existing items/splits for this room (clean slate)
     const existingItems = await db.query.roomBillItems.findMany({
@@ -667,12 +667,25 @@ const app = new Hono()
 
     const subtotal = calcItems.reduce((sum, item) => sum + item.totalPrice, 0)
 
+    // Apply service charge first (on subtotal), then VAT (on subtotal + service charge)
+    const scRate = serviceChargeRate ?? 0
+    const vRate = vatRate ?? 0
+    const serviceChargeAmount = subtotal * scRate
+    const vatAmount = (subtotal + serviceChargeAmount) * vRate
+    const totalAmount = subtotal + serviceChargeAmount + vatAmount
+
     const calcTotals = {
       subtotal,
-      vatAmount: null,
-      serviceChargeAmount: null,
-      totalAmount: subtotal,
+      vatAmount: vatAmount || null,
+      serviceChargeAmount: serviceChargeAmount || null,
+      totalAmount,
     }
+
+    // Store rates on the room for display later
+    await db.update(rooms).set({
+      vatRate: vRate ? vRate.toString() : null,
+      serviceChargeRate: scRate ? scRate.toString() : null,
+    }).where(eq(rooms.id, roomId))
 
     const splitMemberIds = [...new Set(calcClaims.map((cl) => cl.memberId))]
     const splitResult = calculateSplit(calcItems, calcClaims, calcTotals, splitMemberIds)
@@ -706,7 +719,7 @@ const app = new Hono()
       notifyPartyKit(room.inviteCode, "bill-finalized", {})
     }
 
-    return c.json({ splits: splitResult.splits, totalAmount: subtotal })
+    return c.json({ splits: splitResult.splits, totalAmount })
   })
 
   // ─── PATCH /rooms/:id/payment-method ─────────

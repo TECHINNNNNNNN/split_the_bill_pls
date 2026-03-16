@@ -14,6 +14,11 @@ export interface CollabItem {
   addedBy: string;
 }
 
+export interface BillExtras {
+  vatRate: number | null;
+  serviceChargeRate: number | null;
+}
+
 interface ServerMessage {
   type: string;
   data: Record<string, unknown>;
@@ -32,6 +37,7 @@ export function useBillCollab(
 ) {
   const [items, setItems] = useState<CollabItem[]>([]);
   const [isLocked, setIsLocked] = useState(false);
+  const [extras, setExtras] = useState<BillExtras>({ vatRate: null, serviceChargeRate: null });
   const queryClient = useQueryClient();
 
   const socket = usePartySocket({
@@ -46,6 +52,9 @@ export function useBillCollab(
             setItems((msg.data.items as CollabItem[]) ?? []);
             if (typeof msg.data.locked === "boolean") {
               setIsLocked(msg.data.locked);
+            }
+            if (msg.data.extras) {
+              setExtras(msg.data.extras as BillExtras);
             }
             break;
 
@@ -128,12 +137,21 @@ export function useBillCollab(
     [send, opts.members],
   );
 
+  const updateExtras = useCallback(
+    (update: Partial<BillExtras>) => {
+      send({ type: "extras:update", data: update });
+    },
+    [send],
+  );
+
   return {
     items,
     isLocked,
+    extras,
     addItem,
     deleteItem,
     toggleMember,
     selectAll,
+    updateExtras,
   };
 }

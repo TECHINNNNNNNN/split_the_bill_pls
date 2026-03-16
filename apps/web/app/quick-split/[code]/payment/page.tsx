@@ -148,6 +148,20 @@ export default function PaymentMethodPage({
               <span className="text-gray-800">฿{parseFloat(p.amount).toFixed(2)}</span>
             </div>
           ))}
+          {(room.vatRate || room.serviceChargeRate) && (
+            <div className="mt-2 border-t border-gray-100 pt-2 space-y-1">
+              {room.serviceChargeRate && (
+                <div className="flex justify-between text-xs text-gray-500">
+                  <span>Includes Service Charge {(parseFloat(room.serviceChargeRate) * 100).toFixed(0)}%</span>
+                </div>
+              )}
+              {room.vatRate && (
+                <div className="flex justify-between text-xs text-gray-500">
+                  <span>Includes VAT {(parseFloat(room.vatRate) * 100).toFixed(0)}%</span>
+                </div>
+              )}
+            </div>
+          )}
           <div className="mt-2 flex justify-between border-t border-gray-100 pt-2 font-medium">
             <span className="text-gray-800">Total</span>
             <span className="text-gray-800">฿{total.toFixed(2)}</span>

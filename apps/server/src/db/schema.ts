@@ -105,6 +105,8 @@ export const rooms = pgTable("rooms", {
   inviteCode: text("invite_code").unique().notNull(),
   promptpayId: text("promptpay_id"),
   promptpayType: text("promptpay_type"),          // 'phone' or 'national_id'
+  vatRate: numeric("vat_rate", { precision: 5, scale: 4 }),                    // e.g. 0.07 for 7%
+  serviceChargeRate: numeric("service_charge_rate", { precision: 5, scale: 4 }), // e.g. 0.10 for 10%
   status: roomStatusEnum("status").default("waiting").notNull(),
   createdByUserId: text("created_by_user_id").references(() => user.id, { onDelete: "set null" }),
   groupId: uuid("group_id").references(() => groups.id, { onDelete: "set null" }),

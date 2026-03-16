@@ -1,6 +1,6 @@
 "use client";
 
-import { use, useState } from "react";
+import { use, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useQuery } from "@tanstack/react-query";
 import toast from "react-hot-toast";
@@ -32,7 +32,7 @@ export default function BillDetailsPage({
   const isHost = members.find((m) => m.id === currentMemberId)?.isHost ?? false;
 
   // ─── Collaborative editing via PartyKit WebSocket ───
-  const { items, isLocked, addItem, deleteItem, toggleMember, selectAll } = useBillCollab(
+  const { items, isLocked, extras, addItem, deleteItem, toggleMember, selectAll, updateExtras } = useBillCollab(
     code,
     {
       currentMemberId,
@@ -53,6 +53,18 @@ export default function BillDetailsPage({
   const [showForm, setShowForm] = useState(false);
   const [itemName, setItemName] = useState("");
   const [itemAmount, setItemAmount] = useState("");
+
+  // VAT & service charge — synced via PartyKit, local pct for typing UX
+  const hasVat = extras.vatRate != null;
+  const hasServiceCharge = extras.serviceChargeRate != null;
+  const [vatPct, setVatPct] = useState("7");
+  const [serviceChargePct, setServiceChargePct] = useState("10");
+
+  // Sync local pct inputs when extras arrive from other clients
+  useEffect(() => {
+    if (extras.vatRate != null) setVatPct(String(Math.round(extras.vatRate * 100)));
+    if (extras.serviceChargeRate != null) setServiceChargePct(String(Math.round(extras.serviceChargeRate * 100)));
+  }, [extras.vatRate, extras.serviceChargeRate]);
 
   const handleAddItem = () => {
     const amount = parseFloat(itemAmount);
@@ -79,6 +91,8 @@ export default function BillDetailsPage({
           amount: item.amount,
           memberIds: item.memberIds,
         })),
+        vatRate: extras.vatRate,
+        serviceChargeRate: extras.serviceChargeRate,
       },
       {
         onSuccess: () => {
@@ -91,8 +105,13 @@ export default function BillDetailsPage({
     );
   };
 
-  // Calculate running total
-  const total = items.reduce((sum, item) => sum + item.amount, 0);
+  // Calculate running total with VAT & service charge (extras is source of truth)
+  const subtotal = items.reduce((sum, item) => sum + item.amount, 0);
+  const scRate = extras.serviceChargeRate ?? 0;
+  const vRate = extras.vatRate ?? 0;
+  const serviceChargeAmount = subtotal * scRate;
+  const vatAmount = (subtotal + serviceChargeAmount) * vRate;
+  const total = subtotal + serviceChargeAmount + vatAmount;
 
   if (!room) {
     return (
@@ -276,13 +295,100 @@ export default function BillDetailsPage({
         )}
       </div>
 
-      {/* Total + Finalize */}
+      {/* VAT & Service Charge + Total + Finalize */}
       <div className="mt-8 border-t border-gray-200 pt-4">
-        <div className="flex items-center justify-between rounded-lg border border-gray-200 px-4 py-3">
-          <span className="text-lg font-medium text-gray-800">Total</span>
-          <span className="text-lg font-semibold text-gray-800">
-            ฿{total.toFixed(2)}
-          </span>
+        {/* VAT & Service Charge toggles (host only, before finalize) */}
+        {!isLocked && (
+          <div className="mb-4 space-y-3">
+            {/* Service Charge toggle */}
+            <div className="flex items-center justify-between">
+              <label className="flex items-center gap-2">
+                <input
+                  type="checkbox"
+                  checked={hasServiceCharge}
+                  onChange={() => updateExtras({
+                    serviceChargeRate: hasServiceCharge ? null : (parseFloat(serviceChargePct) || 10) / 100,
+                  })}
+                  className="h-4 w-4 rounded border-gray-300 accent-gray-800"
+                />
+                <span className="text-sm text-gray-700">Service Charge</span>
+              </label>
+              {hasServiceCharge && (
+                <div className="flex items-center gap-1">
+                  <input
+                    type="number"
+                    value={serviceChargePct}
+                    onChange={(e) => setServiceChargePct(e.target.value)}
+                    onBlur={() => updateExtras({ serviceChargeRate: (parseFloat(serviceChargePct) || 0) / 100 })}
+                    className="w-16 rounded border border-gray-300 px-2 py-1 text-right text-sm focus:border-gray-500 focus:outline-none"
+                    min="0"
+                    max="100"
+                    step="1"
+                  />
+                  <span className="text-sm text-gray-500">%</span>
+                </div>
+              )}
+            </div>
+
+            {/* VAT toggle */}
+            <div className="flex items-center justify-between">
+              <label className="flex items-center gap-2">
+                <input
+                  type="checkbox"
+                  checked={hasVat}
+                  onChange={() => updateExtras({
+                    vatRate: hasVat ? null : (parseFloat(vatPct) || 7) / 100,
+                  })}
+                  className="h-4 w-4 rounded border-gray-300 accent-gray-800"
+                />
+                <span className="text-sm text-gray-700">VAT</span>
+              </label>
+              {hasVat && (
+                <div className="flex items-center gap-1">
+                  <input
+                    type="number"
+                    value={vatPct}
+                    onChange={(e) => setVatPct(e.target.value)}
+                    onBlur={() => updateExtras({ vatRate: (parseFloat(vatPct) || 0) / 100 })}
+                    className="w-16 rounded border border-gray-300 px-2 py-1 text-right text-sm focus:border-gray-500 focus:outline-none"
+                    min="0"
+                    max="100"
+                    step="1"
+                  />
+                  <span className="text-sm text-gray-500">%</span>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* Breakdown */}
+        <div className="rounded-lg border border-gray-200 px-4 py-3">
+          <div className="flex items-center justify-between text-sm text-gray-600">
+            <span>Subtotal</span>
+            <span>฿{subtotal.toFixed(2)}</span>
+          </div>
+          {hasServiceCharge && (
+            <div className="mt-1 flex items-center justify-between text-sm text-gray-500">
+              <span>Service Charge {serviceChargePct}%</span>
+              <span>฿{serviceChargeAmount.toFixed(2)}</span>
+            </div>
+          )}
+          {hasVat && (
+            <div className="mt-1 flex items-center justify-between text-sm text-gray-500">
+              <span>VAT {vatPct}%</span>
+              <span>฿{vatAmount.toFixed(2)}</span>
+            </div>
+          )}
+          {(hasVat || hasServiceCharge) && (
+            <div className="mt-2 border-t border-gray-100 pt-2" />
+          )}
+          <div className="flex items-center justify-between">
+            <span className="text-lg font-medium text-gray-800">Total</span>
+            <span className="text-lg font-semibold text-gray-800">
+              ฿{total.toFixed(2)}
+            </span>
+          </div>
         </div>
 
         {isHost ? (

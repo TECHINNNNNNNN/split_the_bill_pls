@@ -51,6 +51,8 @@ export const finalizeRoomSchema = z.object({
     amount: z.number().positive(),
     memberIds: z.array(z.string().uuid()).min(1),
   })).min(1),
+  vatRate: z.number().min(0).max(1).nullable().optional(),               // e.g. 0.07 for 7%
+  serviceChargeRate: z.number().min(0).max(1).nullable().optional(),     // e.g. 0.10 for 10%
 })
 
 export const setRoomPaymentMethodSchema = z.object({
