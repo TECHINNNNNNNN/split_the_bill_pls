@@ -7,6 +7,7 @@ import imageCompression from "browser-image-compression";
 export type SlipData = {
   transRef: string;
   sendingBank: string;
+  qrData: string; // raw QR code string for SlipOK API
 };
 
 export type SlipScanOutput = {
@@ -81,6 +82,7 @@ export function useSlipScanner() {
           const data: SlipData = {
             transRef: parsed.transRef,
             sendingBank: parsed.sendingBank,
+            qrData: barcode.rawValue,
           };
           setResult({ status: "success", data });
           return { slipData: data, slipImage };

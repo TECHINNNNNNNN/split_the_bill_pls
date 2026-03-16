@@ -346,8 +346,8 @@ export default function PaymentTrackingPage({
           : null;
 
         const canClaim = status === "unpaid" || status === "rejected";
-        // Once server catches up to "claimed", we can clear the "done" hold
-        if (slipFlow.step === "done" && status === "claimed") {
+        // Once server catches up (claimed, rejected, or confirmed), clear the "done" hold
+        if (slipFlow.step === "done" && status !== "unpaid") {
           // Schedule reset to avoid setState during render
           queueMicrotask(() => setSlipFlow({ step: "idle" }));
         }
@@ -458,7 +458,9 @@ export default function PaymentTrackingPage({
                   {/* Rejected hint */}
                   {status === "rejected" && (
                     <p className="mt-2 text-sm text-red-300">
-                      Host rejected your claim. Upload a new slip or try again.
+                      {myPayment.slipVerifiedAmount
+                        ? `Amount mismatch (slip: ฿${parseFloat(myPayment.slipVerifiedAmount).toFixed(2)}, owed: ฿${myAmount.toFixed(2)}). Upload the correct slip.`
+                        : "Host rejected your claim. Upload a new slip or try again."}
                     </p>
                   )}
 
@@ -564,6 +566,12 @@ export default function PaymentTrackingPage({
             const verifiedAmount = hasVerification ? parseFloat(payment.slipVerifiedAmount!) : null;
             const owedAmount = parseFloat(payment.amount);
             const amountMatches = verifiedAmount != null && Math.abs(verifiedAmount - owedAmount) < 0.01;
+            // Auto-rejected: rejected but still has slip data (manual reject wipes it)
+            const isAutoRejected = status === "rejected" && hasSlip && hasVerification && !amountMatches;
+            // Duplicate: another payment in this room has the same transRef
+            const isDuplicate = !!payment.slipTransRef && payments.some(
+              (other) => other.id !== payment.id && other.slipTransRef === payment.slipTransRef
+            );
 
             return (
               <div
@@ -611,63 +619,97 @@ export default function PaymentTrackingPage({
                 </div>
 
                 {/* Slip verification info — visible to host */}
-                {isHost && hasSlip && (
+                {isHost && status !== "unpaid" && (
                   <div className="mt-2 flex flex-wrap items-center gap-2 text-xs">
-                    {/* Slip badge — clickable to view slip image */}
-                    <button
-                      type="button"
-                      onClick={() => {
-                        if (payment.slipImageData) {
-                          setSlipModal({
-                            image: payment.slipImageData,
-                            memberName: payment.member?.displayName ?? "Member",
-                            amount: owedAmount,
-                            bankCode: payment.slipSendingBank ?? null,
-                            verifiedAmount,
-                          });
-                        }
-                      }}
-                      className={`inline-flex items-center gap-1 rounded-md border border-blue-200 bg-blue-50 px-2 py-0.5 text-blue-700 ${
-                        payment.slipImageData ? "cursor-pointer hover:bg-blue-100" : "cursor-default"
-                      }`}
-                    >
-                      <svg className="h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                      </svg>
-                      {payment.slipSendingBank
-                        ? `Slip: ${bankNames[payment.slipSendingBank] ?? payment.slipSendingBank}`
-                        : "Slip attached"}
-                      {payment.slipImageData && (
-                        <svg className="ml-0.5 h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-                        </svg>
-                      )}
-                    </button>
-
-                    {/* Verified amount badge */}
-                    {hasVerification && (
-                      <span className={`inline-flex items-center gap-1 rounded-md border px-2 py-0.5 ${
-                        amountMatches
-                          ? "border-green-200 bg-green-50 text-green-700"
-                          : "border-orange-200 bg-orange-50 text-orange-700"
-                      }`}>
+                    {/* Auto-rejected badge */}
+                    {isAutoRejected && (
+                      <span className="inline-flex items-center gap-1 rounded-md border border-red-200 bg-red-50 px-2 py-0.5 text-red-700">
                         <svg className="h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          {amountMatches ? (
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                          ) : (
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.34 16.5c-.77.833.192 2.5 1.732 2.5z" />
-                          )}
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.34 16.5c-.77.833.192 2.5 1.732 2.5z" />
                         </svg>
-                        Verified: ฿{verifiedAmount!.toFixed(2)}
-                        {amountMatches ? " (match)" : " (mismatch!)"}
+                        Amount mismatch: ฿{verifiedAmount!.toFixed(2)} ≠ ฿{owedAmount.toFixed(2)}
+                      </span>
+                    )}
+
+                    {/* Slip badge — clickable to view slip image */}
+                    {hasSlip && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          if (payment.slipImageData) {
+                            setSlipModal({
+                              image: payment.slipImageData,
+                              memberName: payment.member?.displayName ?? "Member",
+                              amount: owedAmount,
+                              bankCode: payment.slipSendingBank ?? null,
+                              verifiedAmount,
+                            });
+                          }
+                        }}
+                        className={`inline-flex items-center gap-1 rounded-md border border-blue-200 bg-blue-50 px-2 py-0.5 text-blue-700 ${
+                          payment.slipImageData ? "cursor-pointer hover:bg-blue-100" : "cursor-default"
+                        }`}
+                      >
+                        <svg className="h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                        </svg>
+                        {payment.slipSendingBank
+                          ? `Slip: ${bankNames[payment.slipSendingBank] ?? payment.slipSendingBank}`
+                          : "Slip attached"}
+                        {payment.slipImageData && (
+                          <svg className="ml-0.5 h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                          </svg>
+                        )}
+                      </button>
+                    )}
+
+                    {/* No slip warning */}
+                    {!hasSlip && status === "claimed" && (
+                      <span className="inline-flex items-center gap-1 rounded-md border border-gray-200 bg-gray-50 px-2 py-0.5 text-gray-500">
+                        No slip attached
+                      </span>
+                    )}
+
+                    {/* Slip but no QR detected */}
+                    {payment.slipImageData && !payment.slipSendingBank && (
+                      <span className="inline-flex items-center gap-1 rounded-md border border-yellow-200 bg-yellow-50 px-2 py-0.5 text-yellow-700">
+                        No QR detected
+                      </span>
+                    )}
+
+                    {/* Verified amount badge (non-mismatch — mismatch shown as auto-rejected above) */}
+                    {hasVerification && amountMatches && (
+                      <span className="inline-flex items-center gap-1 rounded-md border border-green-200 bg-green-50 px-2 py-0.5 text-green-700">
+                        <svg className="h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                        Verified ฿{verifiedAmount!.toFixed(2)}
+                      </span>
+                    )}
+
+                    {/* QR found but not verified (no API key or API failed) */}
+                    {payment.slipSendingBank && !hasVerification && (
+                      <span className="inline-flex items-center gap-1 rounded-md border border-blue-100 bg-blue-50/50 px-2 py-0.5 text-blue-600">
+                        QR: {bankNames[payment.slipSendingBank] ?? payment.slipSendingBank}
+                      </span>
+                    )}
+
+                    {/* Duplicate transRef warning */}
+                    {isDuplicate && (
+                      <span className="inline-flex items-center gap-1 rounded-md border border-orange-200 bg-orange-50 px-2 py-0.5 text-orange-700">
+                        <svg className="h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.34 16.5c-.77.833.192 2.5 1.732 2.5z" />
+                        </svg>
+                        Duplicate slip
                       </span>
                     )}
                   </div>
                 )}
 
-                {/* Host actions — confirm from unpaid or claimed, reject only claimed */}
-                {isHost && (status === "claimed" || status === "unpaid") && (
+                {/* Host actions — confirm from any non-confirmed state, reject only claimed */}
+                {isHost && status !== "confirmed" && (
                   <div className="mt-3 flex gap-2 border-t border-gray-100 pt-3">
                     <button
                       type="button"
@@ -676,9 +718,15 @@ export default function PaymentTrackingPage({
                         onError: () => toast.error("Couldn't confirm — try again"),
                       })}
                       disabled={confirmPayment.isPending && confirmPayment.variables === payment.id}
-                      className="flex-1 rounded-lg bg-green-600 px-3 py-1.5 text-xs font-medium text-white transition-colors hover:bg-green-700 disabled:opacity-40"
+                      className={`flex-1 rounded-lg px-3 py-1.5 text-xs font-medium text-white transition-colors disabled:opacity-40 ${
+                        status === "rejected"
+                          ? "bg-orange-500 hover:bg-orange-600"
+                          : "bg-green-600 hover:bg-green-700"
+                      }`}
                     >
-                      {confirmPayment.isPending && confirmPayment.variables === payment.id ? "..." : "Confirm"}
+                      {confirmPayment.isPending && confirmPayment.variables === payment.id
+                        ? "..."
+                        : status === "rejected" ? "Override & Confirm" : "Confirm"}
                     </button>
                     {status === "claimed" && (
                       <button

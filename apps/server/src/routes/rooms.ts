@@ -17,6 +17,7 @@ import {
 } from "@pladuk/shared/schemas"
 import { calculateSplit } from "@pladuk/shared/utils"
 import { notifyPartyKit } from "../lib/partykit.js"
+import { verifySlip } from "../lib/verify-slip.js"
 import { optionalAuth } from "../lib/middleware.js"
 import { requireAuth } from "../lib/middleware.js"
 
@@ -774,39 +775,32 @@ const app = new Hono()
       slipFields.slipTransRef = body.transRef
       slipFields.slipSendingBank = body.sendingBank
 
-      // Verify slip via OpenVerifySlip API if configured
-      const apiKey = process.env.OPENVERIFYSLIP_API_KEY
-      if (apiKey) {
-        try {
-          const verifyRes = await fetch("https://api.openslipverify.com/api/verify", {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-              "Authorization": `Bearer ${apiKey}`,
-            },
-            body: JSON.stringify({
-              transRef: body.transRef,
-              sendingBank: body.sendingBank,
-            }),
-          })
-          if (verifyRes.ok) {
-            const result = await verifyRes.json() as { data?: { amount?: number } }
-            if (result.data?.amount != null) {
-              slipFields.slipVerifiedAmount = String(result.data.amount)
-              slipFields.slipVerifiedAt = new Date()
-            }
-          }
-        } catch {
-          // Verification failure is non-blocking — host can still confirm manually
-        }
+      // Verify slip via external API (swappable provider)
+      const verifyResult = await verifySlip({
+        qrData: body.qrData,
+        transRef: body.transRef,
+        sendingBank: body.sendingBank,
+      })
+      if (verifyResult) {
+        slipFields.slipVerifiedAmount = String(verifyResult.amount)
+        slipFields.slipVerifiedAt = new Date()
       }
     }
 
+    // Determine status: auto-reject if verified amount doesn't match owed amount
+    const owedAmount = parseFloat(payment.amount)
+    const verifiedAmount = slipFields.slipVerifiedAmount
+      ? parseFloat(slipFields.slipVerifiedAmount as string)
+      : null
+    const amountMismatch = verifiedAmount != null && Math.abs(verifiedAmount - owedAmount) >= 0.01
+
+    const newStatus = amountMismatch ? "rejected" as const : "claimed" as const
+
     const [updated] = await db.update(roomPayments)
       .set({
-        status: "claimed",
+        status: newStatus,
         claimedAt: new Date(),
-        rejectedAt: null,
+        ...(amountMismatch ? { rejectedAt: new Date() } : { rejectedAt: null }),
         ...slipFields,
       })
       .where(eq(roomPayments.id, paymentId))
@@ -814,14 +808,14 @@ const app = new Hono()
 
     const room = await db.query.rooms.findFirst({ where: eq(rooms.id, roomId) })
     if (room) {
-      notifyPartyKit(room.inviteCode, "payment-toggled", { paymentId, status: "claimed" })
+      notifyPartyKit(room.inviteCode, "payment-toggled", { paymentId, status: newStatus })
     }
 
     return c.json(updated)
   })
 
   // ─── PATCH /rooms/:id/payments/:paymentId/confirm
-  // Host confirms a payment. Can confirm from unpaid (direct) or claimed.
+  // Host confirms a payment. Can confirm from any state (unpaid, claimed, or rejected).
   .patch("/:id/payments/:paymentId/confirm", optionalAuth, async (c) => {
     const roomId = c.req.param("id")
     const paymentId = c.req.param("paymentId")
@@ -840,8 +834,9 @@ const app = new Hono()
       return c.json({ error: "Payment not found" }, 404)
     }
 
-    if (payment.status !== "claimed" && payment.status !== "unpaid") {
-      return c.json({ error: "Payment cannot be confirmed in its current state" }, 400)
+    // Host can confirm from any non-confirmed state (unpaid, claimed, or rejected)
+    if (payment.status === "confirmed") {
+      return c.json({ error: "Payment is already confirmed" }, 400)
     }
 
     const [updated] = await db.update(roomPayments)

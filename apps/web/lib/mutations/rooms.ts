@@ -175,7 +175,7 @@ export function useClaimPayment(roomId: string) {
   return useMutation({
     mutationFn: async (args: {
       paymentId: string;
-      slipData?: { transRef: string; sendingBank: string };
+      slipData?: { transRef: string; sendingBank: string; qrData: string };
       slipImage?: string;
     }) => {
       const res = await api.api.rooms[":id"].payments[":paymentId"].claim.$patch({
@@ -183,6 +183,7 @@ export function useClaimPayment(roomId: string) {
         json: {
           transRef: args.slipData?.transRef,
           sendingBank: args.slipData?.sendingBank,
+          qrData: args.slipData?.qrData,
           slipImage: args.slipImage,
         },
       });
