@@ -53,6 +53,7 @@ export const finalizeRoomSchema = z.object({
   })).min(1),
   vatRate: z.number().min(0).max(1).nullable().optional(),               // e.g. 0.07 for 7%
   serviceChargeRate: z.number().min(0).max(1).nullable().optional(),     // e.g. 0.10 for 10%
+  discountAmount: z.number().min(0).nullable().optional(),               // flat baht amount
 })
 
 export const setRoomPaymentMethodSchema = z.object({
@@ -69,6 +70,22 @@ export const claimRoomPaymentSchema = z.object({
 
 export const updateRoomStatusSchema = z.object({
   status: roomStatusSchema,
+})
+
+// ─── Receipt OCR Scan ─────────────────────────
+
+export const scanReceiptSchema = z.object({
+  image: z.string().min(1),  // base64-encoded image
+})
+
+export const scanReceiptResponseSchema = z.object({
+  items: z.array(z.object({
+    name: z.string(),
+    amount: z.number().positive(),
+  })),
+  vatRate: z.number().min(0).max(1).nullable(),
+  serviceChargeRate: z.number().min(0).max(1).nullable(),
+  discountAmount: z.number().min(0).nullable(),
 })
 
 export const startGroupSplitSchema = z.object({
@@ -88,3 +105,5 @@ export type FinalizeRoom = z.infer<typeof finalizeRoomSchema>
 export type SetRoomPaymentMethod = z.infer<typeof setRoomPaymentMethodSchema>
 export type ClaimRoomPayment = z.infer<typeof claimRoomPaymentSchema>
 export type StartGroupSplit = z.infer<typeof startGroupSplitSchema>
+export type ScanReceipt = z.infer<typeof scanReceiptSchema>
+export type ScanReceiptResponse = z.infer<typeof scanReceiptResponseSchema>

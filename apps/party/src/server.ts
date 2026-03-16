@@ -13,6 +13,7 @@ interface CollabItem {
 interface BillExtras {
   vatRate: number | null       // e.g. 0.07 for 7%, null = off
   serviceChargeRate: number | null
+  discountAmount: number | null // flat amount in local currency
 }
 
 type ClientMessage =
@@ -33,7 +34,7 @@ function generateItemId(): string {
 export default class RoomParty implements Party.Server {
   items: Map<string, CollabItem> = new Map()
   locked = false
-  extras: BillExtras = { vatRate: null, serviceChargeRate: null }
+  extras: BillExtras = { vatRate: null, serviceChargeRate: null, discountAmount: null }
 
   constructor(readonly room: Party.Room) {}
 
@@ -111,9 +112,10 @@ export default class RoomParty implements Party.Server {
       }
 
       case "extras:update": {
-        const { vatRate, serviceChargeRate } = msg.data
+        const { vatRate, serviceChargeRate, discountAmount } = msg.data
         if (vatRate !== undefined) this.extras.vatRate = vatRate
         if (serviceChargeRate !== undefined) this.extras.serviceChargeRate = serviceChargeRate
+        if (discountAmount !== undefined) this.extras.discountAmount = discountAmount
         this.broadcastItems()
         break
       }
@@ -154,6 +156,7 @@ export default class RoomParty implements Party.Server {
       }
       if (parsed.type === "status-changed" && parsed.data?.status === "payment") {
         this.items.clear()
+        this.extras = { vatRate: null, serviceChargeRate: null, discountAmount: null }
         this.locked = false
       }
     } catch {

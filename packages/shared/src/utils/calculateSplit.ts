@@ -13,6 +13,7 @@ export interface CalcItemClaim {
 
 export interface CalcBillTotals {
   subtotal: number
+  discountAmount: number | null
   vatAmount: number | null
   serviceChargeAmount: number | null
   totalAmount: number
@@ -30,6 +31,7 @@ export interface MemberSplit {
   memberId: string
   itemsSubtotal: number
   proportion: number
+  discountShare: number
   vatShare: number
   serviceChargeShare: number
   totalAmount: number
@@ -67,6 +69,7 @@ export function calculateSplit(
         memberId,
         itemsSubtotal: 0,
         proportion: 0,
+        discountShare: 0,
         vatShare: 0,
         serviceChargeShare: 0,
         totalAmount: 0,
@@ -109,7 +112,8 @@ export function calculateSplit(
     }
   }
 
-  // Step 2: Distribute VAT and service charge proportionally
+  // Step 2: Distribute discount, VAT, and service charge proportionally
+  const discountAmount = totals.discountAmount ?? 0
   const vatAmount = totals.vatAmount ?? 0
   const serviceChargeAmount = totals.serviceChargeAmount ?? 0
 
@@ -121,6 +125,7 @@ export function calculateSplit(
     const itemsSubtotal = memberSubtotals.get(memberId) || 0
     const proportion = totals.subtotal > 0 ? itemsSubtotal / totals.subtotal : 0
 
+    const discountShare = discountAmount * proportion
     const vatShare = vatAmount * proportion
     const serviceChargeShare = serviceChargeAmount * proportion
 
@@ -130,7 +135,7 @@ export function calculateSplit(
       // Last person absorbs rounding remainder
       totalAmount = totals.totalAmount - runningTotal
     } else {
-      totalAmount = Math.floor((itemsSubtotal + vatShare + serviceChargeShare) * 100) / 100
+      totalAmount = Math.floor((itemsSubtotal - discountShare + serviceChargeShare + vatShare) * 100) / 100
       runningTotal += totalAmount
     }
 
@@ -138,6 +143,7 @@ export function calculateSplit(
       memberId,
       itemsSubtotal,
       proportion,
+      discountShare,
       vatShare,
       serviceChargeShare,
       totalAmount,
@@ -147,7 +153,7 @@ export function calculateSplit(
 
   // How much the last person absorbed beyond their "fair" share
   const last = splits[splits.length - 1]
-  const lastFairTotal = (last?.itemsSubtotal ?? 0) + (last?.vatShare ?? 0) + (last?.serviceChargeShare ?? 0)
+  const lastFairTotal = (last?.itemsSubtotal ?? 0) - (last?.discountShare ?? 0) + (last?.vatShare ?? 0) + (last?.serviceChargeShare ?? 0)
   const roundingDifference = (last?.totalAmount ?? 0) - lastFairTotal
 
   return { splits, roundingDifference }

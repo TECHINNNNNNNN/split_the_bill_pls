@@ -246,3 +246,18 @@ export function useUnconfirmPayment(roomId: string) {
     },
   });
 }
+
+export function useScanReceipt() {
+  return useMutation({
+    mutationFn: async (image: string) => {
+      const res = await api.api.rooms["scan-receipt"].$post({
+        json: { image },
+      });
+      if (!res.ok) {
+        const err = await res.json();
+        throw new Error((err as { error?: string }).error || "OCR failed");
+      }
+      return res.json();
+    },
+  });
+}

@@ -4,8 +4,9 @@ import { use, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useQuery } from "@tanstack/react-query";
 import toast from "react-hot-toast";
+import imageCompression from "browser-image-compression";
 import { roomQueries } from "@/lib/queries/rooms";
-import { useFinalizeRoom } from "@/lib/mutations/rooms";
+import { useFinalizeRoom, useScanReceipt } from "@/lib/mutations/rooms";
 import { useBillCollab } from "@/lib/hooks/use-bill-collab";
 
 export default function BillDetailsPage({
@@ -49,22 +50,87 @@ export default function BillDetailsPage({
   // Finalize mutation — sends everything in one batch
   const finalizeRoom = useFinalizeRoom(roomId);
 
+  // ─── Receipt OCR scan ───
+  const scanReceipt = useScanReceipt();
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const handleScanReceipt = async (file: File) => {
+    const toastId = toast.loading("Scanning receipt...");
+    try {
+      const compressed = await imageCompression(file, {
+        maxSizeMB: 0.5,
+        maxWidthOrHeight: 1600,
+        useWebWorker: true,
+      });
+      // Convert to base64
+      const reader = new FileReader();
+      const base64: string = await new Promise((resolve, reject) => {
+        reader.onload = () => resolve(reader.result as string);
+        reader.onerror = reject;
+        reader.readAsDataURL(compressed);
+      });
+
+      const result = await scanReceipt.mutateAsync(base64);
+      console.log("[scan-receipt] OCR result:", JSON.stringify(result, null, 2));
+
+      if (result.items.length === 0) {
+        toast.error("Couldn't find any items on this receipt", { id: toastId });
+        return;
+      }
+
+      // Bulk-add items via PartyKit
+      for (const item of result.items) {
+        addItem(item.name, item.amount);
+      }
+
+      // Auto-set VAT, service charge & discount if detected
+      if (result.vatRate != null) {
+        updateExtras({ vatRate: result.vatRate });
+      }
+      if (result.serviceChargeRate != null) {
+        updateExtras({ serviceChargeRate: result.serviceChargeRate });
+      }
+      if (result.discountAmount != null) {
+        updateExtras({ discountAmount: result.discountAmount });
+      }
+
+      toast.success(`Added ${result.items.length} items from receipt`, { id: toastId });
+    } catch {
+      toast.error("Failed to scan receipt — try again or add items manually", { id: toastId });
+    }
+  };
+
   // Add item form state
   const [showForm, setShowForm] = useState(false);
   const [itemName, setItemName] = useState("");
   const [itemAmount, setItemAmount] = useState("");
 
-  // VAT & service charge — synced via PartyKit, local draft for typing UX
+  // Subtotal needed early for % discount display
+  const subtotal = items.reduce((sum, item) => sum + item.amount, 0);
+
+  // VAT, service charge, discount — synced via PartyKit, local draft for typing UX
   const hasVat = extras.vatRate != null;
   const hasServiceCharge = extras.serviceChargeRate != null;
+  const hasDiscount = extras.discountAmount != null;
   const [vatDraft, setVatDraft] = useState<string | null>(null);
   const [scDraft, setScDraft] = useState<string | null>(null);
+  const [discountDraft, setDiscountDraft] = useState<string | null>(null);
+  const [discountMode, setDiscountMode] = useState<"flat" | "pct">("flat");
   const vatInputRef = useRef<HTMLInputElement>(null);
   const scInputRef = useRef<HTMLInputElement>(null);
+  const discountInputRef = useRef<HTMLInputElement>(null);
 
   // Display: local draft while focused, otherwise derive from extras
-  const vatPct = vatDraft ?? (extras.vatRate != null ? String(Math.round(extras.vatRate * 100)) : "7");
-  const serviceChargePct = scDraft ?? (extras.serviceChargeRate != null ? String(Math.round(extras.serviceChargeRate * 100)) : "10");
+  const vatPct = vatDraft ?? (extras.vatRate != null ? String(parseFloat((extras.vatRate * 100).toFixed(2))) : "7");
+  const serviceChargePct = scDraft ?? (extras.serviceChargeRate != null ? String(parseFloat((extras.serviceChargeRate * 100).toFixed(2))) : "10");
+  // In % mode, derive display from flat amount + subtotal; in flat mode, show the amount directly
+  const discountDisplay = discountDraft ?? (
+    extras.discountAmount != null
+      ? discountMode === "pct" && subtotal > 0
+        ? String(Math.round((extras.discountAmount / subtotal) * 100))
+        : String(extras.discountAmount)
+      : "0"
+  );
 
   const handleAddItem = () => {
     const amount = parseFloat(itemAmount);
@@ -93,6 +159,7 @@ export default function BillDetailsPage({
         })),
         vatRate: extras.vatRate,
         serviceChargeRate: extras.serviceChargeRate,
+        discountAmount: extras.discountAmount,
       },
       {
         onSuccess: () => {
@@ -105,13 +172,14 @@ export default function BillDetailsPage({
     );
   };
 
-  // Calculate running total with VAT & service charge (extras is source of truth)
-  const subtotal = items.reduce((sum, item) => sum + item.amount, 0);
+  // Calculate running total: subtotal → -discount → +SC → +VAT (Thai ++ convention)
+  const discount = extras.discountAmount ?? 0;
+  const discountedSubtotal = Math.max(0, subtotal - discount);
   const scRate = extras.serviceChargeRate ?? 0;
   const vRate = extras.vatRate ?? 0;
-  const serviceChargeAmount = subtotal * scRate;
-  const vatAmount = (subtotal + serviceChargeAmount) * vRate;
-  const total = subtotal + serviceChargeAmount + vatAmount;
+  const serviceChargeAmount = discountedSubtotal * scRate;
+  const vatAmount = (discountedSubtotal + serviceChargeAmount) * vRate;
+  const total = discountedSubtotal + serviceChargeAmount + vatAmount;
 
   if (!room) {
     return (
@@ -137,9 +205,34 @@ export default function BillDetailsPage({
             Bill Details
           </h1>
         </div>
-        <div className="flex items-center gap-2 text-sm text-gray-500">
-          <span>Auto Scan Receipt</span>
-        </div>
+        {!isLocked && (
+          <>
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/*"
+              capture="environment"
+              className="hidden"
+              onChange={(e) => {
+                const file = e.target.files?.[0];
+                if (file) handleScanReceipt(file);
+                e.target.value = "";
+              }}
+            />
+            <button
+              type="button"
+              onClick={() => fileInputRef.current?.click()}
+              disabled={scanReceipt.isPending}
+              className="flex items-center gap-1.5 rounded-full border border-gray-300 px-3 py-1.5 text-sm font-medium text-gray-600 transition-colors hover:bg-gray-50 disabled:opacity-40"
+            >
+              <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
+              </svg>
+              {scanReceipt.isPending ? "Scanning..." : "Scan Receipt"}
+            </button>
+          </>
+        )}
       </div>
 
       {/* Items list (collaborative — synced via WebSocket) */}
@@ -325,7 +418,7 @@ export default function BillDetailsPage({
                     className="w-16 rounded border border-gray-300 px-2 py-1 text-right text-sm focus:border-gray-500 focus:outline-none"
                     min="0"
                     max="100"
-                    step="1"
+                    step="0.01"
                   />
                   <span className="text-sm text-gray-500">%</span>
                 </div>
@@ -357,9 +450,51 @@ export default function BillDetailsPage({
                     className="w-16 rounded border border-gray-300 px-2 py-1 text-right text-sm focus:border-gray-500 focus:outline-none"
                     min="0"
                     max="100"
-                    step="1"
+                    step="0.01"
                   />
                   <span className="text-sm text-gray-500">%</span>
+                </div>
+              )}
+            </div>
+
+            {/* Discount toggle */}
+            <div className="flex items-center justify-between">
+              <label className="flex items-center gap-2">
+                <input
+                  type="checkbox"
+                  checked={hasDiscount}
+                  onChange={() => updateExtras({
+                    discountAmount: hasDiscount ? null : 0,
+                  })}
+                  className="h-4 w-4 rounded border-gray-300 accent-gray-800"
+                />
+                <span className="text-sm text-gray-700">Discount</span>
+              </label>
+              {hasDiscount && (
+                <div className="flex items-center gap-1">
+                  <button
+                    type="button"
+                    onClick={() => { setDiscountDraft(null); setDiscountMode(discountMode === "flat" ? "pct" : "flat"); }}
+                    className="rounded border border-gray-300 px-1.5 py-0.5 text-xs font-medium text-gray-500 hover:bg-gray-50"
+                  >
+                    {discountMode === "flat" ? "฿" : "%"}
+                  </button>
+                  <input
+                    ref={discountInputRef}
+                    type="number"
+                    value={discountDisplay}
+                    onFocus={() => setDiscountDraft(discountDisplay)}
+                    onChange={(e) => setDiscountDraft(e.target.value)}
+                    onBlur={() => {
+                      const val = parseFloat(discountDisplay) || 0;
+                      const flat = discountMode === "pct" ? Math.round(subtotal * val) / 100 : val;
+                      updateExtras({ discountAmount: flat });
+                      setDiscountDraft(null);
+                    }}
+                    className="w-20 rounded border border-gray-300 px-2 py-1 text-right text-sm focus:border-gray-500 focus:outline-none"
+                    min="0"
+                    step={discountMode === "pct" ? "1" : "0.01"}
+                  />
                 </div>
               )}
             </div>
@@ -372,6 +507,12 @@ export default function BillDetailsPage({
             <span>Subtotal</span>
             <span>฿{subtotal.toFixed(2)}</span>
           </div>
+          {discount > 0 && (
+            <div className="mt-1 flex items-center justify-between text-sm text-green-600">
+              <span>Discount</span>
+              <span>-฿{discount.toFixed(2)}</span>
+            </div>
+          )}
           {hasServiceCharge && (
             <div className="mt-1 flex items-center justify-between text-sm text-gray-500">
               <span>Service Charge {serviceChargePct}%</span>
@@ -384,7 +525,7 @@ export default function BillDetailsPage({
               <span>฿{vatAmount.toFixed(2)}</span>
             </div>
           )}
-          {(hasVat || hasServiceCharge) && (
+          {(hasVat || hasServiceCharge || hasDiscount) && (
             <div className="mt-2 border-t border-gray-100 pt-2" />
           )}
           <div className="flex items-center justify-between">

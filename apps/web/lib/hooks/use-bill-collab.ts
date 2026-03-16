@@ -17,6 +17,7 @@ export interface CollabItem {
 export interface BillExtras {
   vatRate: number | null;
   serviceChargeRate: number | null;
+  discountAmount: number | null;
 }
 
 interface ServerMessage {
@@ -37,7 +38,7 @@ export function useBillCollab(
 ) {
   const [items, setItems] = useState<CollabItem[]>([]);
   const [isLocked, setIsLocked] = useState(false);
-  const [extras, setExtras] = useState<BillExtras>({ vatRate: null, serviceChargeRate: null });
+  const [extras, setExtras] = useState<BillExtras>({ vatRate: null, serviceChargeRate: null, discountAmount: null });
   const queryClient = useQueryClient();
 
   const socket = usePartySocket({

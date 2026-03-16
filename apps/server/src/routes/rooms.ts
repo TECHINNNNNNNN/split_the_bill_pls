@@ -14,10 +14,12 @@ import {
   updateRoomStatusSchema,
   finalizeRoomSchema,
   claimRoomPaymentSchema,
+  scanReceiptSchema,
 } from "@pladuk/shared/schemas"
 import { calculateSplit } from "@pladuk/shared/utils"
 import { notifyPartyKit } from "../lib/partykit.js"
 import { verifySlip } from "../lib/verify-slip.js"
+import { scanReceipt } from "../lib/scan-receipt.js"
 import { optionalAuth } from "../lib/middleware.js"
 import { requireAuth } from "../lib/middleware.js"
 
@@ -603,6 +605,22 @@ const app = new Hono()
     return c.json(updated)
   })
 
+  // ─── POST /rooms/scan-receipt ────────────────
+  // Accepts a base64 receipt image, calls Qwen VL
+  // to extract line items + VAT/service charge.
+  .post("/scan-receipt", zValidator("json", scanReceiptSchema), async (c) => {
+    const { image } = c.req.valid("json")
+
+    try {
+      const result = await scanReceipt(image)
+      return c.json(result)
+    } catch (err) {
+      console.error("[scan-receipt]", err)
+      const message = err instanceof Error ? err.message : "OCR failed"
+      return c.json({ error: message }, 500)
+    }
+  })
+
   // ─── POST /rooms/:id/finalize ────────────────
   // Accepts the full bill (items + who splits each)
   // in one request. Creates items, splits, calculates
@@ -617,7 +635,7 @@ const app = new Hono()
       return c.json({ error: "Only the host can finalize" }, 403)
     }
 
-    const { items: clientItems, vatRate, serviceChargeRate } = c.req.valid("json")
+    const { items: clientItems, vatRate, serviceChargeRate, discountAmount } = c.req.valid("json")
 
     // Clear any existing items/splits for this room (clean slate)
     const existingItems = await db.query.roomBillItems.findMany({
@@ -667,24 +685,28 @@ const app = new Hono()
 
     const subtotal = calcItems.reduce((sum, item) => sum + item.totalPrice, 0)
 
-    // Apply service charge first (on subtotal), then VAT (on subtotal + service charge)
+    // Apply discount first, then service charge, then VAT (Thai ++ convention)
+    const discount = discountAmount ?? 0
+    const discountedSubtotal = Math.max(0, subtotal - discount)
     const scRate = serviceChargeRate ?? 0
     const vRate = vatRate ?? 0
-    const serviceChargeAmount = subtotal * scRate
-    const vatAmount = (subtotal + serviceChargeAmount) * vRate
-    const totalAmount = subtotal + serviceChargeAmount + vatAmount
+    const serviceChargeAmount = discountedSubtotal * scRate
+    const vatAmount = (discountedSubtotal + serviceChargeAmount) * vRate
+    const totalAmount = discountedSubtotal + serviceChargeAmount + vatAmount
 
     const calcTotals = {
       subtotal,
+      discountAmount: discount || null,
       vatAmount: vatAmount || null,
       serviceChargeAmount: serviceChargeAmount || null,
       totalAmount,
     }
 
-    // Store rates on the room for display later
+    // Store rates + discount on the room for display later
     await db.update(rooms).set({
       vatRate: vRate ? vRate.toString() : null,
       serviceChargeRate: scRate ? scRate.toString() : null,
+      discountAmount: discount ? discount.toString() : null,
     }).where(eq(rooms.id, roomId))
 
     const splitMemberIds = [...new Set(calcClaims.map((cl) => cl.memberId))]
