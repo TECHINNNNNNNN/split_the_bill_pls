@@ -1,6 +1,6 @@
 "use client";
 
-import { use, useEffect, useState } from "react";
+import { use, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useQuery } from "@tanstack/react-query";
 import toast from "react-hot-toast";
@@ -54,17 +54,17 @@ export default function BillDetailsPage({
   const [itemName, setItemName] = useState("");
   const [itemAmount, setItemAmount] = useState("");
 
-  // VAT & service charge — synced via PartyKit, local pct for typing UX
+  // VAT & service charge — synced via PartyKit, local draft for typing UX
   const hasVat = extras.vatRate != null;
   const hasServiceCharge = extras.serviceChargeRate != null;
-  const [vatPct, setVatPct] = useState("7");
-  const [serviceChargePct, setServiceChargePct] = useState("10");
+  const [vatDraft, setVatDraft] = useState<string | null>(null);
+  const [scDraft, setScDraft] = useState<string | null>(null);
+  const vatInputRef = useRef<HTMLInputElement>(null);
+  const scInputRef = useRef<HTMLInputElement>(null);
 
-  // Sync local pct inputs when extras arrive from other clients
-  useEffect(() => {
-    if (extras.vatRate != null) setVatPct(String(Math.round(extras.vatRate * 100)));
-    if (extras.serviceChargeRate != null) setServiceChargePct(String(Math.round(extras.serviceChargeRate * 100)));
-  }, [extras.vatRate, extras.serviceChargeRate]);
+  // Display: local draft while focused, otherwise derive from extras
+  const vatPct = vatDraft ?? (extras.vatRate != null ? String(Math.round(extras.vatRate * 100)) : "7");
+  const serviceChargePct = scDraft ?? (extras.serviceChargeRate != null ? String(Math.round(extras.serviceChargeRate * 100)) : "10");
 
   const handleAddItem = () => {
     const amount = parseFloat(itemAmount);
@@ -316,10 +316,12 @@ export default function BillDetailsPage({
               {hasServiceCharge && (
                 <div className="flex items-center gap-1">
                   <input
+                    ref={scInputRef}
                     type="number"
                     value={serviceChargePct}
-                    onChange={(e) => setServiceChargePct(e.target.value)}
-                    onBlur={() => updateExtras({ serviceChargeRate: (parseFloat(serviceChargePct) || 0) / 100 })}
+                    onFocus={() => setScDraft(serviceChargePct)}
+                    onChange={(e) => setScDraft(e.target.value)}
+                    onBlur={() => { updateExtras({ serviceChargeRate: (parseFloat(serviceChargePct) || 0) / 100 }); setScDraft(null); }}
                     className="w-16 rounded border border-gray-300 px-2 py-1 text-right text-sm focus:border-gray-500 focus:outline-none"
                     min="0"
                     max="100"
@@ -346,10 +348,12 @@ export default function BillDetailsPage({
               {hasVat && (
                 <div className="flex items-center gap-1">
                   <input
+                    ref={vatInputRef}
                     type="number"
                     value={vatPct}
-                    onChange={(e) => setVatPct(e.target.value)}
-                    onBlur={() => updateExtras({ vatRate: (parseFloat(vatPct) || 0) / 100 })}
+                    onFocus={() => setVatDraft(vatPct)}
+                    onChange={(e) => setVatDraft(e.target.value)}
+                    onBlur={() => { updateExtras({ vatRate: (parseFloat(vatPct) || 0) / 100 }); setVatDraft(null); }}
                     className="w-16 rounded border border-gray-300 px-2 py-1 text-right text-sm focus:border-gray-500 focus:outline-none"
                     min="0"
                     max="100"
