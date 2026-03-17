@@ -10,6 +10,7 @@ const LIFF_ID = process.env.NEXT_PUBLIC_LIFF_ID;
 export function useLiff() {
   const [isReady, setIsReady] = useState(false);
   const [isInClient, setIsInClient] = useState(false);
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
   const liffRef = useRef<Liff | null>(null);
 
   useEffect(() => {
@@ -22,6 +23,7 @@ export function useLiff() {
         liffRef.current = liffModule;
         setIsReady(true);
         setIsInClient(liffModule.isInClient());
+        setIsLoggedIn(liffModule.isLoggedIn());
       } catch (err) {
         console.warn("[liff] Init failed:", err);
       }
@@ -31,11 +33,14 @@ export function useLiff() {
   const shareTargetPicker = useCallback(
     async (messages: Parameters<Liff["shareTargetPicker"]>[0]) => {
       const l = liffRef.current;
-      if (!l) return null;
+      if (!l || !LIFF_ID) return null;
 
-      // In external browser, user needs to be logged in
+      // In external browser and not logged in:
+      // Open the LIFF URL which opens LINE app on mobile (auto-login).
+      // On desktop, it opens LINE's web login then redirects to the page.
       if (!l.isInClient() && !l.isLoggedIn()) {
-        l.login({ redirectUri: window.location.href });
+        const currentPath = window.location.pathname + window.location.search;
+        window.location.href = `https://liff.line.me/${LIFF_ID}${currentPath}`;
         return null;
       }
 
@@ -51,6 +56,7 @@ export function useLiff() {
   return {
     isReady,
     isInClient,
+    isLoggedIn,
     isSupported: !!LIFF_ID,
     liff: liffRef.current,
     shareTargetPicker,
