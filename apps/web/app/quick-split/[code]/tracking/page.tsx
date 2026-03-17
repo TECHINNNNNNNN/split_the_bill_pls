@@ -577,15 +577,37 @@ export default function PaymentTrackingPage({
       </div>
 
       {/* Push notification prompt */}
-      {push.isIOS && !push.isPWA && !iosDismissed && (
+      {push.isLiff && !iosDismissed && (
         <div className="mt-4 rounded-lg border border-blue-200 bg-blue-50 p-4">
           <p className="text-sm font-medium text-blue-800">
-            To get reminders on iPhone:
+            Want payment reminders?
           </p>
           <p className="mt-1 text-xs text-blue-600">
-            Tap the Share button, then &quot;Add to Home Screen&quot;.
-            Open PlaDuk from your home screen to enable notifications.
+            Notifications aren&apos;t available inside LINE.
+            Tap the &quot;...&quot; menu (top-right) and choose
+            &quot;Open in Safari&quot; or &quot;Open in Chrome&quot; to enable reminders.
           </p>
+          <button
+            type="button"
+            onClick={() => setIosDismissed(true)}
+            className="mt-2 text-xs font-medium text-blue-500 hover:text-blue-700"
+          >
+            Dismiss
+          </button>
+        </div>
+      )}
+
+      {!push.isLiff && push.isIOS && !push.isPWA && !iosDismissed && (
+        <div className="mt-4 rounded-lg border border-blue-200 bg-blue-50 p-4">
+          <p className="text-sm font-medium text-blue-800">
+            Want payment reminders on iPhone?
+          </p>
+          <ol className="mt-1 list-inside list-decimal text-xs text-blue-600 space-y-0.5">
+            <li>Tap the Share button <span className="inline-block translate-y-px">&#xFEFF;&#x2B06;&#xFE0E;</span> at the bottom of Safari</li>
+            <li>Scroll down and tap &quot;Add to Home Screen&quot;</li>
+            <li>Open PlaDuk from your home screen</li>
+            <li>Come back to this page and tap &quot;Enable Reminders&quot;</li>
+          </ol>
           <button
             type="button"
             onClick={() => setIosDismissed(true)}

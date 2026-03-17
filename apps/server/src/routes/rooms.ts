@@ -847,21 +847,26 @@ const app = new Hono()
     if (room) {
       notifyPartyKit(room.inviteCode, "payment-toggled", { paymentId, status: newStatus })
 
-      // Push notification to host: "X claims they've paid ฿Y"
-      if (newStatus === "claimed") {
-        const members = await db.query.roomMembers.findMany({
-          where: eq(roomMembers.roomId, roomId),
+      // Push notification to host when member submits a claim (with or without slip)
+      const members = await db.query.roomMembers.findMany({
+        where: eq(roomMembers.roomId, roomId),
+      })
+      const hostMember = members.find(m => m.isHost)
+      const claimingMember = members.find(m => m.id === member.id)
+      if (hostMember && claimingMember) {
+        const amount = `฿${parseFloat(payment.amount).toFixed(2)}`
+        const title = newStatus === "rejected"
+          ? "Slip Auto-Rejected"
+          : "Payment Claimed"
+        const body = newStatus === "rejected"
+          ? `${claimingMember.displayName}'s slip for ${amount} didn't match — needs review`
+          : `${claimingMember.displayName} claims they've paid ${amount}`
+        sendPushToMember(hostMember.id, roomId, {
+          title,
+          body,
+          url: `/quick-split/${room.inviteCode}/tracking`,
+          tag: `claim-${paymentId}`,
         })
-        const hostMember = members.find(m => m.isHost)
-        const claimingMember = members.find(m => m.id === member.id)
-        if (hostMember && claimingMember) {
-          sendPushToMember(hostMember.id, roomId, {
-            title: "Payment Claimed",
-            body: `${claimingMember.displayName} claims they've paid ฿${parseFloat(payment.amount).toFixed(2)}`,
-            url: `/quick-split/${room.inviteCode}/tracking`,
-            tag: `claim-${paymentId}`,
-          })
-        }
       }
     }
 

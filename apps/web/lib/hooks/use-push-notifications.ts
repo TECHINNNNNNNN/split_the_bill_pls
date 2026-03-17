@@ -49,20 +49,23 @@ export function usePushNotifications(
   const [isSupported, setIsSupported] = useState(false);
   const [isIOS, setIsIOS] = useState(false);
   const [isPWA, setIsPWA] = useState(false);
+  const [isLiff, setIsLiff] = useState(false);
   const [isSubscribing, setIsSubscribing] = useState(false);
 
   useEffect(() => {
+    const liff = isInLiffBrowser();
     const supported =
       typeof window !== "undefined" &&
       "serviceWorker" in navigator &&
       "PushManager" in window &&
       "Notification" in window &&
       !!VAPID_KEY &&
-      !isInLiffBrowser();
+      !liff;
 
     setIsSupported(supported);
     setIsIOS(detectIOS());
     setIsPWA(detectPWA());
+    setIsLiff(liff);
 
     if (supported) {
       setPermission(Notification.permission);
@@ -112,6 +115,7 @@ export function usePushNotifications(
     isSupported,
     isIOS,
     isPWA,
+    isLiff,
     isSubscribing,
     subscribe,
   };
