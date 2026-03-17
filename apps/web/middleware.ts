@@ -1,27 +1,45 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 
-/**
- * Intercept LINE LIFF redirects.
- *
- * After LINE Login, LINE redirects to the LIFF endpoint URL (our root)
- * with ?liff.state=/original/path. The root page.tsx does a server-side
- * redirect("/login") which strips this param. Middleware runs before
- * page rendering, so we can catch it and redirect to the correct path.
- */
-export function middleware(request: NextRequest) {
-  const liffState = request.nextUrl.searchParams.get("liff.state");
+const PWA_START_COOKIE = "pladuk_start";
 
-  if (liffState && liffState.startsWith("/")) {
-    const url = request.nextUrl.clone();
-    url.pathname = liffState;
-    url.searchParams.delete("liff.state");
-    return NextResponse.redirect(url);
+export function middleware(request: NextRequest) {
+  const { pathname } = request.nextUrl;
+
+  // ─── Root page handling ───
+  if (pathname === "/") {
+    // 1. LIFF redirect: LINE Login lands here with ?liff.state=/original/path
+    const liffState = request.nextUrl.searchParams.get("liff.state");
+    if (liffState && liffState.startsWith("/")) {
+      const url = request.nextUrl.clone();
+      url.pathname = liffState;
+      url.searchParams.delete("liff.state");
+      return NextResponse.redirect(url);
+    }
+
+    // 2. PWA start: when opened from home screen, redirect to last tracking page
+    const pwaStart = request.cookies.get(PWA_START_COOKIE)?.value;
+    if (pwaStart && pwaStart.startsWith("/quick-split/")) {
+      const url = request.nextUrl.clone();
+      url.pathname = pwaStart;
+      return NextResponse.redirect(url);
+    }
+  }
+
+  // ─── Tracking pages: save path in cookie for PWA start_url ───
+  if (pathname.match(/^\/quick-split\/[^/]+\/tracking$/)) {
+    const response = NextResponse.next();
+    response.cookies.set(PWA_START_COOKIE, pathname, {
+      path: "/",
+      maxAge: 60 * 60 * 24 * 30, // 30 days
+      sameSite: "lax",
+    });
+    return response;
   }
 
   return NextResponse.next();
 }
 
 export const config = {
-  matcher: "/",
+  matcher: ["/", "/quick-split/:code/tracking"],
 };
