@@ -1,8 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import { IBM_Plex_Sans_Thai, Prompt } from "next/font/google";
-import { Suspense } from "react";
 import { Toaster } from "react-hot-toast";
-import { LiffRedirect } from "./liff-redirect";
 import { Providers } from "./providers";
 import "./globals.css";
 
@@ -41,12 +39,7 @@ export default function RootLayout({
   return (
     <html lang="th" className={`${body.variable} ${heading.variable}`}>
       <body className="font-body antialiased">
-        <Providers>
-          <Suspense>
-            <LiffRedirect />
-          </Suspense>
-          {children}
-        </Providers>
+        <Providers>{children}</Providers>
         <Toaster
           position="top-center"
           toastOptions={{
