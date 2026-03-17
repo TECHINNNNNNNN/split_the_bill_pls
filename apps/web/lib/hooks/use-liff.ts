@@ -35,12 +35,11 @@ export function useLiff() {
       const l = liffRef.current;
       if (!l || !LIFF_ID) return null;
 
-      // In external browser and not logged in:
-      // Open the LIFF URL which opens LINE app on mobile (auto-login).
-      // On desktop, it opens LINE's web login then redirects to the page.
+      // Not logged in — need LINE Login first
       if (!l.isInClient() && !l.isLoggedIn()) {
-        const currentPath = window.location.pathname + window.location.search;
-        window.location.href = `https://liff.line.me/${LIFF_ID}${currentPath}`;
+        // Store current URL so we return here after login
+        sessionStorage.setItem("liff_return_url", window.location.href);
+        l.login({ redirectUri: window.location.href });
         return null;
       }
 
