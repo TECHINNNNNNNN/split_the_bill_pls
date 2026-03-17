@@ -83,11 +83,26 @@ export const groupMembers = pgTable("group_members", {
 
 export const pushSubscriptions = pgTable("push_subscriptions", {
   id: uuid("id").primaryKey().defaultRandom(),
+  memberId: uuid("member_id")
+    .references(() => roomMembers.id, { onDelete: "cascade" })
+    .notNull(),
+  roomId: uuid("room_id")
+    .references(() => rooms.id, { onDelete: "cascade" })
+    .notNull(),
   userId: text("user_id").references(() => user.id, { onDelete: "cascade" }),
-  endpoint: text("endpoint").notNull(),
+  endpoint: text("endpoint").notNull().unique(),
   p256dh: text("p256dh").notNull(),
   auth: text("auth").notNull(),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+});
+
+export const pushNotificationLog = pgTable("push_notification_log", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  paymentId: uuid("payment_id")
+    .references(() => roomPayments.id, { onDelete: "cascade" })
+    .notNull(),
+  tier: text("tier").notNull(), // "6h" | "24h" | "3d"
+  sentAt: timestamp("sent_at", { withTimezone: true }).notNull().defaultNow(),
 });
 
 // ════════════════════════════════════════════
@@ -237,7 +252,19 @@ export const roomInvitesRelations = relations(roomInvites, ({ one }) => ({
   user: one(user, { fields: [roomInvites.userId], references: [user.id] }),
 }));
 
-export const roomPaymentsRelations = relations(roomPayments, ({ one }) => ({
+export const roomPaymentsRelations = relations(roomPayments, ({ one, many }) => ({
   room: one(rooms, { fields: [roomPayments.roomId], references: [rooms.id] }),
   member: one(roomMembers, { fields: [roomPayments.memberId], references: [roomMembers.id] }),
+  notificationLogs: many(pushNotificationLog),
+}));
+
+// ── Push Notification Relations ──
+
+export const pushSubscriptionsRelations = relations(pushSubscriptions, ({ one }) => ({
+  member: one(roomMembers, { fields: [pushSubscriptions.memberId], references: [roomMembers.id] }),
+  room: one(rooms, { fields: [pushSubscriptions.roomId], references: [rooms.id] }),
+}));
+
+export const pushNotificationLogRelations = relations(pushNotificationLog, ({ one }) => ({
+  payment: one(roomPayments, { fields: [pushNotificationLog.paymentId], references: [roomPayments.id] }),
 }));

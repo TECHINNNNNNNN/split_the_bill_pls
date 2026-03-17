@@ -21,6 +21,7 @@ const heading = Prompt({
 export const metadata: Metadata = {
   title: "PlaDuk — หารบิลง่ายๆ",
   description: "Split bills with friends. No app download needed.",
+  manifest: "/manifest.json",
 };
 
 export const viewport: Viewport = {

@@ -2,7 +2,7 @@ import { Hono } from "hono"
 import { setCookie, getCookie } from "hono/cookie"
 import { zValidator } from "@hono/zod-validator"
 import { db } from "../db/index.js"
-import { rooms, roomMembers, roomBillItems, roomItemSplits, roomPayments, roomInvites } from "../db/schema.js"
+import { rooms, roomMembers, roomBillItems, roomItemSplits, roomPayments, roomInvites, pushSubscriptions } from "../db/schema.js"
 import { eq, and, desc } from "drizzle-orm"
 import { randomUUID } from "node:crypto"
 import {
@@ -15,9 +15,11 @@ import {
   finalizeRoomSchema,
   claimRoomPaymentSchema,
   scanReceiptSchema,
+  pushSubscribeSchema,
 } from "@pladuk/shared/schemas"
 import { calculateSplit } from "@pladuk/shared/utils"
 import { notifyPartyKit } from "../lib/partykit.js"
+import { sendPushToMember } from "../lib/push.js"
 import { verifySlip } from "../lib/verify-slip.js"
 import { scanReceipt } from "../lib/scan-receipt.js"
 import { optionalAuth } from "../lib/middleware.js"
@@ -844,6 +846,23 @@ const app = new Hono()
     const room = await db.query.rooms.findFirst({ where: eq(rooms.id, roomId) })
     if (room) {
       notifyPartyKit(room.inviteCode, "payment-toggled", { paymentId, status: newStatus })
+
+      // Push notification to host: "X claims they've paid ฿Y"
+      if (newStatus === "claimed") {
+        const members = await db.query.roomMembers.findMany({
+          where: eq(roomMembers.roomId, roomId),
+        })
+        const hostMember = members.find(m => m.isHost)
+        const claimingMember = members.find(m => m.id === member.id)
+        if (hostMember && claimingMember) {
+          sendPushToMember(hostMember.id, roomId, {
+            title: "Payment Claimed",
+            body: `${claimingMember.displayName} claims they've paid ฿${parseFloat(payment.amount).toFixed(2)}`,
+            url: `/quick-split/${room.inviteCode}/tracking`,
+            tag: `claim-${paymentId}`,
+          })
+        }
+      }
     }
 
     return c.json(updated)
@@ -984,6 +1003,58 @@ const app = new Hono()
     }
 
     return c.json(updated)
+  })
+
+  // ─── POST /rooms/:id/push-subscribe
+  // Register a Web Push subscription for the current member in this room.
+  .post("/:id/push-subscribe", optionalAuth, zValidator("json", pushSubscribeSchema), async (c) => {
+    const roomId = c.req.param("id")
+    const memberId = await resolveMemberId(c, roomId)
+
+    const member = await verifyRoomMember(roomId, memberId)
+    if (!member) {
+      return c.json({ error: "Not a member of this room" }, 403)
+    }
+
+    const { endpoint, p256dh, auth } = c.req.valid("json")
+    const user = c.get("user") as { id: string } | undefined
+
+    // Upsert: if same endpoint already exists, replace it
+    await db.delete(pushSubscriptions).where(eq(pushSubscriptions.endpoint, endpoint)).catch(() => {})
+
+    await db.insert(pushSubscriptions).values({
+      memberId: member.id,
+      roomId,
+      userId: user?.id ?? null,
+      endpoint,
+      p256dh,
+      auth,
+    })
+
+    return c.json({ success: true })
+  })
+
+  // ─── POST /rooms/:id/push-test
+  // DEV ONLY: Send a test push notification to the current member.
+  .post("/:id/push-test", optionalAuth, async (c) => {
+    const roomId = c.req.param("id")
+    const memberId = await resolveMemberId(c, roomId)
+
+    const member = await verifyRoomMember(roomId, memberId)
+    if (!member) {
+      return c.json({ error: "Not a member of this room" }, 403)
+    }
+
+    const room = await db.query.rooms.findFirst({ where: eq(rooms.id, roomId) })
+
+    sendPushToMember(member.id, roomId, {
+      title: "PlaDuk Test",
+      body: `This is a test notification for ${member.displayName}`,
+      url: `/quick-split/${room?.inviteCode ?? ""}/tracking`,
+      tag: "test",
+    })
+
+    return c.json({ success: true, memberId: member.id, displayName: member.displayName })
   })
 
 export default app

@@ -92,6 +92,14 @@ export const startGroupSplitSchema = z.object({
   memberIds: z.array(z.string().uuid()).min(1),
 })
 
+// ─── Push Notifications ─────────────────────
+
+export const pushSubscribeSchema = z.object({
+  endpoint: z.string().url(),
+  p256dh: z.string().min(1),
+  auth: z.string().min(1),
+})
+
 // ─── Derived Types ───────────────────────────
 
 export type CreateGroup = z.infer<typeof createGroupSchema>
@@ -107,3 +115,4 @@ export type ClaimRoomPayment = z.infer<typeof claimRoomPaymentSchema>
 export type StartGroupSplit = z.infer<typeof startGroupSplitSchema>
 export type ScanReceipt = z.infer<typeof scanReceiptSchema>
 export type ScanReceiptResponse = z.infer<typeof scanReceiptResponseSchema>
+export type PushSubscribe = z.infer<typeof pushSubscribeSchema>

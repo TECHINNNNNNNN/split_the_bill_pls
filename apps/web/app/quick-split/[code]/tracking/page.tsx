@@ -11,6 +11,7 @@ import { useClaimPayment, useConfirmPayment, useRejectPayment, useUnconfirmPayme
 import { useRoomSocket } from "@/lib/hooks/use-room-socket";
 import { useSlipScanner } from "@/lib/hooks/use-slip-scanner";
 import type { SlipScanOutput } from "@/lib/hooks/use-slip-scanner";
+import { usePushNotifications } from "@/lib/hooks/use-push-notifications";
 
 type PaymentStatus = "unpaid" | "claimed" | "confirmed" | "rejected";
 
@@ -247,6 +248,10 @@ export default function PaymentTrackingPage({
 
   // WebSocket: instant updates when payment statuses change
   useRoomSocket(code);
+
+  // Push notifications
+  const push = usePushNotifications(roomId, currentMemberId);
+  const [iosDismissed, setIosDismissed] = useState(false);
 
   const total = payments.reduce((sum, p) => sum + parseFloat(p.amount), 0);
   const confirmedPayments = payments.filter((p) => p.status === "confirmed");
@@ -532,6 +537,74 @@ export default function PaymentTrackingPage({
           />
         </div>
       </div>
+
+      {/* Push notification prompt */}
+      {push.isIOS && !push.isPWA && !iosDismissed && (
+        <div className="mt-4 rounded-lg border border-blue-200 bg-blue-50 p-4">
+          <p className="text-sm font-medium text-blue-800">
+            To get reminders on iPhone:
+          </p>
+          <p className="mt-1 text-xs text-blue-600">
+            Tap the Share button, then &quot;Add to Home Screen&quot;.
+            Open PlaDuk from your home screen to enable notifications.
+          </p>
+          <button
+            type="button"
+            onClick={() => setIosDismissed(true)}
+            className="mt-2 text-xs font-medium text-blue-500 hover:text-blue-700"
+          >
+            Dismiss
+          </button>
+        </div>
+      )}
+
+      {push.isSupported && push.permission === "default" && (
+        <div className="mt-4 rounded-lg border border-gray-200 bg-gray-50 p-4">
+          <p className="text-sm font-medium text-gray-800">
+            Get notified
+          </p>
+          <p className="mt-1 text-xs text-gray-500">
+            {isHost
+              ? "We'll tell you when someone claims they've paid."
+              : "We'll send a gentle nudge if you forget. No spam, promise."}
+          </p>
+          <button
+            type="button"
+            onClick={push.subscribe}
+            disabled={push.isSubscribing}
+            className="mt-2 rounded-lg bg-gray-800 px-4 py-2 text-sm font-medium text-white hover:bg-gray-700 disabled:opacity-50"
+          >
+            {push.isSubscribing ? "Setting up..." : "Enable Reminders"}
+          </button>
+        </div>
+      )}
+
+      {push.isSupported && push.permission === "granted" && (
+        <div className="mt-4 flex items-center justify-between rounded-lg border border-green-200 bg-green-50 px-4 py-2.5">
+          <span className="text-sm text-green-700">Reminders enabled</span>
+          {process.env.NODE_ENV === "development" && (
+            <button
+              type="button"
+              onClick={async () => {
+                try {
+                  const res = await fetch(
+                    `${process.env.NEXT_PUBLIC_API_URL}/api/rooms/${roomId}/push-test`,
+                    { method: "POST", credentials: "include" },
+                  );
+                  const data = await res.json();
+                  if (res.ok) alert(`Test sent to ${data.displayName}`);
+                  else alert(`Error: ${data.error}`);
+                } catch (e) {
+                  alert(`Failed: ${e}`);
+                }
+              }}
+              className="rounded bg-green-600 px-2 py-1 text-xs text-white hover:bg-green-700"
+            >
+              Test Push
+            </button>
+          )}
+        </div>
+      )}
 
       {/* Host card */}
       {hostMember && (
