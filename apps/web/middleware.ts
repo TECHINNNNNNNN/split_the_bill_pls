@@ -17,11 +17,14 @@ export function middleware(request: NextRequest) {
       return NextResponse.redirect(url);
     }
 
-    // 2. PWA start: when opened from home screen, redirect to last tracking page
+    // 2. PWA start: when opened from home screen, redirect to last tracking page.
+    //    Only trigger when ?pwa=1 is in the URL (set by the service worker).
+    const isPwaNav = request.nextUrl.searchParams.has("pwa");
     const pwaStart = request.cookies.get(PWA_START_COOKIE)?.value;
-    if (pwaStart && pwaStart.startsWith("/quick-split/")) {
+    if (isPwaNav && pwaStart && pwaStart.startsWith("/quick-split/")) {
       const url = request.nextUrl.clone();
       url.pathname = pwaStart;
+      url.searchParams.delete("pwa");
       return NextResponse.redirect(url);
     }
   }
