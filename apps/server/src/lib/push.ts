@@ -66,7 +66,10 @@ export async function sendPushToMember(
   roomId: string,
   payload: PushPayload,
 ): Promise<void> {
-  if (!isConfigured) return
+  if (!isConfigured) {
+    console.warn("[push] Skipping — VAPID not configured")
+    return
+  }
 
   try {
     const subs = await db.query.pushSubscriptions.findMany({
@@ -76,11 +79,14 @@ export async function sendPushToMember(
       ),
     })
 
+    console.log(`[push] Found ${subs.length} subscription(s) for member=${memberId} room=${roomId}`)
+
     for (const sub of subs) {
-      // Fire-and-forget each send
-      sendToSubscription(sub, payload).catch(() => {})
+      sendToSubscription(sub, payload)
+        .then((ok) => console.log(`[push] Sent to ${sub.id}: ${ok}`))
+        .catch((err) => console.warn(`[push] Error sending to ${sub.id}:`, err))
     }
-  } catch {
-    console.warn(`[push] Failed to query subscriptions for member ${memberId}`)
+  } catch (err) {
+    console.warn(`[push] Failed to query subscriptions for member ${memberId}:`, err)
   }
 }

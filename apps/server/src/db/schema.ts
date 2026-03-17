@@ -90,7 +90,7 @@ export const pushSubscriptions = pgTable("push_subscriptions", {
     .references(() => rooms.id, { onDelete: "cascade" })
     .notNull(),
   userId: text("user_id").references(() => user.id, { onDelete: "cascade" }),
-  endpoint: text("endpoint").notNull().unique(),
+  endpoint: text("endpoint").notNull(),
   p256dh: text("p256dh").notNull(),
   auth: text("auth").notNull(),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),

@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { api } from "@/lib/api-client";
 
 const VAPID_KEY = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY;
@@ -39,6 +39,34 @@ function detectPWA(): boolean {
   return window.matchMedia("(display-mode: standalone)").matches;
 }
 
+/**
+ * Register the push subscription with the server for a specific room.
+ * Called both on manual subscribe AND auto-subscribe (when permission
+ * is already granted but this room might not have a subscription yet).
+ */
+async function registerSubscription(roomId: string): Promise<void> {
+  if (!VAPID_KEY) return;
+
+  const reg = await navigator.serviceWorker.register("/sw.js");
+  await navigator.serviceWorker.ready;
+
+  const subscription = await reg.pushManager.subscribe({
+    userVisibleOnly: true,
+    applicationServerKey: urlBase64ToUint8Array(VAPID_KEY),
+  });
+
+  const keys = subscription.toJSON().keys!;
+
+  await api.api.rooms[":id"]["push-subscribe"].$post({
+    param: { id: roomId },
+    json: {
+      endpoint: subscription.endpoint,
+      p256dh: keys.p256dh!,
+      auth: keys.auth!,
+    },
+  });
+}
+
 // ─── Hook ───
 
 export function usePushNotifications(
@@ -51,6 +79,7 @@ export function usePushNotifications(
   const [isPWA, setIsPWA] = useState(false);
   const [isLiff, setIsLiff] = useState(false);
   const [isSubscribing, setIsSubscribing] = useState(false);
+  const autoSubRef = useRef(false);
 
   useEffect(() => {
     const liff = isInLiffBrowser();
@@ -72,37 +101,34 @@ export function usePushNotifications(
     }
   }, []);
 
+  // Auto-subscribe: if permission is already granted and we have a roomId + memberId,
+  // ensure a push subscription exists for THIS room (the server upserts by endpoint).
+  useEffect(() => {
+    if (
+      permission !== "granted" ||
+      !isSupported ||
+      !roomId ||
+      !memberId ||
+      autoSubRef.current
+    ) return;
+
+    autoSubRef.current = true;
+    registerSubscription(roomId).catch((err) =>
+      console.warn("[push] Auto-subscribe failed:", err),
+    );
+  }, [permission, isSupported, roomId, memberId]);
+
   const subscribe = useCallback(async () => {
     if (!isSupported || !memberId || !VAPID_KEY) return;
 
     setIsSubscribing(true);
     try {
-      // Register service worker
-      const reg = await navigator.serviceWorker.register("/sw.js");
-      await navigator.serviceWorker.ready;
-
-      // Request permission
+      // Request permission (no-op if already granted)
       const result = await Notification.requestPermission();
       setPermission(result);
       if (result !== "granted") return;
 
-      // Subscribe to push
-      const subscription = await reg.pushManager.subscribe({
-        userVisibleOnly: true,
-        applicationServerKey: urlBase64ToUint8Array(VAPID_KEY),
-      });
-
-      const keys = subscription.toJSON().keys!;
-
-      // Send to server
-      await api.api.rooms[":id"]["push-subscribe"].$post({
-        param: { id: roomId },
-        json: {
-          endpoint: subscription.endpoint,
-          p256dh: keys.p256dh!,
-          auth: keys.auth!,
-        },
-      });
+      await registerSubscription(roomId);
     } catch (err) {
       console.error("[push] Subscription failed:", err);
     } finally {

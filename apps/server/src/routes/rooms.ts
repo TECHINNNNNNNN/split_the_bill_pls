@@ -871,11 +871,13 @@ const app = new Hono()
       notifyPartyKit(room.inviteCode, "payment-toggled", { paymentId, status: newStatus })
 
       // Push notification to host when member submits a claim (with or without slip)
+      console.log(`[claim] Payment ${paymentId} → status=${newStatus}, sending push to host`)
       const members = await db.query.roomMembers.findMany({
         where: eq(roomMembers.roomId, roomId),
       })
       const hostMember = members.find(m => m.isHost)
       const claimingMember = members.find(m => m.id === member.id)
+      console.log(`[claim] host=${hostMember?.id}, claimer=${claimingMember?.id}`)
       if (hostMember && claimingMember) {
         const amount = `฿${parseFloat(payment.amount).toFixed(2)}`
         const title = newStatus === "rejected"
@@ -1047,8 +1049,10 @@ const app = new Hono()
     const { endpoint, p256dh, auth } = c.req.valid("json")
     const user = c.get("user") as { id: string } | undefined
 
-    // Upsert: if same endpoint already exists, replace it
-    await db.delete(pushSubscriptions).where(eq(pushSubscriptions.endpoint, endpoint)).catch(() => {})
+    // Upsert: replace existing subscription for same endpoint + room
+    await db.delete(pushSubscriptions).where(
+      and(eq(pushSubscriptions.endpoint, endpoint), eq(pushSubscriptions.roomId, roomId))
+    ).catch(() => {})
 
     await db.insert(pushSubscriptions).values({
       memberId: member.id,
