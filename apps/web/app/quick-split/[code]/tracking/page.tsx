@@ -672,26 +672,33 @@ function PaymentTrackingContent({
       {push.isLiff && currentMemberId && !iosDismissed && (
         <div className="mt-4 rounded-lg border border-gray-200 bg-gray-50 p-4">
           <p className="text-sm font-medium text-gray-800">
-            Get notified
+            Want payment reminders?
           </p>
           <p className="mt-1 text-xs text-gray-500">
-            {isHost
-              ? "We'll tell you when someone claims they've paid."
-              : "We'll send a gentle nudge if you forget. No spam, promise."}
+            Copy this link, open it in Safari or Chrome, then tap &quot;Enable Reminders&quot;.
           </p>
           <button
             type="button"
-            onClick={() => {
+            onClick={async () => {
               const url = `${window.location.origin}/quick-split/${code}/tracking?identify=${currentMemberId}`;
-              if (liff.liff?.openWindow) {
-                liff.liff.openWindow({ url, external: true });
-              } else {
-                window.open(url, "_blank");
+              try {
+                await navigator.clipboard.writeText(url);
+                toast.success("Link copied! Paste it in Safari or Chrome.");
+              } catch {
+                // Fallback: prompt with the URL
+                window.prompt("Copy this link and open it in your browser:", url);
               }
             }}
             className="mt-2 rounded-lg bg-gray-800 px-4 py-2 text-sm font-medium text-white hover:bg-gray-700"
           >
-            Enable Reminders
+            Copy Link
+          </button>
+          <button
+            type="button"
+            onClick={() => setIosDismissed(true)}
+            className="ml-2 mt-2 text-xs text-gray-400 hover:text-gray-600"
+          >
+            Dismiss
           </button>
         </div>
       )}
