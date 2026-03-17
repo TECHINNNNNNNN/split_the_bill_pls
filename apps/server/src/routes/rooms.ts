@@ -270,6 +270,29 @@ const app = new Hono()
     return c.json({ room, currentMemberId })
   })
 
+  // ─── POST /rooms/code/:code/identify ────────
+  // Restore member identity when switching browsers.
+  // Used when LIFF opens the tracking page in the external browser
+  // via liff.openWindow({ external: true }) with ?identify=memberId.
+  // Sets the per-room cookie so the member is recognized.
+  .post("/code/:code/identify", async (c) => {
+    const code = c.req.param("code")
+    const { memberId } = await c.req.json<{ memberId: string }>()
+
+    const room = await db.query.rooms.findFirst({
+      where: eq(rooms.inviteCode, code),
+      with: { members: true },
+    })
+
+    if (!room) return c.json({ error: "Room not found" }, 404)
+
+    const member = room.members.find(m => m.id === memberId)
+    if (!member) return c.json({ error: "Member not found in this room" }, 404)
+
+    setMemberCookie(c, room.id, memberId)
+    return c.json({ ok: true, displayName: member.displayName })
+  })
+
   // ─── POST /rooms/code/:code/join ─────────────
   // A friend joins the room by entering their name.
   // Sets a cookie so we know who they are.

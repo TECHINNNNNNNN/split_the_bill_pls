@@ -1,8 +1,8 @@
 "use client";
 
-import { use, useRef, useState } from "react";
-import { useRouter } from "next/navigation";
-import { useQuery } from "@tanstack/react-query";
+import { Suspense, use, useEffect, useRef, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { QRCodeSVG } from "qrcode.react";
 import { anyId } from "promptparse/generate";
 import toast from "react-hot-toast";
@@ -206,8 +206,22 @@ export default function PaymentTrackingPage({
 }: {
   params: Promise<{ code: string }>;
 }) {
+  return (
+    <Suspense fallback={<div className="flex min-h-svh items-center justify-center"><p className="text-gray-400">Loading...</p></div>}>
+      <PaymentTrackingContent params={params} />
+    </Suspense>
+  );
+}
+
+function PaymentTrackingContent({
+  params,
+}: {
+  params: Promise<{ code: string }>;
+}) {
   const { code } = use(params);
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const queryClient = useQueryClient();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [slipModal, setSlipModal] = useState<{
     image: string;
@@ -226,14 +240,42 @@ export default function PaymentTrackingPage({
     | { step: "done"; previousStatus: string }; // hold until server status changes from what it was
 
   const [slipFlow, setSlipFlow] = useState<SlipFlowState>({ step: "idle" });
+  const identifyingRef = useRef(false);
 
   const { data: codeData } = useQuery(roomQueries.byCode(code));
   const roomId = codeData?.room?.id ?? "";
   const currentMemberId = codeData?.currentMemberId;
 
+  // Auto-identify: when opened from LIFF with ?identify=memberId,
+  // call the identify endpoint to set the cookie, then refetch.
+  const identifyParam = searchParams.get("identify");
+  useEffect(() => {
+    if (!identifyParam || !code || identifyingRef.current || currentMemberId) return;
+    identifyingRef.current = true;
+
+    fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/rooms/code/${code}/identify`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      credentials: "include",
+      body: JSON.stringify({ memberId: identifyParam }),
+    })
+      .then((res) => {
+        if (res.ok) {
+          queryClient.invalidateQueries({ queryKey: ["rooms", "code", code] });
+        }
+      })
+      .finally(() => {
+        const url = new URL(window.location.href);
+        url.searchParams.delete("identify");
+        window.history.replaceState({}, "", url.toString());
+        identifyingRef.current = false;
+      });
+  }, [identifyParam, code, currentMemberId, queryClient]);
+
   const { data: detailData } = useQuery({
     ...roomQueries.detail(roomId),
-    enabled: !!roomId,
+    enabled: !!roomId && !!currentMemberId,
+    retry: false,
   });
 
   const room = detailData?.room;
@@ -314,6 +356,56 @@ export default function PaymentTrackingPage({
     setSlipFlow({ step: "idle" });
     resetSlip();
   };
+
+  // Still loading initial data or auto-identifying
+  if (!codeData || identifyParam) {
+    return (
+      <div className="flex min-h-svh items-center justify-center">
+        <p className="text-gray-400">Loading...</p>
+      </div>
+    );
+  }
+
+  // No identity and not in LIFF — show member picker so user can identify themselves
+  if (codeData && !currentMemberId && !push.isLiff) {
+    const roomMembers = codeData.room?.members ?? [];
+    return (
+      <div className="flex min-h-svh flex-col items-center justify-center px-6">
+        <h2 className="font-heading text-xl font-bold text-gray-800">
+          Who are you?
+        </h2>
+        <p className="mt-2 text-sm text-gray-500">
+          Tap your name to continue.
+        </p>
+        <div className="mt-4 flex w-full max-w-xs flex-col gap-2">
+          {roomMembers.map((m) => (
+            <button
+              key={m.id}
+              type="button"
+              onClick={async () => {
+                await fetch(
+                  `${process.env.NEXT_PUBLIC_API_URL}/api/rooms/code/${code}/identify`,
+                  {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    credentials: "include",
+                    body: JSON.stringify({ memberId: m.id }),
+                  },
+                );
+                queryClient.invalidateQueries({ queryKey: ["rooms", "code", code] });
+              }}
+              className="rounded-lg border border-gray-200 px-4 py-3 text-left text-sm font-medium text-gray-800 transition-colors hover:bg-gray-50 active:bg-gray-100"
+            >
+              {m.displayName}
+              {m.isHost && (
+                <span className="ml-2 text-xs text-gray-400">(host)</span>
+              )}
+            </button>
+          ))}
+        </div>
+      </div>
+    );
+  }
 
   if (!room) {
     return (
@@ -576,23 +668,30 @@ export default function PaymentTrackingPage({
         </div>
       </div>
 
-      {/* Push notification prompt */}
-      {push.isLiff && !iosDismissed && (
-        <div className="mt-4 rounded-lg border border-blue-200 bg-blue-50 p-4">
-          <p className="text-sm font-medium text-blue-800">
-            Want payment reminders?
+      {/* Push notification prompt — LIFF: open in external browser with identity */}
+      {push.isLiff && currentMemberId && !iosDismissed && (
+        <div className="mt-4 rounded-lg border border-gray-200 bg-gray-50 p-4">
+          <p className="text-sm font-medium text-gray-800">
+            Get notified
           </p>
-          <p className="mt-1 text-xs text-blue-600">
-            Notifications aren&apos;t available inside LINE.
-            Tap the &quot;...&quot; menu (top-right) and choose
-            &quot;Open in Safari&quot; or &quot;Open in Chrome&quot; to enable reminders.
+          <p className="mt-1 text-xs text-gray-500">
+            {isHost
+              ? "We'll tell you when someone claims they've paid."
+              : "We'll send a gentle nudge if you forget. No spam, promise."}
           </p>
           <button
             type="button"
-            onClick={() => setIosDismissed(true)}
-            className="mt-2 text-xs font-medium text-blue-500 hover:text-blue-700"
+            onClick={() => {
+              const url = `${window.location.origin}/quick-split/${code}/tracking?identify=${currentMemberId}`;
+              if (liff.liff?.openWindow) {
+                liff.liff.openWindow({ url, external: true });
+              } else {
+                window.open(url, "_blank");
+              }
+            }}
+            className="mt-2 rounded-lg bg-gray-800 px-4 py-2 text-sm font-medium text-white hover:bg-gray-700"
           >
-            Dismiss
+            Enable Reminders
           </button>
         </div>
       )}
