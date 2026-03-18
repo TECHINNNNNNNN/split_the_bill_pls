@@ -304,16 +304,22 @@ function PaymentTrackingContent({
 
   // Auto-link LINE identity when viewing tracking page inside LIFF
   useEffect(() => {
+    console.log("[line-link] Check:", { isReady: liff.isReady, isInClient: liff.isInClient, currentMemberId, roomId, alreadyLinked: lineLinkRef.current });
     if (!liff.isReady || !liff.isInClient || !currentMemberId || !roomId || lineLinkRef.current) return;
     lineLinkRef.current = true;
 
     const idToken = liff.liff?.getIDToken();
+    console.log("[line-link] ID token:", idToken ? `${idToken.slice(0, 20)}...` : "null");
     if (!idToken) return;
 
     api.api.rooms[":id"]["line-link"].$post({
       param: { id: roomId },
       json: { idToken },
-    }).catch(() => {}); // fire-and-forget
+    }).then((res) => {
+      console.log("[line-link] Response:", res.status, res.ok);
+    }).catch((err) => {
+      console.error("[line-link] Failed:", err);
+    });
   }, [liff.isReady, liff.isInClient, liff.liff, currentMemberId, roomId]);
 
   const total = payments.reduce((sum, p) => sum + parseFloat(p.amount), 0);

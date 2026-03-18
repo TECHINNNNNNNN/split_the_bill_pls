@@ -95,7 +95,10 @@ async function checkAndSendReminders() {
     },
   })
 
+  console.log(`[reminders] Checking ${activeRooms.length} room(s) in payment status`)
+
   let sent = 0
+  let skipped = 0
 
   for (const room of activeRooms) {
     const unpaidPayments = room.payments.filter(
@@ -110,6 +113,9 @@ async function checkAndSendReminders() {
     // Use room creation time as baseline for reminder timing
     // (status changes to "payment" after finalize, but createdAt is consistent)
     const roomAge = Date.now() - new Date(room.createdAt).getTime()
+    const ageMinutes = Math.floor(roomAge / MINUTE)
+
+    console.log(`[reminders] Room ${room.inviteCode}: ${unpaidPayments.length} unpaid, age=${ageMinutes}m, paid=${paidCount}/${totalCount}`)
 
     const trackingUrl = `${process.env.FRONTEND_URL || "https://pladuk.online"}/quick-split/${room.inviteCode}/tracking`
 
@@ -181,14 +187,16 @@ async function checkAndSendReminders() {
             channel,
           })
           sent++
+          console.log(`[reminders] ✓ Sent ${tier} via ${channel} to ${payment.member.displayName} (room ${room.inviteCode})`)
+        } else {
+          skipped++
+          console.log(`[reminders] ✗ Skipped ${tier} for ${payment.member.displayName} (room ${room.inviteCode}) — no LINE userId, no push sub`)
         }
       }
     }
   }
 
-  if (sent > 0) {
-    console.log(`[reminders] Sent ${sent} notification(s)`)
-  }
+  console.log(`[reminders] Done: ${sent} sent, ${skipped} skipped (no reachable channel)`)
 }
 
 // ─── Scheduler entry point ───
