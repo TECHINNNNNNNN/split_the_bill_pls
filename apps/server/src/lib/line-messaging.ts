@@ -6,6 +6,10 @@
 
 const LINE_CHANNEL_ACCESS_TOKEN = process.env.LINE_CHANNEL_ACCESS_TOKEN
 const LINE_CHANNEL_ID = process.env.LINE_CHANNEL_ID
+// LIFF ID token verification requires the LINE Login channel ID (not Messaging API).
+// The Login channel ID is the numeric prefix of the LIFF ID (e.g. "2009497273" from "2009497273-pAz8tgQo").
+const LINE_LOGIN_CHANNEL_ID = process.env.LINE_LOGIN_CHANNEL_ID
+  || process.env.LIFF_ID?.split("-")[0]
 
 const isConfigured = !!LINE_CHANNEL_ACCESS_TOKEN && !!LINE_CHANNEL_ID
 
@@ -23,7 +27,10 @@ if (isConfigured) {
  * Returns null if verification fails.
  */
 export async function verifyLineIdToken(idToken: string): Promise<string | null> {
-  if (!LINE_CHANNEL_ID) return null
+  if (!LINE_LOGIN_CHANNEL_ID) {
+    console.warn("[line] No LINE Login channel ID — cannot verify ID token (set LINE_LOGIN_CHANNEL_ID or LIFF_ID)")
+    return null
+  }
 
   try {
     const res = await fetch("https://api.line.me/oauth2/v2.1/verify", {
@@ -31,12 +38,13 @@ export async function verifyLineIdToken(idToken: string): Promise<string | null>
       headers: { "Content-Type": "application/x-www-form-urlencoded" },
       body: new URLSearchParams({
         id_token: idToken,
-        client_id: LINE_CHANNEL_ID,
+        client_id: LINE_LOGIN_CHANNEL_ID,
       }),
     })
 
     if (!res.ok) {
-      console.warn(`[line] ID token verification failed: ${res.status}`)
+      const body = await res.text().catch(() => "")
+      console.warn(`[line] ID token verification failed: ${res.status} ${body}`)
       return null
     }
 
