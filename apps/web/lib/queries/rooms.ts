@@ -9,7 +9,10 @@ export const roomQueries = {
         const res = await api.api.rooms.code[":code"].$get({
           param: { code },
         });
-        if (!res.ok) throw new Error("Room not found");
+        if (!res.ok) {
+          const body = await res.text().catch(() => "");
+          throw new Error(`[${res.status}] ${res.url} — ${body}`);
+        }
         return res.json();
       },
       enabled: !!code,

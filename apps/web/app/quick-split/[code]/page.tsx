@@ -146,7 +146,7 @@ export default function RoomLobbyPage({
     );
   }
 
-  if (error || !room) {
+  if (!room) {
     return (
       <div className="flex min-h-svh flex-col items-center justify-center gap-3 px-6">
         <p className="text-gray-800">
