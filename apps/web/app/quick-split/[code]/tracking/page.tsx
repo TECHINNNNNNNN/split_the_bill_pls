@@ -14,6 +14,7 @@ import type { SlipScanOutput } from "@/lib/hooks/use-slip-scanner";
 import { usePushNotifications } from "@/lib/hooks/use-push-notifications";
 import { useLiff } from "@/lib/hooks/use-liff";
 import { buildTrackingFlexMessage } from "@/lib/liff-messages";
+import { api } from "@/lib/api-client";
 
 type PaymentStatus = "unpaid" | "claimed" | "confirmed" | "rejected";
 
@@ -299,6 +300,21 @@ function PaymentTrackingContent({
 
   // LINE LIFF sharing
   const liff = useLiff();
+  const lineLinkRef = useRef(false);
+
+  // Auto-link LINE identity when viewing tracking page inside LIFF
+  useEffect(() => {
+    if (!liff.isReady || !liff.isInClient || !currentMemberId || !roomId || lineLinkRef.current) return;
+    lineLinkRef.current = true;
+
+    const idToken = liff.liff?.getIDToken();
+    if (!idToken) return;
+
+    api.api.rooms[":id"]["line-link"].$post({
+      param: { id: roomId },
+      json: { idToken },
+    }).catch(() => {}); // fire-and-forget
+  }, [liff.isReady, liff.isInClient, liff.liff, currentMemberId, roomId]);
 
   const total = payments.reduce((sum, p) => sum + parseFloat(p.amount), 0);
   const confirmedPayments = payments.filter((p) => p.status === "confirmed");
@@ -668,38 +684,10 @@ function PaymentTrackingContent({
         </div>
       </div>
 
-      {/* Push notification prompt — LIFF: open in external browser with identity */}
-      {push.isLiff && currentMemberId && !iosDismissed && (
-        <div className="mt-4 rounded-lg border border-gray-200 bg-gray-50 p-4">
-          <p className="text-sm font-medium text-gray-800">
-            Want payment reminders?
-          </p>
-          <p className="mt-1 text-xs text-gray-500">
-            Copy this link, open it in Safari or Chrome, then tap &quot;Enable Reminders&quot;.
-          </p>
-          <button
-            type="button"
-            onClick={async () => {
-              const url = `${window.location.origin}/quick-split/${code}/tracking?identify=${currentMemberId}`;
-              try {
-                await navigator.clipboard.writeText(url);
-                toast.success("Link copied! Paste it in Safari or Chrome.");
-              } catch {
-                // Fallback: prompt with the URL
-                window.prompt("Copy this link and open it in your browser:", url);
-              }
-            }}
-            className="mt-2 rounded-lg bg-gray-800 px-4 py-2 text-sm font-medium text-white hover:bg-gray-700"
-          >
-            Copy Link
-          </button>
-          <button
-            type="button"
-            onClick={() => setIosDismissed(true)}
-            className="ml-2 mt-2 text-xs text-gray-400 hover:text-gray-600"
-          >
-            Dismiss
-          </button>
+      {/* LINE users: reminders sent automatically via LINE Official Account */}
+      {push.isLiff && currentMemberId && (
+        <div className="mt-4 flex items-center gap-2 rounded-lg border border-green-200 bg-green-50 px-4 py-2.5">
+          <span className="text-sm text-green-700">Reminders enabled via LINE</span>
         </div>
       )}
 

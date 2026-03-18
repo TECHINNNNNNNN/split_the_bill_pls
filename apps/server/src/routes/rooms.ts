@@ -16,10 +16,12 @@ import {
   claimRoomPaymentSchema,
   scanReceiptSchema,
   pushSubscribeSchema,
+  lineLinkSchema,
 } from "@pladuk/shared/schemas"
 import { calculateSplit } from "@pladuk/shared/utils"
 import { notifyPartyKit } from "../lib/partykit.js"
 import { sendPushToMember } from "../lib/push.js"
+import { verifyLineIdToken, sendLineMessage, buildClaimNotifyFlex } from "../lib/line-messaging.js"
 import { verifySlip } from "../lib/verify-slip.js"
 import { scanReceipt } from "../lib/scan-receipt.js"
 import { optionalAuth } from "../lib/middleware.js"
@@ -886,12 +888,26 @@ const app = new Hono()
         const body = newStatus === "rejected"
           ? `${claimingMember.displayName}'s slip for ${amount} didn't match — needs review`
           : `${claimingMember.displayName} claims they've paid ${amount}`
+        const trackingUrl = `${process.env.FRONTEND_URL || "https://pladuk.online"}/quick-split/${room.inviteCode}/tracking`
+
+        // Web Push notification to host
         sendPushToMember(hostMember.id, roomId, {
           title,
           body,
           url: `/quick-split/${room.inviteCode}/tracking`,
           tag: `claim-${paymentId}`,
         })
+
+        // LINE notification to host (if host has lineUserId)
+        if (hostMember.lineUserId) {
+          sendLineMessage(hostMember.lineUserId, [
+            buildClaimNotifyFlex(
+              claimingMember.displayName,
+              parseFloat(payment.amount),
+              trackingUrl,
+            ),
+          ])
+        }
       }
     }
 
@@ -1064,6 +1080,35 @@ const app = new Hono()
     })
 
     return c.json({ success: true })
+  })
+
+  // ─── POST /rooms/:id/line-link
+  // Link the current member's LINE userId (from LIFF ID token).
+  // Called automatically when tracking page loads inside LIFF.
+  .post("/:id/line-link", optionalAuth, zValidator("json", lineLinkSchema), async (c) => {
+    const roomId = c.req.param("id")
+    const memberId = await resolveMemberId(c, roomId)
+
+    const member = await verifyRoomMember(roomId, memberId)
+    if (!member) {
+      return c.json({ error: "Not a member of this room" }, 403)
+    }
+
+    const { idToken } = c.req.valid("json")
+
+    const lineUserId = await verifyLineIdToken(idToken)
+    if (!lineUserId) {
+      return c.json({ error: "Invalid LINE ID token" }, 400)
+    }
+
+    // Store LINE userId on the member record
+    await db.update(roomMembers)
+      .set({ lineUserId })
+      .where(eq(roomMembers.id, member.id))
+
+    console.log(`[line] Linked member ${member.id} → LINE user ${lineUserId}`)
+
+    return c.json({ ok: true })
   })
 
   // ─── POST /rooms/:id/push-test

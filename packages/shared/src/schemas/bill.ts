@@ -100,6 +100,12 @@ export const pushSubscribeSchema = z.object({
   auth: z.string().min(1),
 })
 
+// ─── LINE Messaging ─────────────────────────
+
+export const lineLinkSchema = z.object({
+  idToken: z.string().min(1),
+})
+
 // ─── Derived Types ───────────────────────────
 
 export type CreateGroup = z.infer<typeof createGroupSchema>
@@ -116,3 +122,4 @@ export type StartGroupSplit = z.infer<typeof startGroupSplitSchema>
 export type ScanReceipt = z.infer<typeof scanReceiptSchema>
 export type ScanReceiptResponse = z.infer<typeof scanReceiptResponseSchema>
 export type PushSubscribe = z.infer<typeof pushSubscribeSchema>
+export type LineLink = z.infer<typeof lineLinkSchema>

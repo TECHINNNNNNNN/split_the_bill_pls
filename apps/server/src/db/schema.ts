@@ -102,6 +102,7 @@ export const pushNotificationLog = pgTable("push_notification_log", {
     .references(() => roomPayments.id, { onDelete: "cascade" })
     .notNull(),
   tier: text("tier").notNull(), // "6h" | "24h" | "3d"
+  channel: text("channel").notNull().default("web-push"), // "web-push" | "line"
   sentAt: timestamp("sent_at", { withTimezone: true }).notNull().defaultNow(),
 });
 
@@ -137,6 +138,7 @@ export const roomMembers = pgTable("room_members", {
   userId: text("user_id").references(() => user.id, { onDelete: "set null" }),
   displayName: text("display_name").notNull(),
   isHost: boolean("is_host").default(false).notNull(),
+  lineUserId: text("line_user_id"),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 });
 

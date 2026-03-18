@@ -1,11 +1,13 @@
 // Automated payment reminder scheduler.
 // Runs inside the Hono server process via setInterval.
-// Checks for unpaid payments and sends tiered push notifications.
+// Checks for unpaid payments and sends tiered notifications.
+// Priority: LINE Messaging API first, Web Push fallback.
 
 import { db } from "../db/index.js"
-import { rooms, roomPayments, roomMembers, pushSubscriptions, pushNotificationLog } from "../db/schema.js"
+import { rooms, pushSubscriptions, pushNotificationLog } from "../db/schema.js"
 import { eq, and } from "drizzle-orm"
 import { sendPushToMember } from "./push.js"
+import { sendLineMessage, buildReminderFlex } from "./line-messaging.js"
 
 // ─── Tier config ───
 
@@ -17,9 +19,9 @@ const TIERS = [
   { tier: "3d", afterMs: 3 * 24 * HOUR },
 ] as const
 
-// ─── Message templates ───
+// ─── Web Push message templates ───
 
-function buildMessage(
+function buildWebPushMessage(
   tier: string,
   hostName: string,
   amount: number,
@@ -75,16 +77,9 @@ async function checkAndSendReminders() {
     // (status changes to "payment" after finalize, but createdAt is consistent)
     const roomAge = Date.now() - new Date(room.createdAt).getTime()
 
-    for (const payment of unpaidPayments) {
-      // Check if this member even has push subscriptions
-      const subs = await db.query.pushSubscriptions.findMany({
-        where: and(
-          eq(pushSubscriptions.memberId, payment.memberId),
-          eq(pushSubscriptions.roomId, room.id),
-        ),
-      })
-      if (subs.length === 0) continue
+    const trackingUrl = `${process.env.FRONTEND_URL || "https://pladuk.online"}/quick-split/${room.inviteCode}/tracking`
 
+    for (const payment of unpaidPayments) {
       for (const { tier, afterMs } of TIERS) {
         if (roomAge < afterMs) continue
 
@@ -97,35 +92,67 @@ async function checkAndSendReminders() {
         })
         if (alreadySent) continue
 
-        // Build and send the notification
-        const { title, body } = buildMessage(
-          tier,
-          room.hostName,
-          parseFloat(payment.amount),
-          paidCount,
-          totalCount,
-        )
+        const amount = parseFloat(payment.amount)
+        let channel: "line" | "web-push" | null = null
 
-        await sendPushToMember(payment.memberId, room.id, {
-          title,
-          body,
-          url: `/quick-split/${room.inviteCode}/tracking`,
-          tag: `reminder-${tier}-${payment.id}`,
-        })
+        // 1. Try LINE first (if member has linked their LINE account)
+        if (payment.member.lineUserId) {
+          const flex = buildReminderFlex(
+            tier,
+            room.hostName,
+            amount,
+            paidCount,
+            totalCount,
+            trackingUrl,
+          )
+          const lineSent = await sendLineMessage(payment.member.lineUserId, [flex])
+          if (lineSent) {
+            channel = "line"
+          }
+        }
 
-        // Log to prevent duplicate sends
-        await db.insert(pushNotificationLog).values({
-          paymentId: payment.id,
-          tier,
-        })
+        // 2. Fallback to Web Push (if LINE didn't work or not available)
+        if (!channel) {
+          const subs = await db.query.pushSubscriptions.findMany({
+            where: and(
+              eq(pushSubscriptions.memberId, payment.memberId),
+              eq(pushSubscriptions.roomId, room.id),
+            ),
+          })
 
-        sent++
+          if (subs.length > 0) {
+            const { title, body } = buildWebPushMessage(
+              tier,
+              room.hostName,
+              amount,
+              paidCount,
+              totalCount,
+            )
+            await sendPushToMember(payment.memberId, room.id, {
+              title,
+              body,
+              url: `/quick-split/${room.inviteCode}/tracking`,
+              tag: `reminder-${tier}-${payment.id}`,
+            })
+            channel = "web-push"
+          }
+        }
+
+        // Log to prevent duplicate sends (only if we actually sent something)
+        if (channel) {
+          await db.insert(pushNotificationLog).values({
+            paymentId: payment.id,
+            tier,
+            channel,
+          })
+          sent++
+        }
       }
     }
   }
 
   if (sent > 0) {
-    console.log(`[reminders] Sent ${sent} push notification(s)`)
+    console.log(`[reminders] Sent ${sent} notification(s)`)
   }
 }
 
