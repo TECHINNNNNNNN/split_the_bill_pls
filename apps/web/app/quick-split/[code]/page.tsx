@@ -22,7 +22,7 @@ export default function RoomLobbyPage({
   const router = useRouter();
 
   // Fetch room data
-  const { data } = useQuery(roomQueries.byCode(code));
+  const { data, isLoading, error } = useQuery(roomQueries.byCode(code));
 
   // WebSocket: real-time updates via PartyKit
   // member-joined/removed → auto-invalidates React Query cache
@@ -138,10 +138,30 @@ export default function RoomLobbyPage({
     }
   };
 
-  if (!room) {
+  if (isLoading) {
     return (
       <div className="flex min-h-svh items-center justify-center">
         <p className="text-gray-400">Loading room...</p>
+      </div>
+    );
+  }
+
+  if (error || !room) {
+    return (
+      <div className="flex min-h-svh flex-col items-center justify-center gap-3 px-6">
+        <p className="text-gray-800">
+          {error ? "Failed to load room" : "Room not found"}
+        </p>
+        <p className="text-sm text-gray-500">
+          {error ? "Check your connection and try again." : "This room may have expired or the code is invalid."}
+        </p>
+        <button
+          type="button"
+          onClick={() => window.location.reload()}
+          className="rounded-full border border-gray-300 px-6 py-2 text-sm font-medium text-gray-800 transition-colors hover:bg-gray-50 active:bg-gray-100"
+        >
+          Retry
+        </button>
       </div>
     );
   }

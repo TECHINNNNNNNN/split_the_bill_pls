@@ -1,7 +1,6 @@
 "use client";
 
 import { use, useState } from "react";
-import { useRouter } from "next/navigation";
 import { useQuery } from "@tanstack/react-query";
 import { roomQueries } from "@/lib/queries/rooms";
 import { useJoinRoom } from "@/lib/mutations/rooms";
@@ -12,7 +11,6 @@ export default function JoinRoomPage({
   params: Promise<{ code: string }>;
 }) {
   const { code } = use(params);
-  const router = useRouter();
   const [name, setName] = useState("");
   const [error, setError] = useState("");
 
@@ -29,7 +27,10 @@ export default function JoinRoomPage({
       { displayName: name.trim() },
       {
         onSuccess: () => {
-          router.push(`/quick-split/${code}`);
+          // Use full navigation instead of client-side push.
+          // In LIFF WebView (WKWebView), router.push can fail to load
+          // the lobby page due to third-party storage partitioning.
+          window.location.href = `/quick-split/${code}`;
         },
         onError: (err) => {
           setError(err.message || "Failed to join room");
