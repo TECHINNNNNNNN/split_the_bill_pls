@@ -101,7 +101,7 @@ export const pushNotificationLog = pgTable("push_notification_log", {
   paymentId: uuid("payment_id")
     .references(() => roomPayments.id, { onDelete: "cascade" })
     .notNull(),
-  tier: text("tier").notNull(), // "6h" | "24h" | "3d"
+  tier: text("tier").notNull(), // "30m" | "1h" | "6h" | "24h" | "recurring-2d" | "recurring-3d" | ...
   channel: text("channel").notNull().default("web-push"), // "web-push" | "line"
   sentAt: timestamp("sent_at", { withTimezone: true }).notNull().defaultNow(),
 });

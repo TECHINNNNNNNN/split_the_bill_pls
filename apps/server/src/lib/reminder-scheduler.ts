@@ -11,13 +11,38 @@ import { sendLineMessage, buildReminderFlex } from "./line-messaging.js"
 
 // ─── Tier config ───
 
-const HOUR = 60 * 60 * 1000
+const MINUTE = 60 * 1000
+const HOUR = 60 * MINUTE
 
-const TIERS = [
+// Fixed one-time tiers
+const FIXED_TIERS = [
+  { tier: "30m", afterMs: 30 * MINUTE },
+  { tier: "1h", afterMs: 1 * HOUR },
   { tier: "6h", afterMs: 6 * HOUR },
   { tier: "24h", afterMs: 24 * HOUR },
-  { tier: "3d", afterMs: 3 * 24 * HOUR },
 ] as const
+
+const RECURRING_INTERVAL = 24 * HOUR
+
+/** Generate all applicable tiers for a given room age, including recurring daily reminders after 24h */
+function getTiersForAge(roomAge: number): { tier: string; afterMs: number }[] {
+  const tiers: { tier: string; afterMs: number }[] = [...FIXED_TIERS]
+
+  const lastFixedMs = 24 * HOUR
+  if (roomAge > lastFixedMs) {
+    const elapsed = roomAge - lastFixedMs
+    const recurringCount = Math.floor(elapsed / RECURRING_INTERVAL)
+    for (let i = 1; i <= recurringCount; i++) {
+      const day = i + 1 // starts at day 2 (48h)
+      tiers.push({
+        tier: `recurring-${day}d`,
+        afterMs: lastFixedMs + i * RECURRING_INTERVAL,
+      })
+    }
+  }
+
+  return tiers
+}
 
 // ─── Web Push message templates ───
 
@@ -29,23 +54,32 @@ function buildWebPushMessage(
   totalCount: number,
 ): { title: string; body: string } {
   switch (tier) {
+    case "30m":
+      return {
+        title: "PlaDuk Reminder",
+        body: `🍕 You have an unpaid bill from ${hostName} — ฿${amount.toFixed(2)}`,
+      }
+    case "1h":
+      return {
+        title: "PlaDuk Reminder",
+        body: `Reminder: ฿${amount.toFixed(2)} for ${hostName}'s split`,
+      }
     case "6h":
       return {
         title: "PlaDuk Reminder",
-        body: `🍕 ${hostName}'s split — ฿${amount.toFixed(2)} still outstanding`,
+        body: `${paidCount} of ${totalCount} have already paid for ${hostName}'s split`,
       }
     case "24h":
       return {
         title: "PlaDuk Reminder",
-        body: `Hey! ${paidCount} of ${totalCount} have already paid for ${hostName}'s split`,
-      }
-    case "3d":
-      return {
-        title: "PlaDuk — Final Reminder",
-        body: `🙏 Gentle reminder: ฿${amount.toFixed(2)} for ${hostName}'s split is still unpaid`,
+        body: `Hey! ฿${amount.toFixed(2)} for ${hostName}'s split is still unpaid`,
       }
     default:
-      return { title: "PlaDuk", body: "You have an unpaid bill" }
+      // recurring-*d tiers
+      return {
+        title: "PlaDuk — Daily Reminder",
+        body: `🙏 ฿${amount.toFixed(2)} for ${hostName}'s split is still unpaid`,
+      }
   }
 }
 
@@ -80,7 +114,8 @@ async function checkAndSendReminders() {
     const trackingUrl = `${process.env.FRONTEND_URL || "https://pladuk.online"}/quick-split/${room.inviteCode}/tracking`
 
     for (const payment of unpaidPayments) {
-      for (const { tier, afterMs } of TIERS) {
+      const tiers = getTiersForAge(roomAge)
+      for (const { tier, afterMs } of tiers) {
         if (roomAge < afterMs) continue
 
         // Check if we already sent this tier for this payment
@@ -159,9 +194,9 @@ async function checkAndSendReminders() {
 // ─── Scheduler entry point ───
 
 export function startReminderScheduler() {
-  const INTERVAL = 30 * 60 * 1000 // 30 minutes
+  const INTERVAL = 15 * 60 * 1000 // 15 minutes (must be < shortest tier of 30m)
 
-  console.log("[reminders] Scheduler started — checking every 30 minutes")
+  console.log("[reminders] Scheduler started — checking every 15 minutes")
 
   // Initial check after 30s (let server warm up)
   setTimeout(() => {

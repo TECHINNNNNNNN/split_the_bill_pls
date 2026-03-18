@@ -114,26 +114,37 @@ export function buildReminderFlex(
   let bodyText: string
   let headerColor: string
 
-  switch (tier) {
-    case "6h":
-      headerText = "Payment Reminder"
-      bodyText = `${hostName}'s split — ${amountStr} still outstanding`
-      headerColor = "#f59e0b"
-      break
-    case "24h":
-      headerText = "Payment Reminder"
-      bodyText = `${paidCount} of ${totalCount} have already paid for ${hostName}'s split. Don't forget yours!`
-      headerColor = "#f59e0b"
-      break
-    case "3d":
-      headerText = "Final Reminder"
-      bodyText = `Gentle reminder: ${amountStr} for ${hostName}'s split is still unpaid`
-      headerColor = "#ef4444"
-      break
-    default:
-      headerText = "Payment Reminder"
-      bodyText = `You have an unpaid bill of ${amountStr}`
-      headerColor = "#f59e0b"
+  if (tier.startsWith("recurring-")) {
+    headerText = "Daily Reminder"
+    bodyText = `${amountStr} for ${hostName}'s split is still unpaid`
+    headerColor = "#ef4444"
+  } else {
+    switch (tier) {
+      case "30m":
+        headerText = "Payment Reminder"
+        bodyText = `You have an unpaid bill from ${hostName} — ${amountStr}`
+        headerColor = "#f59e0b"
+        break
+      case "1h":
+        headerText = "Payment Reminder"
+        bodyText = `Reminder: ${amountStr} for ${hostName}'s split`
+        headerColor = "#f59e0b"
+        break
+      case "6h":
+        headerText = "Payment Reminder"
+        bodyText = `${paidCount} of ${totalCount} have already paid for ${hostName}'s split. Don't forget yours!`
+        headerColor = "#f59e0b"
+        break
+      case "24h":
+        headerText = "Payment Reminder"
+        bodyText = `Hey! ${amountStr} for ${hostName}'s split is still unpaid`
+        headerColor = "#ef4444"
+        break
+      default:
+        headerText = "Payment Reminder"
+        bodyText = `You have an unpaid bill of ${amountStr}`
+        headerColor = "#f59e0b"
+    }
   }
 
   return {
