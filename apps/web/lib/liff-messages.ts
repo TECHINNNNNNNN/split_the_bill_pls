@@ -1,10 +1,29 @@
 // LINE Flex Message templates for LIFF Share Target Picker.
 // These are sent as rich cards in LINE chats.
+// URLs use LIFF format so they open as LIFF apps inside LINE,
+// enabling automatic LINE identity linking for payment reminders.
 
 import type liff from "@line/liff";
 
 // Extract the message type from liff.shareTargetPicker's first parameter
 type LiffMessage = Parameters<typeof liff.shareTargetPicker>[0][number];
+
+const LIFF_ID = process.env.NEXT_PUBLIC_LIFF_ID;
+
+/**
+ * Convert a regular app URL to a LIFF URL so it opens as a LIFF app inside LINE.
+ * This enables liff.isInClient() and liff.getIDToken() for automatic LINE linking.
+ * Falls back to the original URL if LIFF_ID is not configured.
+ */
+function toLiffUrl(appUrl: string): string {
+  if (!LIFF_ID) return appUrl;
+  try {
+    const url = new URL(appUrl);
+    return `https://liff.line.me/${LIFF_ID}${url.pathname}${url.search}${url.hash}`;
+  } catch {
+    return appUrl;
+  }
+}
 
 interface BillShareParams {
   roomName: string;
@@ -96,7 +115,7 @@ export function buildInviteFlexMessage({
           {
             type: "button",
             style: "primary",
-            action: { type: "uri", label: "Join & Split Bill", uri: joinUrl },
+            action: { type: "uri", label: "Join & Split Bill", uri: toLiffUrl(joinUrl) },
             color: "#0f172a",
             height: "md",
           },
@@ -192,7 +211,7 @@ export function buildTrackingFlexMessage({
           {
             type: "button",
             style: "primary",
-            action: { type: "uri", label: "View & Pay", uri: trackingUrl },
+            action: { type: "uri", label: "View & Pay", uri: toLiffUrl(trackingUrl) },
             color: "#0f172a",
             height: "md",
           },

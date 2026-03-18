@@ -9,6 +9,21 @@ import { eq, and } from "drizzle-orm"
 import { sendPushToMember } from "./push.js"
 import { sendLineMessage, buildReminderFlex } from "./line-messaging.js"
 
+// ─── LIFF URL helper ───
+
+const LIFF_ID = process.env.LIFF_ID
+
+/** Convert a regular app URL to a LIFF URL for LINE Flex Messages */
+function toLiffUrl(appUrl: string): string {
+  if (!LIFF_ID) return appUrl
+  try {
+    const url = new URL(appUrl)
+    return `https://liff.line.me/${LIFF_ID}${url.pathname}${url.search}${url.hash}`
+  } catch {
+    return appUrl
+  }
+}
+
 // ─── Tier config ───
 
 const MINUTE = 60 * 1000
@@ -117,7 +132,7 @@ async function checkAndSendReminders() {
 
     console.log(`[reminders] Room ${room.inviteCode}: ${unpaidPayments.length} unpaid, age=${ageMinutes}m, paid=${paidCount}/${totalCount}`)
 
-    const trackingUrl = `${process.env.FRONTEND_URL || "https://pladuk.online"}/quick-split/${room.inviteCode}/tracking`
+    const trackingUrl = toLiffUrl(`${process.env.FRONTEND_URL || "https://pladuk.online"}/quick-split/${room.inviteCode}/tracking`)
 
     for (const payment of unpaidPayments) {
       const tiers = getTiersForAge(roomAge)
