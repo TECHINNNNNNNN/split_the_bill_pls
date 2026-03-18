@@ -254,7 +254,7 @@ function PaymentTrackingContent({
     if (!identifyParam || !code || identifyingRef.current || currentMemberId) return;
     identifyingRef.current = true;
 
-    fetch(`/api/rooms/code/${code}/identify`, {
+    fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/rooms/code/${code}/identify`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       credentials: "include",
@@ -406,7 +406,7 @@ function PaymentTrackingContent({
               type="button"
               onClick={async () => {
                 await fetch(
-                  `/api/rooms/code/${code}/identify`,
+                  `${process.env.NEXT_PUBLIC_API_URL}/api/rooms/code/${code}/identify`,
                   {
                     method: "POST",
                     headers: { "Content-Type": "application/json" },
@@ -748,7 +748,7 @@ function PaymentTrackingContent({
               onClick={async () => {
                 try {
                   const res = await fetch(
-                    `/api/rooms/${roomId}/push-test`,
+                    `${process.env.NEXT_PUBLIC_API_URL}/api/rooms/${roomId}/push-test`,
                     { method: "POST", credentials: "include" },
                   );
                   const data = await res.json();

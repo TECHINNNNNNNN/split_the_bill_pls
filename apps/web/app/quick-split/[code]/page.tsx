@@ -155,6 +155,12 @@ export default function RoomLobbyPage({
         <p className="text-sm text-gray-500">
           {error ? "Check your connection and try again." : "This room may have expired or the code is invalid."}
         </p>
+        {/* Debug: show actual error for diagnosing LIFF issues */}
+        {error && (
+          <p className="mt-2 max-w-xs break-all text-xs text-red-400">
+            {error.message}
+          </p>
+        )}
         <button
           type="button"
           onClick={() => window.location.reload()}
