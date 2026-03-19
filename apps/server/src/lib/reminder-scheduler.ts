@@ -30,14 +30,14 @@ const MINUTE = 60 * 1000
 const HOUR = 60 * MINUTE
 
 // Fixed one-time tiers
-const FIXED_TIERS = [
+export const FIXED_TIERS = [
   { tier: "30m", afterMs: 30 * MINUTE },
   { tier: "1h", afterMs: 1 * HOUR },
   { tier: "6h", afterMs: 6 * HOUR },
   { tier: "24h", afterMs: 24 * HOUR },
 ] as const
 
-const RECURRING_INTERVAL = 24 * HOUR
+export const RECURRING_INTERVAL = 24 * HOUR
 
 /** Generate all applicable tiers for a given room age, including recurring daily reminders after 24h */
 function getTiersForAge(roomAge: number): { tier: string; afterMs: number }[] {
@@ -57,6 +57,37 @@ function getTiersForAge(roomAge: number): { tier: string; afterMs: number }[] {
   }
 
   return tiers
+}
+
+// ─── Schedule computation (used by room detail API) ───
+
+export interface ReminderScheduleInfo {
+  tiers: Array<{ tier: string; scheduledAt: string; sent: boolean }>
+  recurringEveryMs: number
+}
+
+/**
+ * Compute the full reminder schedule for a payment.
+ * Returns absolute timestamps for each tier so the client can count down locally.
+ */
+export function computeReminderSchedule(
+  roomCreatedAt: Date,
+  sentTiers: string[],
+): ReminderScheduleInfo {
+  const sentSet = new Set(sentTiers)
+  const baseMs = roomCreatedAt.getTime()
+  const roomAge = Date.now() - baseMs
+
+  // Get all tiers applicable to current room age
+  const allTiers = getTiersForAge(roomAge)
+
+  const tiers = allTiers.map(({ tier, afterMs }) => ({
+    tier,
+    scheduledAt: new Date(baseMs + afterMs).toISOString(),
+    sent: sentSet.has(tier),
+  }))
+
+  return { tiers, recurringEveryMs: RECURRING_INTERVAL }
 }
 
 // ─── Web Push message templates ───

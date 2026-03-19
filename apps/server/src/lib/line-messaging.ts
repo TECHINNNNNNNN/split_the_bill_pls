@@ -219,6 +219,84 @@ export function buildReminderFlex(
 /**
  * Build a Flex Message notifying host that a member claimed payment.
  */
+/**
+ * Build a Flex Message for manual host nudge.
+ * Purple header to distinguish from auto-reminders.
+ */
+export function buildNudgeFlex(
+  hostName: string,
+  amount: number,
+  paidCount: number,
+  totalCount: number,
+  trackingUrl: string,
+): LineFlexMessage {
+  const amountStr = `฿${amount.toFixed(2)}`
+  const bodyText = `Hey! ${hostName} is waiting for your payment of ${amountStr}`
+
+  return {
+    type: "flex",
+    altText: `${hostName} nudged you to pay ${amountStr}`,
+    contents: {
+      type: "bubble",
+      header: {
+        type: "box",
+        layout: "horizontal",
+        contents: [
+          { type: "text", text: "PlaDuk", weight: "bold", size: "sm", color: "#0f172a" },
+          { type: "text", text: `Nudge from ${hostName}`, size: "sm", color: "#8b5cf6", align: "end", weight: "bold" },
+        ],
+        paddingAll: "16px",
+        paddingBottom: "8px",
+      },
+      body: {
+        type: "box",
+        layout: "vertical",
+        contents: [
+          { type: "text", text: bodyText, wrap: true, size: "md", color: "#0f172a" },
+          { type: "separator", margin: "lg" },
+          {
+            type: "box",
+            layout: "horizontal",
+            contents: [
+              { type: "text", text: "Amount", size: "sm", color: "#64748b", flex: 0 },
+              { type: "text", text: amountStr, size: "sm", weight: "bold", align: "end", color: "#0f172a" },
+            ],
+            margin: "lg",
+          },
+          {
+            type: "box",
+            layout: "horizontal",
+            contents: [
+              { type: "text", text: "Progress", size: "sm", color: "#64748b", flex: 0 },
+              { type: "text", text: `${paidCount}/${totalCount} paid`, size: "sm", weight: "bold", align: "end", color: paidCount > 0 ? "#16a34a" : "#64748b" },
+            ],
+            margin: "sm",
+          },
+        ],
+        paddingAll: "16px",
+      },
+      footer: {
+        type: "box",
+        layout: "vertical",
+        contents: [
+          {
+            type: "button",
+            style: "primary",
+            action: { type: "uri", label: "View & Pay", uri: trackingUrl },
+            color: "#0f172a",
+            height: "md",
+          },
+        ],
+        paddingAll: "16px",
+        paddingTop: "8px",
+      },
+    },
+  }
+}
+
+/**
+ * Build a Flex Message notifying host that a member claimed payment.
+ */
 export function buildClaimNotifyFlex(
   memberName: string,
   amount: number,

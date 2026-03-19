@@ -7,7 +7,7 @@ import { QRCodeSVG } from "qrcode.react";
 import { anyId } from "promptparse/generate";
 import toast from "react-hot-toast";
 import { roomQueries } from "@/lib/queries/rooms";
-import { useClaimPayment, useConfirmPayment, useRejectPayment, useUnconfirmPayment } from "@/lib/mutations/rooms";
+import { useClaimPayment, useConfirmPayment, useRejectPayment, useUnconfirmPayment, useNudgeMember, useNudgeAll } from "@/lib/mutations/rooms";
 import { useRoomSocket } from "@/lib/hooks/use-room-socket";
 import { useSlipScanner } from "@/lib/hooks/use-slip-scanner";
 import type { SlipScanOutput } from "@/lib/hooks/use-slip-scanner";
@@ -289,7 +289,20 @@ function PaymentTrackingContent({
   const confirmPayment = useConfirmPayment(roomId);
   const rejectPayment = useRejectPayment(roomId);
   const unconfirmPayment = useUnconfirmPayment(roomId);
+  const nudgeMember = useNudgeMember(roomId);
+  const nudgeAll = useNudgeAll(roomId);
   const { result: slipResult, previewUrl, scanSlip, reset: resetSlip } = useSlipScanner();
+
+  // Nudge cooldown tracking (client-side for instant UI feedback; server enforces real limits)
+  const [nudgeCooldowns, setNudgeCooldowns] = useState<Record<string, number>>({});
+  const [globalNudgeCooldown, setGlobalNudgeCooldown] = useState(0);
+
+  // Tick cooldowns + reminder countdown every second
+  const [, setTick] = useState(0);
+  useEffect(() => {
+    const interval = setInterval(() => setTick((n) => n + 1), 1000);
+    return () => clearInterval(interval);
+  }, []);
 
   // WebSocket: instant updates when payment statuses change
   useRoomSocket(code);
@@ -690,6 +703,39 @@ function PaymentTrackingContent({
         </div>
       </div>
 
+      {/* Host: Notify All unpaid members */}
+      {isHost && payments.some((p) => p.status === "unpaid" || p.status === "rejected") && (
+        <div className="mt-3">
+          <button
+            type="button"
+            onClick={() => {
+              nudgeAll.mutate(undefined, {
+                onSuccess: () => {
+                  toast.success("Notified all unpaid members!");
+                  setGlobalNudgeCooldown(Date.now() + 5 * 60 * 1000);
+                },
+                onError: (err) => {
+                  if (err.message.includes("cooldown")) {
+                    toast.error("Please wait 5 minutes between reminders");
+                  } else {
+                    toast.error("Couldn't send notifications");
+                  }
+                },
+              });
+            }}
+            disabled={nudgeAll.isPending || globalNudgeCooldown > Date.now()}
+            className="flex w-full items-center justify-center gap-2 rounded-lg border border-purple-200 bg-purple-50 px-4 py-2.5 text-sm font-medium text-purple-700 transition-colors hover:bg-purple-100 disabled:opacity-40"
+          >
+            <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
+            </svg>
+            {globalNudgeCooldown > Date.now()
+              ? `Wait ${Math.ceil((globalNudgeCooldown - Date.now()) / 60000)}m`
+              : nudgeAll.isPending ? "Sending..." : "Notify All Unpaid"}
+          </button>
+        </div>
+      )}
+
       {/* LINE users: reminders sent automatically via LINE Official Account */}
       {push.isLiff && currentMemberId && (
         <div className="mt-4 flex items-center gap-2 rounded-lg border border-green-200 bg-green-50 px-4 py-2.5">
@@ -852,6 +898,47 @@ function PaymentTrackingContent({
                   </div>
                 </div>
 
+                {/* Next auto-reminder countdown */}
+                {(status === "unpaid" || status === "rejected") && (() => {
+                  const schedule = detailData?.reminderSchedule?.[payment.id];
+                  if (!schedule) return null;
+                  const now = Date.now();
+
+                  // Find next unsent tier in the future
+                  let nextAt: number | null = null;
+                  for (const t of schedule.tiers) {
+                    if (!t.sent && new Date(t.scheduledAt).getTime() > now) {
+                      nextAt = new Date(t.scheduledAt).getTime();
+                      break;
+                    }
+                  }
+
+                  // If all fixed tiers passed, compute next recurring
+                  if (!nextAt && schedule.tiers.length > 0) {
+                    const lastTier = schedule.tiers[schedule.tiers.length - 1];
+                    const lastAt = new Date(lastTier.scheduledAt).getTime();
+                    if (now > lastAt && schedule.recurringEveryMs > 0) {
+                      const elapsed = now - lastAt;
+                      const periods = Math.ceil(elapsed / schedule.recurringEveryMs);
+                      nextAt = lastAt + periods * schedule.recurringEveryMs;
+                    }
+                  }
+
+                  if (!nextAt) return null;
+                  const diff = nextAt - now;
+                  if (diff <= 0) return <p className="mt-1 text-xs text-gray-400">Reminder sending soon...</p>;
+
+                  const hours = Math.floor(diff / (1000 * 60 * 60));
+                  const mins = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+                  const timeStr = hours > 0 ? `${hours}h ${mins}m` : `${mins}m`;
+
+                  return (
+                    <p className="mt-1 text-xs text-gray-400">
+                      Next auto-reminder in {timeStr}
+                    </p>
+                  );
+                })()}
+
                 {/* Slip verification info — visible to host */}
                 {isHost && status !== "unpaid" && (
                   <div className="mt-2 flex flex-wrap items-center gap-2 text-xs">
@@ -960,7 +1047,7 @@ function PaymentTrackingContent({
                   </div>
                 )}
 
-                {/* Host: confirm/reject actions for non-confirmed payments */}
+                {/* Host: confirm/reject/nudge actions for non-confirmed payments */}
                 {isHost && status !== "confirmed" && (
                   <div className="mt-3 flex gap-2 border-t border-gray-100 pt-3">
                     <button
@@ -991,6 +1078,40 @@ function PaymentTrackingContent({
                         className="flex-1 rounded-lg border border-red-200 px-3 py-1.5 text-xs font-medium text-red-600 transition-colors hover:bg-red-50 disabled:opacity-40"
                       >
                         {rejectPayment.isPending && rejectPayment.variables === payment.id ? "..." : "Reject"}
+                      </button>
+                    )}
+                    {(status === "unpaid" || status === "rejected") && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          nudgeMember.mutate(payment.memberId, {
+                            onSuccess: () => {
+                              toast(`Nudged ${payment.member?.displayName}`, { icon: "🔔" });
+                              setNudgeCooldowns((prev) => ({
+                                ...prev,
+                                [payment.memberId]: Date.now() + 5 * 60 * 1000,
+                              }));
+                            },
+                            onError: (err) => {
+                              if (err.message.includes("cooldown")) {
+                                toast.error("Wait 5 min between nudges");
+                              } else {
+                                toast.error("Couldn't nudge");
+                              }
+                            },
+                          });
+                        }}
+                        disabled={
+                          (nudgeMember.isPending && nudgeMember.variables === payment.memberId) ||
+                          (nudgeCooldowns[payment.memberId] ?? 0) > Date.now()
+                        }
+                        className="rounded-lg border border-purple-200 px-3 py-1.5 text-xs font-medium text-purple-600 transition-colors hover:bg-purple-50 disabled:opacity-40"
+                      >
+                        {(nudgeCooldowns[payment.memberId] ?? 0) > Date.now()
+                          ? `${Math.ceil(((nudgeCooldowns[payment.memberId] ?? 0) - Date.now()) / 60000)}m`
+                          : nudgeMember.isPending && nudgeMember.variables === payment.memberId
+                            ? "..."
+                            : "Nudge"}
                       </button>
                     )}
                   </div>

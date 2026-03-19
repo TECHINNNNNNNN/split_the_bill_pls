@@ -247,6 +247,44 @@ export function useUnconfirmPayment(roomId: string) {
   });
 }
 
+export function useNudgeMember(roomId: string) {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (memberId: string) => {
+      const res = await fetch(
+        `${process.env.NEXT_PUBLIC_API_URL}/api/rooms/${roomId}/nudge?memberId=${memberId}`,
+        { method: "POST", credentials: "include" },
+      );
+      const data = await res.json();
+      if (!res.ok) throw new Error((data as { error?: string }).error || "Failed to nudge");
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["rooms", roomId] });
+    },
+  });
+}
+
+export function useNudgeAll(roomId: string) {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async () => {
+      const res = await fetch(
+        `${process.env.NEXT_PUBLIC_API_URL}/api/rooms/${roomId}/nudge`,
+        { method: "POST", credentials: "include" },
+      );
+      const data = await res.json();
+      if (!res.ok) throw new Error((data as { error?: string }).error || "Failed to nudge all");
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["rooms", roomId] });
+    },
+  });
+}
+
 export function useScanReceipt() {
   return useMutation({
     mutationFn: async (image: string) => {

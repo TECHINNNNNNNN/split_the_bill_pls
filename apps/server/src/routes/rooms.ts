@@ -2,8 +2,8 @@ import { Hono } from "hono"
 import { setCookie, getCookie } from "hono/cookie"
 import { zValidator } from "@hono/zod-validator"
 import { db } from "../db/index.js"
-import { rooms, roomMembers, roomBillItems, roomItemSplits, roomPayments, roomInvites, pushSubscriptions } from "../db/schema.js"
-import { eq, and, desc } from "drizzle-orm"
+import { rooms, roomMembers, roomBillItems, roomItemSplits, roomPayments, roomInvites, pushSubscriptions, pushNotificationLog } from "../db/schema.js"
+import { eq, and, desc, gte, inArray } from "drizzle-orm"
 import { randomUUID } from "node:crypto"
 import {
   createRoomSchema,
@@ -21,7 +21,8 @@ import {
 import { calculateSplit } from "@pladuk/shared/utils"
 import { notifyPartyKit } from "../lib/partykit.js"
 import { sendPushToMember } from "../lib/push.js"
-import { verifyLineIdToken, sendLineMessage, buildClaimNotifyFlex } from "../lib/line-messaging.js"
+import { verifyLineIdToken, sendLineMessage, buildClaimNotifyFlex, buildNudgeFlex } from "../lib/line-messaging.js"
+import { computeReminderSchedule, type ReminderScheduleInfo } from "../lib/reminder-scheduler.js"
 import { verifySlip } from "../lib/verify-slip.js"
 import { scanReceipt } from "../lib/scan-receipt.js"
 import { optionalAuth } from "../lib/middleware.js"
@@ -90,6 +91,49 @@ async function resolveMemberId(c: any, roomId: string): Promise<string | undefin
 
   // 2. Fall back to cookie — for anonymous users or unlinked members
   return getMemberCookie(c, roomId)
+}
+
+// ─── Helper: send nudge notification to a member ───
+
+async function sendNudgeToPayment(
+  payment: { id: string; memberId: string; amount: string; member: { lineUserId: string | null; displayName: string } },
+  room: { id: string; inviteCode: string },
+  host: { displayName: string },
+  trackingUrl: string,
+  paidCount: number,
+  totalCount: number,
+  tierName: string,
+) {
+  const amount = parseFloat(payment.amount)
+  let channel: "line" | "web-push" | null = null
+
+  // LINE first
+  if (payment.member.lineUserId) {
+    const flex = buildNudgeFlex(host.displayName, amount, paidCount, totalCount, trackingUrl)
+    const sent = await sendLineMessage(payment.member.lineUserId, [flex])
+    if (sent) channel = "line"
+  }
+
+  // Web Push fallback
+  if (!channel) {
+    await sendPushToMember(payment.memberId, room.id, {
+      title: "PlaDuk — Nudge!",
+      body: `${host.displayName} is waiting for your payment of ฿${amount.toFixed(2)}`,
+      url: `/quick-split/${room.inviteCode}/tracking`,
+      tag: `nudge-${payment.id}`,
+    })
+    channel = "web-push"
+  }
+
+  // Log to prevent rapid re-sends
+  if (channel) {
+    await db.insert(pushNotificationLog).values({
+      paymentId: payment.id,
+      tier: tierName,
+      channel,
+    })
+    console.log(`[nudge] ✓ Sent ${tierName} via ${channel} to ${payment.member.displayName} (room ${room.inviteCode})`)
+  }
 }
 
 // ═════════════════════════════════════════════
@@ -475,7 +519,36 @@ const app = new Hono()
       return c.json({ error: "Room not found" }, 404)
     }
 
-    return c.json({ room, currentMemberId: memberId })
+    // Compute reminder schedule for unpaid/rejected payments
+    const unpaidPaymentIds = room.payments
+      .filter((p) => p.status === "unpaid" || p.status === "rejected")
+      .map((p) => p.id)
+
+    let reminderSchedule: Record<string, ReminderScheduleInfo> = {}
+
+    if (unpaidPaymentIds.length > 0) {
+      const logs = await db.query.pushNotificationLog.findMany({
+        where: inArray(pushNotificationLog.paymentId, unpaidPaymentIds),
+      })
+
+      // Group sent tiers by paymentId
+      const tiersByPayment = new Map<string, string[]>()
+      for (const log of logs) {
+        const arr = tiersByPayment.get(log.paymentId) ?? []
+        arr.push(log.tier)
+        tiersByPayment.set(log.paymentId, arr)
+      }
+
+      for (const paymentId of unpaidPaymentIds) {
+        const sentTiers = tiersByPayment.get(paymentId) ?? []
+        reminderSchedule[paymentId] = computeReminderSchedule(
+          new Date(room.createdAt),
+          sentTiers,
+        )
+      }
+    }
+
+    return c.json({ room, currentMemberId: memberId, reminderSchedule })
   })
 
   // ─── PATCH /rooms/:id/status ─────────────────
@@ -1109,6 +1182,117 @@ const app = new Hono()
     console.log(`[line] Linked member ${member.id} → LINE user ${lineUserId}`)
 
     return c.json({ ok: true })
+  })
+
+  // ─── POST /rooms/:id/nudge ─────────────────
+  // Host manually sends a reminder to unpaid/rejected members.
+  // ?memberId=X → nudge one member, omit → nudge all.
+  // Rate limited: 5 min cooldown per member or globally.
+  .post("/:id/nudge", optionalAuth, async (c) => {
+    const roomId = c.req.param("id")
+    const memberId = await resolveMemberId(c, roomId)
+    const targetMemberId = c.req.query("memberId")
+
+    // Verify caller is host
+    const caller = await verifyRoomMember(roomId, memberId)
+    if (!caller?.isHost) {
+      return c.json({ error: "Only the host can nudge" }, 403)
+    }
+
+    const room = await db.query.rooms.findFirst({
+      where: eq(rooms.id, roomId),
+      with: {
+        payments: { with: { member: true } },
+        members: true,
+      },
+    })
+    if (!room) return c.json({ error: "Room not found" }, 404)
+    if (room.status !== "payment") {
+      return c.json({ error: "Room is not in payment status" }, 400)
+    }
+
+    const unpaidPayments = room.payments.filter(
+      (p) => p.status === "unpaid" || p.status === "rejected",
+    )
+
+    const COOLDOWN_MS = 5 * 60 * 1000 // 5 minutes
+    const cooldownThreshold = new Date(Date.now() - COOLDOWN_MS)
+
+    const LIFF_ID = process.env.LIFF_ID
+    const frontendUrl = process.env.FRONTEND_URL || "https://pladuk.online"
+    const trackingPath = `/quick-split/${room.inviteCode}/tracking`
+    const trackingUrl = LIFF_ID
+      ? `https://liff.line.me/${LIFF_ID}${trackingPath}`
+      : `${frontendUrl}${trackingPath}`
+
+    const paidCount = room.payments.filter((p) => p.status === "confirmed").length
+    const totalCount = room.payments.length
+
+    if (targetMemberId) {
+      // ── Per-member nudge ──
+      const target = unpaidPayments.find((p) => p.memberId === targetMemberId)
+      if (!target) {
+        return c.json({ error: "Member not found or already paid" }, 404)
+      }
+
+      // Rate limit check
+      const recentNudge = await db.query.pushNotificationLog.findFirst({
+        where: and(
+          eq(pushNotificationLog.paymentId, target.id),
+          eq(pushNotificationLog.tier, "manual-nudge"),
+          gte(pushNotificationLog.sentAt, cooldownThreshold),
+        ),
+      })
+      if (recentNudge) {
+        const retryAfter = new Date(recentNudge.sentAt).getTime() + COOLDOWN_MS
+        return c.json({
+          error: "Nudge cooldown active",
+          retryAfterMs: retryAfter - Date.now(),
+        }, 429)
+      }
+
+      await sendNudgeToPayment(target, room, caller, trackingUrl, paidCount, totalCount, "manual-nudge")
+
+      notifyPartyKit(room.inviteCode, "nudge-sent", {
+        memberId: targetMemberId,
+        nudgedAt: new Date().toISOString(),
+      })
+
+      return c.json({ success: true, nudgedCount: 1 })
+    } else {
+      // ── Nudge all ──
+      if (unpaidPayments.length === 0) {
+        return c.json({ error: "No unpaid members to nudge" }, 400)
+      }
+
+      const paymentIds = unpaidPayments.map((p) => p.id)
+      const recentGlobal = await db.query.pushNotificationLog.findFirst({
+        where: and(
+          inArray(pushNotificationLog.paymentId, paymentIds),
+          eq(pushNotificationLog.tier, "manual-nudge-all"),
+          gte(pushNotificationLog.sentAt, cooldownThreshold),
+        ),
+      })
+      if (recentGlobal) {
+        const retryAfter = new Date(recentGlobal.sentAt).getTime() + COOLDOWN_MS
+        return c.json({
+          error: "Notify all cooldown active",
+          retryAfterMs: retryAfter - Date.now(),
+        }, 429)
+      }
+
+      let nudgedCount = 0
+      for (const payment of unpaidPayments) {
+        await sendNudgeToPayment(payment, room, caller, trackingUrl, paidCount, totalCount, "manual-nudge-all")
+        nudgedCount++
+      }
+
+      notifyPartyKit(room.inviteCode, "nudge-sent", {
+        nudgedAt: new Date().toISOString(),
+      })
+
+      return c.json({ success: true, nudgedCount })
+    }
   })
 
   // ─── POST /rooms/:id/push-test

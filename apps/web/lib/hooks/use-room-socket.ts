@@ -9,7 +9,8 @@ type PartyEvent = {
     | "member-joined"
     | "member-removed"
     | "status-changed"
-    | "payment-toggled";
+    | "payment-toggled"
+    | "nudge-sent";
   data: Record<string, unknown>;
 };
 
@@ -46,6 +47,7 @@ export function useRoomSocket(
             break;
 
           case "payment-toggled":
+          case "nudge-sent":
             queryClient.invalidateQueries({ queryKey: ["rooms"] });
             break;
         }
