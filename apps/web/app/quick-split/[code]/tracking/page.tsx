@@ -297,10 +297,11 @@ function PaymentTrackingContent({
   const [nudgeCooldowns, setNudgeCooldowns] = useState<Record<string, number>>({});
   const [globalNudgeCooldown, setGlobalNudgeCooldown] = useState(0);
 
-  // Tick cooldowns + reminder countdown every second
-  const [, setTick] = useState(0);
+  // Current time — updated every second for cooldown/countdown displays.
+  // Using state instead of Date.now() in render to satisfy react-hooks/purity.
+  const [now, setNow] = useState(() => Date.now());
   useEffect(() => {
-    const interval = setInterval(() => setTick((n) => n + 1), 1000);
+    const interval = setInterval(() => setNow(Date.now()), 1000);
     return () => clearInterval(interval);
   }, []);
 
@@ -723,14 +724,14 @@ function PaymentTrackingContent({
                 },
               });
             }}
-            disabled={nudgeAll.isPending || globalNudgeCooldown > Date.now()}
+            disabled={nudgeAll.isPending || globalNudgeCooldown > now}
             className="flex w-full items-center justify-center gap-2 rounded-lg border border-purple-200 bg-purple-50 px-4 py-2.5 text-sm font-medium text-purple-700 transition-colors hover:bg-purple-100 disabled:opacity-40"
           >
             <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
             </svg>
-            {globalNudgeCooldown > Date.now()
-              ? `Wait ${Math.ceil((globalNudgeCooldown - Date.now()) / 60000)}m`
+            {globalNudgeCooldown > now
+              ? `Wait ${Math.ceil((globalNudgeCooldown - now) / 60000)}m`
               : nudgeAll.isPending ? "Sending..." : "Notify All Unpaid"}
           </button>
         </div>
@@ -902,7 +903,6 @@ function PaymentTrackingContent({
                 {(status === "unpaid" || status === "rejected") && (() => {
                   const schedule = detailData?.reminderSchedule?.[payment.id];
                   if (!schedule) return null;
-                  const now = Date.now();
 
                   // Find next unsent tier in the future
                   let nextAt: number | null = null;
@@ -1103,12 +1103,12 @@ function PaymentTrackingContent({
                         }}
                         disabled={
                           (nudgeMember.isPending && nudgeMember.variables === payment.memberId) ||
-                          (nudgeCooldowns[payment.memberId] ?? 0) > Date.now()
+                          (nudgeCooldowns[payment.memberId] ?? 0) > now
                         }
                         className="rounded-lg border border-purple-200 px-3 py-1.5 text-xs font-medium text-purple-600 transition-colors hover:bg-purple-50 disabled:opacity-40"
                       >
-                        {(nudgeCooldowns[payment.memberId] ?? 0) > Date.now()
-                          ? `${Math.ceil(((nudgeCooldowns[payment.memberId] ?? 0) - Date.now()) / 60000)}m`
+                        {(nudgeCooldowns[payment.memberId] ?? 0) > now
+                          ? `${Math.ceil(((nudgeCooldowns[payment.memberId] ?? 0) - now) / 60000)}m`
                           : nudgeMember.isPending && nudgeMember.variables === payment.memberId
                             ? "..."
                             : "Nudge"}
