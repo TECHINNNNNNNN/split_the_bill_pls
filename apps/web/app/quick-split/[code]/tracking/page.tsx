@@ -713,7 +713,16 @@ function PaymentTrackingContent({
               nudgeAll.mutate(undefined, {
                 onSuccess: () => {
                   toast.success("Notified all unpaid members!");
-                  setGlobalNudgeCooldown(Date.now() + 5 * 60 * 1000);
+                  const expiry = Date.now() + 5 * 60 * 1000;
+                  setGlobalNudgeCooldown(expiry);
+                  // Also block individual nudges for all members
+                  const perMember: Record<string, number> = {};
+                  for (const p of payments) {
+                    if (p.status === "unpaid" || p.status === "rejected") {
+                      perMember[p.memberId] = expiry;
+                    }
+                  }
+                  setNudgeCooldowns((prev) => ({ ...prev, ...perMember }));
                 },
                 onError: (err) => {
                   if (err.message.includes("cooldown")) {
@@ -731,7 +740,7 @@ function PaymentTrackingContent({
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
             </svg>
             {globalNudgeCooldown > now
-              ? `Wait ${Math.ceil((globalNudgeCooldown - now) / 60000)}m`
+              ? `Wait ${Math.floor((globalNudgeCooldown - now) / 60000)}:${String(Math.floor(((globalNudgeCooldown - now) % 60000) / 1000)).padStart(2, "0")}`
               : nudgeAll.isPending ? "Sending..." : "Notify All Unpaid"}
           </button>
         </div>
@@ -930,7 +939,10 @@ function PaymentTrackingContent({
 
                   const hours = Math.floor(diff / (1000 * 60 * 60));
                   const mins = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
-                  const timeStr = hours > 0 ? `${hours}h ${mins}m` : `${mins}m`;
+                  const secs = Math.floor((diff % (1000 * 60)) / 1000);
+                  const timeStr = hours > 0
+                    ? `${hours}h ${mins}m ${String(secs).padStart(2, "0")}s`
+                    : `${mins}m ${String(secs).padStart(2, "0")}s`;
 
                   return (
                     <p className="mt-1 text-xs text-gray-400">
@@ -1087,10 +1099,13 @@ function PaymentTrackingContent({
                           nudgeMember.mutate(payment.memberId, {
                             onSuccess: () => {
                               toast(`Nudged ${payment.member?.displayName}`, { icon: "🔔" });
+                              const expiry = Date.now() + 5 * 60 * 1000;
                               setNudgeCooldowns((prev) => ({
                                 ...prev,
-                                [payment.memberId]: Date.now() + 5 * 60 * 1000,
+                                [payment.memberId]: expiry,
                               }));
+                              // Also block "nudge all"
+                              setGlobalNudgeCooldown(expiry);
                             },
                             onError: (err) => {
                               if (err.message.includes("cooldown")) {
@@ -1108,7 +1123,7 @@ function PaymentTrackingContent({
                         className="rounded-lg border border-purple-200 px-3 py-1.5 text-xs font-medium text-purple-600 transition-colors hover:bg-purple-50 disabled:opacity-40"
                       >
                         {(nudgeCooldowns[payment.memberId] ?? 0) > now
-                          ? `${Math.ceil(((nudgeCooldowns[payment.memberId] ?? 0) - now) / 60000)}m`
+                          ? `${Math.floor(((nudgeCooldowns[payment.memberId] ?? 0) - now) / 60000)}:${String(Math.floor((((nudgeCooldowns[payment.memberId] ?? 0) - now) % 60000) / 1000)).padStart(2, "0")}`
                           : nudgeMember.isPending && nudgeMember.variables === payment.memberId
                             ? "..."
                             : "Nudge"}

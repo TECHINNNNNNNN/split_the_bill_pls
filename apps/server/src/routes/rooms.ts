@@ -3,7 +3,7 @@ import { setCookie, getCookie } from "hono/cookie"
 import { zValidator } from "@hono/zod-validator"
 import { db } from "../db/index.js"
 import { rooms, roomMembers, roomBillItems, roomItemSplits, roomPayments, roomInvites, pushSubscriptions, pushNotificationLog } from "../db/schema.js"
-import { eq, and, desc, gte, inArray } from "drizzle-orm"
+import { eq, and, or, desc, gte, inArray } from "drizzle-orm"
 import { randomUUID } from "node:crypto"
 import {
   createRoomSchema,
@@ -1235,11 +1235,14 @@ const app = new Hono()
         return c.json({ error: "Member not found or already paid" }, 404)
       }
 
-      // Rate limit check
+      // Rate limit check — block if ANY nudge type was sent recently for this member
       const recentNudge = await db.query.pushNotificationLog.findFirst({
         where: and(
           eq(pushNotificationLog.paymentId, target.id),
-          eq(pushNotificationLog.tier, "manual-nudge"),
+          or(
+            eq(pushNotificationLog.tier, "manual-nudge"),
+            eq(pushNotificationLog.tier, "manual-nudge-all"),
+          ),
           gte(pushNotificationLog.sentAt, cooldownThreshold),
         ),
       })
@@ -1266,10 +1269,14 @@ const app = new Hono()
       }
 
       const paymentIds = unpaidPayments.map((p) => p.id)
+      // Block if ANY nudge type was sent recently for ANY member in this room
       const recentGlobal = await db.query.pushNotificationLog.findFirst({
         where: and(
           inArray(pushNotificationLog.paymentId, paymentIds),
-          eq(pushNotificationLog.tier, "manual-nudge-all"),
+          or(
+            eq(pushNotificationLog.tier, "manual-nudge"),
+            eq(pushNotificationLog.tier, "manual-nudge-all"),
+          ),
           gte(pushNotificationLog.sentAt, cooldownThreshold),
         ),
       })
