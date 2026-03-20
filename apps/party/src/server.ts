@@ -1,6 +1,6 @@
 import type * as Party from "partykit/server"
 
-// ─── Collaborative bill item types ───
+// ─── Collaborative bill types ───
 
 interface CollabItem {
   id: string
@@ -16,12 +16,30 @@ interface BillExtras {
   discountAmount: number | null // flat amount in local currency
 }
 
+interface CollabSection {
+  id: string
+  name: string
+  items: Map<string, CollabItem>
+  extras: BillExtras
+}
+
+// Serialized format for broadcast
+interface CollabSectionSerialized {
+  id: string
+  name: string
+  items: CollabItem[]
+  extras: BillExtras
+}
+
 type ClientMessage =
-  | { type: "item:add"; data: { name: string; amount: number; memberId: string } }
-  | { type: "item:delete"; data: { itemId: string; memberId: string; isHost: boolean } }
-  | { type: "item:toggle-member"; data: { itemId: string; targetMemberId: string } }
-  | { type: "item:select-all"; data: { itemId: string; allMemberIds: string[] } }
-  | { type: "extras:update"; data: Partial<BillExtras> }
+  | { type: "section:add"; data: { name: string } }
+  | { type: "section:update"; data: { sectionId: string; name: string } }
+  | { type: "section:delete"; data: { sectionId: string } }
+  | { type: "item:add"; data: { name: string; amount: number; memberId: string; sectionId?: string } }
+  | { type: "item:delete"; data: { itemId: string; sectionId: string; memberId: string; isHost: boolean } }
+  | { type: "item:toggle-member"; data: { itemId: string; sectionId: string; targetMemberId: string } }
+  | { type: "item:select-all"; data: { itemId: string; sectionId: string; allMemberIds: string[] } }
+  | { type: "extras:update"; data: Partial<BillExtras> & { sectionId?: string } }
   | { type: "state:request" }
 
 // ─── Server ───
@@ -31,19 +49,50 @@ function generateItemId(): string {
   return `collab-${Date.now()}-${++nextItemId}`
 }
 
+let nextSectionId = 0
+function generateSectionId(): string {
+  return `section-${Date.now()}-${++nextSectionId}`
+}
+
+const DEFAULT_SECTION_ID = "default"
+
+function createSection(id: string, name: string): CollabSection {
+  return {
+    id,
+    name,
+    items: new Map(),
+    extras: { vatRate: null, serviceChargeRate: null, discountAmount: null },
+  }
+}
+
 export default class RoomParty implements Party.Server {
-  items: Map<string, CollabItem> = new Map()
+  sections: Map<string, CollabSection> = new Map()
   locked = false
-  extras: BillExtras = { vatRate: null, serviceChargeRate: null, discountAmount: null }
 
   constructor(readonly room: Party.Room) {}
 
+  private ensureDefaultSection(): CollabSection {
+    let section = this.sections.get(DEFAULT_SECTION_ID)
+    if (!section) {
+      section = createSection(DEFAULT_SECTION_ID, "")
+      this.sections.set(DEFAULT_SECTION_ID, section)
+    }
+    return section
+  }
+
+  private findSectionForItem(sectionId?: string): CollabSection | undefined {
+    if (sectionId) return this.sections.get(sectionId)
+    // Fallback: use default section
+    return this.sections.get(DEFAULT_SECTION_ID) ?? this.sections.values().next().value
+  }
+
   // New connection: send current state so late joiners are in sync
   onConnect(conn: Party.Connection) {
+    this.ensureDefaultSection()
     conn.send(JSON.stringify({ type: "connected", data: { roomId: this.room.id } }))
     conn.send(JSON.stringify({
       type: "items:sync",
-      data: { items: this.getItemsList(), locked: this.locked, extras: this.extras },
+      data: { sections: this.getSectionsList(), locked: this.locked },
     }))
   }
 
@@ -56,15 +105,46 @@ export default class RoomParty implements Party.Server {
       return
     }
 
-    // Reject all item mutations when locked
+    // Reject all mutations when locked
     if (this.locked && msg.type !== "state:request") return
 
     switch (msg.type) {
+      case "section:add": {
+        const { name } = msg.data
+        const id = generateSectionId()
+        this.sections.set(id, createSection(id, name?.trim() || ""))
+        this.broadcastItems()
+        break
+      }
+
+      case "section:update": {
+        const { sectionId, name } = msg.data
+        const section = this.sections.get(sectionId)
+        if (!section) return
+        section.name = name?.trim() || ""
+        this.broadcastItems()
+        break
+      }
+
+      case "section:delete": {
+        const { sectionId } = msg.data
+        // Can't delete the last section
+        if (this.sections.size <= 1) return
+        // Can't delete if it still has items
+        const section = this.sections.get(sectionId)
+        if (!section || section.items.size > 0) return
+        this.sections.delete(sectionId)
+        this.broadcastItems()
+        break
+      }
+
       case "item:add": {
-        const { name, amount, memberId } = msg.data
+        const { name, amount, memberId, sectionId } = msg.data
         if (!name?.trim() || typeof amount !== "number" || amount <= 0) return
+        const section = this.findSectionForItem(sectionId)
+        if (!section) return
         const id = generateItemId()
-        this.items.set(id, {
+        section.items.set(id, {
           id,
           name: name.trim(),
           amount,
@@ -76,19 +156,23 @@ export default class RoomParty implements Party.Server {
       }
 
       case "item:delete": {
-        const { itemId, memberId, isHost } = msg.data
-        const item = this.items.get(itemId)
+        const { itemId, sectionId, memberId, isHost } = msg.data
+        const section = this.sections.get(sectionId)
+        if (!section) return
+        const item = section.items.get(itemId)
         if (!item) return
         // Only the person who added it or the host can delete
         if (item.addedBy !== memberId && !isHost) return
-        this.items.delete(itemId)
+        section.items.delete(itemId)
         this.broadcastItems()
         break
       }
 
       case "item:toggle-member": {
-        const { itemId, targetMemberId } = msg.data
-        const item = this.items.get(itemId)
+        const { itemId, sectionId, targetMemberId } = msg.data
+        const section = this.sections.get(sectionId)
+        if (!section) return
+        const item = section.items.get(itemId)
         if (!item) return
         const idx = item.memberIds.indexOf(targetMemberId)
         if (idx >= 0) {
@@ -103,8 +187,10 @@ export default class RoomParty implements Party.Server {
       }
 
       case "item:select-all": {
-        const { itemId, allMemberIds } = msg.data
-        const item = this.items.get(itemId)
+        const { itemId, sectionId, allMemberIds } = msg.data
+        const section = this.sections.get(sectionId)
+        if (!section) return
+        const item = section.items.get(itemId)
         if (!item || !allMemberIds?.length) return
         item.memberIds = [...allMemberIds]
         this.broadcastItems()
@@ -112,18 +198,17 @@ export default class RoomParty implements Party.Server {
       }
 
       case "extras:update": {
-        const { vatRate, serviceChargeRate, discountAmount } = msg.data
-        if (vatRate !== undefined) this.extras.vatRate = vatRate
-        if (serviceChargeRate !== undefined) this.extras.serviceChargeRate = serviceChargeRate
-        if (discountAmount !== undefined) this.extras.discountAmount = discountAmount
+        const { sectionId, vatRate, serviceChargeRate, discountAmount } = msg.data
+        const section = this.findSectionForItem(sectionId)
+        if (!section) return
+        if (vatRate !== undefined) section.extras.vatRate = vatRate
+        if (serviceChargeRate !== undefined) section.extras.serviceChargeRate = serviceChargeRate
+        if (discountAmount !== undefined) section.extras.discountAmount = discountAmount
         this.broadcastItems()
         break
       }
 
       case "state:request": {
-        // Already handled in onConnect, but allow explicit re-request
-        // Note: onMessage doesn't have the connection reference,
-        // so we broadcast to all (harmless — it's the same state)
         this.broadcastItems()
         break
       }
@@ -155,8 +240,7 @@ export default class RoomParty implements Party.Server {
         this.locked = true
       }
       if (parsed.type === "status-changed" && parsed.data?.status === "payment") {
-        this.items.clear()
-        this.extras = { vatRate: null, serviceChargeRate: null, discountAmount: null }
+        this.sections.clear()
         this.locked = false
       }
     } catch {
@@ -168,14 +252,19 @@ export default class RoomParty implements Party.Server {
     return new Response("OK", { status: 200 })
   }
 
-  private getItemsList(): CollabItem[] {
-    return Array.from(this.items.values())
+  private getSectionsList(): CollabSectionSerialized[] {
+    return Array.from(this.sections.values()).map((s) => ({
+      id: s.id,
+      name: s.name,
+      items: Array.from(s.items.values()),
+      extras: s.extras,
+    }))
   }
 
   private broadcastItems() {
     this.room.broadcast(JSON.stringify({
       type: "items:sync",
-      data: { items: this.getItemsList(), locked: this.locked, extras: this.extras },
+      data: { sections: this.getSectionsList(), locked: this.locked },
     }))
   }
 }
