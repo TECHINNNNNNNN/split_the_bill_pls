@@ -600,13 +600,17 @@ export default function BillDetailsPage({
     for (const sec of sections) {
       if (sec.items.length === 0) continue;
 
-      const calcItems = sec.items.map((item) => ({
+      // Only include items that have at least one member assigned
+      const assignedItems = sec.items.filter((item) => item.memberIds.length > 0);
+      if (assignedItems.length === 0) continue;
+
+      const calcItems = assignedItems.map((item) => ({
         id: item.id,
         name: item.name,
         totalPrice: item.amount,
       }));
 
-      const calcClaims = sec.items.flatMap((item) =>
+      const calcClaims = assignedItems.flatMap((item) =>
         item.memberIds.map((mId) => ({
           billItemId: item.id,
           memberId: mId,
