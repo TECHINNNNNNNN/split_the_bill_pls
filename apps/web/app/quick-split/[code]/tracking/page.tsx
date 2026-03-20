@@ -462,7 +462,7 @@ function PaymentTrackingContent({
         Back
       </button>
       <h1 className="mt-2 font-heading text-2xl font-bold text-gray-800 md:text-3xl">
-        Payment Tracking
+        {room.name || "Payment Tracking"}
       </h1>
       <p className="mt-1 text-sm text-gray-500">
         {isHost ? "Track who has paid." : "See how much you owe."}
@@ -477,7 +477,7 @@ function PaymentTrackingContent({
             if (!room) return;
             const trackingUrl = `${window.location.origin}/quick-split/${code}/tracking`;
             const message = buildTrackingFlexMessage({
-              roomName: room.hostName ? `${room.hostName}'s Split` : "Bill Split",
+              roomName: room.name || `${room.hostName}'s Split`,
               hostName: hostMember?.displayName ?? room.hostName ?? "Host",
               total,
               paidCount: confirmedCount,

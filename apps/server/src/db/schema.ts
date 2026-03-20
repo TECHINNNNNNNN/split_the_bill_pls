@@ -117,6 +117,7 @@ export const roomStatusEnum = pgEnum("room_status", ["waiting", "splitting", "pa
 export const rooms = pgTable("rooms", {
   id: uuid("id").primaryKey().defaultRandom(),
   hostName: text("host_name").notNull(),
+  name: text("name"),
   expectedMembers: integer("expected_members").notNull(),
   inviteCode: text("invite_code").unique().notNull(),
   promptpayId: text("promptpay_id"),

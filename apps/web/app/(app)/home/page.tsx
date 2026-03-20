@@ -106,7 +106,7 @@ export default function HomePage() {
               >
                 <div>
                   <p className="text-sm font-medium">
-                    {invite.room.hostName}&apos;s split
+                    {invite.room.name || `${invite.room.hostName}'s split`}
                   </p>
                   <p className="text-xs text-gray-500">
                     You&apos;re invited as {invite.displayName}
@@ -163,7 +163,7 @@ export default function HomePage() {
                 className="flex items-center justify-between rounded-xl border border-gray-100 bg-white p-3 shadow-sm transition-shadow hover:shadow-md"
               >
                 <div>
-                  <p className="font-medium">{room.hostName}</p>
+                  <p className="font-medium">{room.name || `${room.hostName}'s split`}</p>
                   <p className="text-xs text-gray-500">
                     {room.members.length} member{room.members.length !== 1 && "s"}
                   </p>

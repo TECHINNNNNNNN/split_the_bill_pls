@@ -147,7 +147,7 @@ const app = new Hono()
   // the host's member record. Sets a cookie so we
   // know who the host is on future requests.
   .post("/", optionalAuth, zValidator("json", createRoomSchema), async (c) => {
-    const { hostName, expectedMembers } = c.req.valid("json")
+    const { hostName, expectedMembers, name } = c.req.valid("json")
     const user = c.get("user")
 
     const inviteCode = generateInviteCode()
@@ -156,6 +156,7 @@ const app = new Hono()
       hostName,
       expectedMembers,
       inviteCode,
+      name: name || null,
       createdByUserId: user?.id ?? null,
     }).returning()
 

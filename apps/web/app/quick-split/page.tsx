@@ -8,13 +8,14 @@ import { useCreateRoom } from "@/lib/mutations/rooms";
 export default function QuickSplitPage() {
   const router = useRouter();
   const [name, setName] = useState("");
+  const [billName, setBillName] = useState("");
   const [splitters, setSplitters] = useState(1);
   const createRoom = useCreateRoom();
 
   const handleCreateRoom = () => {
     if (!name.trim()) return;
     createRoom.mutate(
-      { hostName: name.trim(), expectedMembers: splitters },
+      { hostName: name.trim(), expectedMembers: splitters, name: billName.trim() || undefined },
       {
         onSuccess: (data) => {
           router.push(`/quick-split/${data.room.inviteCode}`);
@@ -43,6 +44,24 @@ export default function QuickSplitPage() {
             value={name}
             onChange={(e) => setName(e.target.value)}
             placeholder="e.g. Tun"
+            className="w-full rounded-lg border border-gray-300 px-4 py-2.5 text-center text-sm text-gray-800 placeholder:text-gray-400 focus:border-gray-500 focus:outline-none md:py-3 md:text-base"
+          />
+        </div>
+
+        {/* Bill name (optional) */}
+        <div className="flex w-full flex-col items-center gap-3">
+          <label
+            htmlFor="bill-name"
+            className="text-sm font-medium text-gray-800 md:text-base"
+          >
+            Bill name <span className="font-normal text-gray-400">(optional)</span>
+          </label>
+          <input
+            id="bill-name"
+            type="text"
+            value={billName}
+            onChange={(e) => setBillName(e.target.value)}
+            placeholder="e.g. Thursday dinner"
             className="w-full rounded-lg border border-gray-300 px-4 py-2.5 text-center text-sm text-gray-800 placeholder:text-gray-400 focus:border-gray-500 focus:outline-none md:py-3 md:text-base"
           />
         </div>

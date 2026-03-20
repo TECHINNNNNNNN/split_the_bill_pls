@@ -76,7 +76,7 @@ export default function JoinRoomPage({
             Join Room
           </h1>
           <p className="mt-1 text-sm text-gray-500 md:text-base">
-            {room.hostName}&apos;s bill split
+            {room.name || `${room.hostName}'s bill split`}
           </p>
         </div>
 

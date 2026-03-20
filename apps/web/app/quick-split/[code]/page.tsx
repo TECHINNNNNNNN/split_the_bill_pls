@@ -120,7 +120,7 @@ export default function RoomLobbyPage({
     const hostMember = members.find((m) => m.isHost);
 
     const message = buildInviteFlexMessage({
-      roomName: room.hostName ? `${room.hostName}'s Split` : "Bill Split",
+      roomName: room.name || `${room.hostName}'s Split`,
       hostName: hostMember?.displayName ?? room.hostName ?? "Host",
       total: 0, // not finalized yet at lobby stage
       memberCount: room.expectedMembers,
