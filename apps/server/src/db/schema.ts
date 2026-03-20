@@ -143,11 +143,25 @@ export const roomMembers = pgTable("room_members", {
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 });
 
+export const roomBillSections = pgTable("room_bill_sections", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  roomId: uuid("room_id")
+    .references(() => rooms.id, { onDelete: "cascade" })
+    .notNull(),
+  name: text("name").notNull(),
+  vatRate: numeric("vat_rate", { precision: 5, scale: 4 }),
+  serviceChargeRate: numeric("service_charge_rate", { precision: 5, scale: 4 }),
+  discountAmount: numeric("discount_amount", { precision: 10, scale: 2 }),
+  sortOrder: integer("sort_order").default(0),
+});
+
 export const roomBillItems = pgTable("room_bill_items", {
   id: uuid("id").primaryKey().defaultRandom(),
   roomId: uuid("room_id")
     .references(() => rooms.id, { onDelete: "cascade" })
     .notNull(),
+  sectionId: uuid("section_id")
+    .references(() => roomBillSections.id, { onDelete: "cascade" }),
   name: text("name").notNull(),
   amount: numeric("amount", { precision: 10, scale: 2 }).notNull(),
   sortOrder: integer("sort_order").default(0),
@@ -229,9 +243,15 @@ export const roomsRelations = relations(rooms, ({ one, many }) => ({
   createdBy: one(user, { fields: [rooms.createdByUserId], references: [user.id] }),
   group: one(groups, { fields: [rooms.groupId], references: [groups.id] }),
   members: many(roomMembers),
+  billSections: many(roomBillSections),
   billItems: many(roomBillItems),
   payments: many(roomPayments),
   invites: many(roomInvites),
+}));
+
+export const roomBillSectionsRelations = relations(roomBillSections, ({ one, many }) => ({
+  room: one(rooms, { fields: [roomBillSections.roomId], references: [rooms.id] }),
+  items: many(roomBillItems),
 }));
 
 export const roomMembersRelations = relations(roomMembers, ({ one, many }) => ({
@@ -242,6 +262,7 @@ export const roomMembersRelations = relations(roomMembers, ({ one, many }) => ({
 
 export const roomBillItemsRelations = relations(roomBillItems, ({ one, many }) => ({
   room: one(rooms, { fields: [roomBillItems.roomId], references: [rooms.id] }),
+  section: one(roomBillSections, { fields: [roomBillItems.sectionId], references: [roomBillSections.id] }),
   splits: many(roomItemSplits),
 }));
 

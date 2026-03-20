@@ -2,7 +2,7 @@ import { Hono } from "hono"
 import { setCookie, getCookie } from "hono/cookie"
 import { zValidator } from "@hono/zod-validator"
 import { db } from "../db/index.js"
-import { rooms, roomMembers, roomBillItems, roomItemSplits, roomPayments, roomInvites, pushSubscriptions, pushNotificationLog } from "../db/schema.js"
+import { rooms, roomMembers, roomBillSections, roomBillItems, roomItemSplits, roomPayments, roomInvites, pushSubscriptions, pushNotificationLog } from "../db/schema.js"
 import { eq, and, or, desc, gte, inArray } from "drizzle-orm"
 import { randomUUID } from "node:crypto"
 import {
@@ -723,10 +723,10 @@ const app = new Hono()
   })
 
   // ─── POST /rooms/:id/finalize ────────────────
-  // Accepts the full bill (items + who splits each)
-  // in one request. Creates items, splits, calculates
-  // payments, and advances status — all at once.
-  // No per-tap API calls needed during editing.
+  // Accepts the full bill in one request. Supports two formats:
+  // 1. sections[] — each section has its own items + extras (new)
+  // 2. items[] + top-level extras — flat format (legacy fallback)
+  // Creates items, splits, calculates payments — all at once.
   .post("/:id/finalize", optionalAuth, zValidator("json", finalizeRoomSchema), async (c) => {
     const roomId = c.req.param("id")
     const memberId = await resolveMemberId(c, roomId)
@@ -736,9 +736,35 @@ const app = new Hono()
       return c.json({ error: "Only the host can finalize" }, 403)
     }
 
-    const { items: clientItems, vatRate, serviceChargeRate, discountAmount } = c.req.valid("json")
+    const body = c.req.valid("json")
 
-    // Clear any existing items/splits for this room (clean slate)
+    // Normalize: convert legacy flat format into a single-section array
+    type SectionInput = {
+      name: string
+      items: { name: string; amount: number; memberIds: string[] }[]
+      vatRate?: number | null
+      serviceChargeRate?: number | null
+      discountAmount?: number | null
+    }
+
+    let sectionInputs: SectionInput[]
+
+    if (body.sections && body.sections.length > 0) {
+      sectionInputs = body.sections
+    } else if (body.items && body.items.length > 0) {
+      // Legacy flat format → wrap in one section
+      sectionInputs = [{
+        name: "",
+        items: body.items,
+        vatRate: body.vatRate,
+        serviceChargeRate: body.serviceChargeRate,
+        discountAmount: body.discountAmount,
+      }]
+    } else {
+      return c.json({ error: "Either items or sections must be provided" }, 400)
+    }
+
+    // Clear any existing data for this room (clean slate)
     const existingItems = await db.query.roomBillItems.findMany({
       where: eq(roomBillItems.roomId, roomId),
     })
@@ -746,72 +772,122 @@ const app = new Hono()
       await db.delete(roomItemSplits).where(eq(roomItemSplits.itemId, item.id))
     }
     await db.delete(roomBillItems).where(eq(roomBillItems.roomId, roomId))
+    await db.delete(roomBillSections).where(eq(roomBillSections.roomId, roomId))
 
-    // Create all items and their splits
-    const createdItems = []
-    for (let i = 0; i < clientItems.length; i++) {
-      const ci = clientItems[i]
-      const [item] = await db.insert(roomBillItems).values({
-        roomId,
-        name: ci.name,
-        amount: ci.amount.toString(),
-        sortOrder: i,
-      }).returning()
+    // Process each section: create DB records, calculate per-section totals
+    // Then merge per-member amounts across all sections
 
-      if (ci.memberIds.length > 0) {
-        await db.insert(roomItemSplits).values(
-          ci.memberIds.map((mId) => ({
-            itemId: item.id,
-            memberId: mId,
-          }))
+    // Accumulate per-member totals across all sections
+    const memberTotalMap = new Map<string, number>()
+    let grandTotal = 0
+
+    for (let si = 0; si < sectionInputs.length; si++) {
+      const sec = sectionInputs[si]
+
+      // Create section record in DB (only if multiple sections or section has a name)
+      let sectionDbId: string | null = null
+      if (sectionInputs.length > 1 || sec.name) {
+        const [dbSection] = await db.insert(roomBillSections).values({
+          roomId,
+          name: sec.name || `Section ${si + 1}`,
+          vatRate: sec.vatRate ? sec.vatRate.toString() : null,
+          serviceChargeRate: sec.serviceChargeRate ? sec.serviceChargeRate.toString() : null,
+          discountAmount: sec.discountAmount ? sec.discountAmount.toString() : null,
+          sortOrder: si,
+        }).returning()
+        sectionDbId = dbSection.id
+      }
+
+      // Create items + splits for this section
+      const createdItems = []
+      for (let i = 0; i < sec.items.length; i++) {
+        const ci = sec.items[i]
+        const [item] = await db.insert(roomBillItems).values({
+          roomId,
+          sectionId: sectionDbId,
+          name: ci.name,
+          amount: ci.amount.toString(),
+          sortOrder: i,
+        }).returning()
+
+        if (ci.memberIds.length > 0) {
+          await db.insert(roomItemSplits).values(
+            ci.memberIds.map((mId) => ({
+              itemId: item.id,
+              memberId: mId,
+            }))
+          )
+        }
+
+        createdItems.push({ ...item, memberIds: ci.memberIds })
+      }
+
+      // Build inputs for calculateSplit() — per section
+      const calcItems = createdItems.map((item) => ({
+        id: item.id,
+        name: item.name,
+        totalPrice: parseFloat(item.amount),
+      }))
+
+      const calcClaims = createdItems.flatMap((item) =>
+        item.memberIds.map((mId) => ({
+          billItemId: item.id,
+          memberId: mId,
+        }))
+      )
+
+      const subtotal = calcItems.reduce((sum, item) => sum + item.totalPrice, 0)
+
+      // Thai ++ convention: subtotal → -discount → +SC → +VAT
+      const discount = sec.discountAmount ?? 0
+      const discountedSubtotal = Math.max(0, subtotal - discount)
+      const scRate = sec.serviceChargeRate ?? 0
+      const vRate = sec.vatRate ?? 0
+      const serviceChargeAmount = discountedSubtotal * scRate
+      const vatAmount = (discountedSubtotal + serviceChargeAmount) * vRate
+      const sectionTotal = discountedSubtotal + serviceChargeAmount + vatAmount
+
+      const calcTotals = {
+        subtotal,
+        discountAmount: discount || null,
+        vatAmount: vatAmount || null,
+        serviceChargeAmount: serviceChargeAmount || null,
+        totalAmount: sectionTotal,
+      }
+
+      const splitMemberIds = [...new Set(calcClaims.map((cl) => cl.memberId))]
+      const splitResult = calculateSplit(calcItems, calcClaims, calcTotals, splitMemberIds)
+
+      // Accumulate per-member totals
+      for (const split of splitResult.splits) {
+        memberTotalMap.set(
+          split.memberId,
+          (memberTotalMap.get(split.memberId) || 0) + split.totalAmount,
         )
       }
 
-      createdItems.push({ ...item, memberIds: ci.memberIds })
+      grandTotal += sectionTotal
     }
 
-    // Build inputs for calculateSplit()
-    const calcItems = createdItems.map((item) => ({
-      id: item.id,
-      name: item.name,
-      totalPrice: parseFloat(item.amount),
-    }))
-
-    const calcClaims = createdItems.flatMap((item) =>
-      item.memberIds.map((mId) => ({
-        billItemId: item.id,
-        memberId: mId,
-      }))
-    )
-
-    const subtotal = calcItems.reduce((sum, item) => sum + item.totalPrice, 0)
-
-    // Apply discount first, then service charge, then VAT (Thai ++ convention)
-    const discount = discountAmount ?? 0
-    const discountedSubtotal = Math.max(0, subtotal - discount)
-    const scRate = serviceChargeRate ?? 0
-    const vRate = vatRate ?? 0
-    const serviceChargeAmount = discountedSubtotal * scRate
-    const vatAmount = (discountedSubtotal + serviceChargeAmount) * vRate
-    const totalAmount = discountedSubtotal + serviceChargeAmount + vatAmount
-
-    const calcTotals = {
-      subtotal,
-      discountAmount: discount || null,
-      vatAmount: vatAmount || null,
-      serviceChargeAmount: serviceChargeAmount || null,
-      totalAmount,
+    // Store room-level rates (use first section's rates for display, or null if multi-section)
+    if (sectionInputs.length === 1) {
+      const sec = sectionInputs[0]
+      const vRate = sec.vatRate ?? 0
+      const scRate = sec.serviceChargeRate ?? 0
+      const discount = sec.discountAmount ?? 0
+      await db.update(rooms).set({
+        vatRate: vRate ? vRate.toString() : null,
+        serviceChargeRate: scRate ? scRate.toString() : null,
+        discountAmount: discount ? discount.toString() : null,
+      }).where(eq(rooms.id, roomId))
+    } else {
+      // Multi-section: clear room-level extras (they're per-section now)
+      await db.update(rooms).set({
+        vatRate: null,
+        serviceChargeRate: null,
+        discountAmount: null,
+      }).where(eq(rooms.id, roomId))
     }
-
-    // Store rates + discount on the room for display later
-    await db.update(rooms).set({
-      vatRate: vRate ? vRate.toString() : null,
-      serviceChargeRate: scRate ? scRate.toString() : null,
-      discountAmount: discount ? discount.toString() : null,
-    }).where(eq(rooms.id, roomId))
-
-    const splitMemberIds = [...new Set(calcClaims.map((cl) => cl.memberId))]
-    const splitResult = calculateSplit(calcItems, calcClaims, calcTotals, splitMemberIds)
 
     // Delete any old payments and create new ones
     await db.delete(roomPayments).where(eq(roomPayments.roomId, roomId))
@@ -821,9 +897,25 @@ const app = new Hono()
       where: and(eq(roomMembers.roomId, roomId), eq(roomMembers.isHost, true)),
     })
 
-    if (splitResult.splits.length > 0) {
+    // Create payment records from merged per-member totals
+    const mergedSplits = Array.from(memberTotalMap.entries()).map(([mId, total]) => ({
+      memberId: mId,
+      totalAmount: Math.floor(total * 100) / 100, // floor to 2 dp
+    }))
+
+    // Rounding correction: assign remainder to last non-host member
+    const flooredSum = mergedSplits.reduce((s, sp) => s + sp.totalAmount, 0)
+    const remainder = Math.round((grandTotal - flooredSum) * 100) / 100
+    if (remainder !== 0 && mergedSplits.length > 0) {
+      const lastNonHost = [...mergedSplits].reverse().find((s) => s.memberId !== hostMember?.id)
+      if (lastNonHost) {
+        lastNonHost.totalAmount = Math.round((lastNonHost.totalAmount + remainder) * 100) / 100
+      }
+    }
+
+    if (mergedSplits.length > 0) {
       await db.insert(roomPayments).values(
-        splitResult.splits.map((split) => ({
+        mergedSplits.map((split) => ({
           roomId,
           memberId: split.memberId,
           amount: split.totalAmount.toFixed(2),
@@ -833,16 +925,13 @@ const app = new Hono()
       )
     }
 
-    // Status stays "splitting" — host still needs to set payment method.
-    // Status advances to "payment" when the host submits the payment page.
-
     // Lock collaborative editing — members can no longer add/edit items
     const room = await db.query.rooms.findFirst({ where: eq(rooms.id, roomId) })
     if (room) {
       notifyPartyKit(room.inviteCode, "bill-finalized", {})
     }
 
-    return c.json({ splits: splitResult.splits, totalAmount })
+    return c.json({ splits: mergedSplits, totalAmount: grandTotal })
   })
 
   // ─── PATCH /rooms/:id/payment-method ─────────

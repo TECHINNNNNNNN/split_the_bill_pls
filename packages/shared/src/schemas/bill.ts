@@ -46,16 +46,30 @@ export const setRoomItemSplitsSchema = z.object({
   memberIds: z.array(z.string().uuid()).min(1),
 })
 
-export const finalizeRoomSchema = z.object({
-  items: z.array(z.object({
-    name: z.string().min(1).max(200),
-    amount: z.number().positive(),
-    memberIds: z.array(z.string().uuid()).min(1),
-  })).min(1),
+const billItemSchema = z.object({
+  name: z.string().min(1).max(200),
+  amount: z.number().positive(),
+  memberIds: z.array(z.string().uuid()).min(1),
+})
+
+const billExtrasSchema = z.object({
   vatRate: z.number().min(0).max(1).nullable().optional(),               // e.g. 0.07 for 7%
   serviceChargeRate: z.number().min(0).max(1).nullable().optional(),     // e.g. 0.10 for 10%
   discountAmount: z.number().min(0).nullable().optional(),               // flat baht amount
 })
+
+export const billSectionSchema = z.object({
+  name: z.string().max(200),
+  items: z.array(billItemSchema).min(1),
+}).merge(billExtrasSchema)
+
+export const finalizeRoomSchema = z.object({
+  // Legacy flat format (used when no sections)
+  items: z.array(billItemSchema).optional(),
+  // New: per-section format — each section has its own items + extras
+  sections: z.array(billSectionSchema).optional(),
+}).merge(billExtrasSchema)
+// Either items or sections must be provided (validated server-side)
 
 export const setRoomPaymentMethodSchema = z.object({
   promptpayId: z.string().min(10).max(13),
@@ -116,6 +130,7 @@ export type CreateRoom = z.infer<typeof createRoomSchema>
 export type JoinRoom = z.infer<typeof joinRoomSchema>
 export type AddRoomItem = z.infer<typeof addRoomItemSchema>
 export type SetRoomItemSplits = z.infer<typeof setRoomItemSplitsSchema>
+export type BillSection = z.infer<typeof billSectionSchema>
 export type FinalizeRoom = z.infer<typeof finalizeRoomSchema>
 export type SetRoomPaymentMethod = z.infer<typeof setRoomPaymentMethodSchema>
 export type ClaimRoomPayment = z.infer<typeof claimRoomPaymentSchema>
