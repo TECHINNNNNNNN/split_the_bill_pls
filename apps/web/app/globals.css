@@ -4,3 +4,17 @@
   --font-body: var(--font-body);
   --font-heading: var(--font-heading);
 }
+
+/* Pointer cursor on all interactive elements */
+@layer base {
+  a,
+  button,
+  [role="button"],
+  input[type="checkbox"],
+  input[type="radio"],
+  select,
+  label:has(input[type="checkbox"]),
+  label:has(input[type="radio"]) {
+    cursor: pointer;
+  }
+}
