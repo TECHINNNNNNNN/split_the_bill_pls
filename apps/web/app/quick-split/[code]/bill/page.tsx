@@ -1,10 +1,11 @@
 "use client";
 
-import { use, useRef, useState } from "react";
+import { use, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useQuery } from "@tanstack/react-query";
 import toast from "react-hot-toast";
 import imageCompression from "browser-image-compression";
+import { calculateSplit } from "@pladuk/shared/utils";
 import { roomQueries } from "@/lib/queries/rooms";
 import { useFinalizeRoom, useScanReceipt } from "@/lib/mutations/rooms";
 import { useBillCollab } from "@/lib/hooks/use-bill-collab";
@@ -590,6 +591,67 @@ export default function BillDetailsPage({
 
   const totalItems = sections.reduce((sum, sec) => sum + sec.items.length, 0);
 
+  // Live split preview — runs calculateSplit per section and merges per-member totals
+  const liveSplits = useMemo(() => {
+    if (totalItems === 0 || members.length === 0) return [];
+
+    const memberTotalMap = new Map<string, number>();
+
+    for (const sec of sections) {
+      if (sec.items.length === 0) continue;
+
+      const calcItems = sec.items.map((item) => ({
+        id: item.id,
+        name: item.name,
+        totalPrice: item.amount,
+      }));
+
+      const calcClaims = sec.items.flatMap((item) =>
+        item.memberIds.map((mId) => ({
+          billItemId: item.id,
+          memberId: mId,
+        }))
+      );
+
+      const subtotal = calcItems.reduce((sum, item) => sum + item.totalPrice, 0);
+      const discount = sec.extras.discountAmount ?? 0;
+      const discountedSubtotal = Math.max(0, subtotal - discount);
+      const scRate = sec.extras.serviceChargeRate ?? 0;
+      const vRate = sec.extras.vatRate ?? 0;
+      const serviceChargeAmount = discountedSubtotal * scRate;
+      const vatAmount = (discountedSubtotal + serviceChargeAmount) * vRate;
+      const sectionTotal = discountedSubtotal + serviceChargeAmount + vatAmount;
+
+      const calcTotals = {
+        subtotal,
+        discountAmount: discount || null,
+        vatAmount: vatAmount || null,
+        serviceChargeAmount: serviceChargeAmount || null,
+        totalAmount: sectionTotal,
+      };
+
+      const splitMemberIds = [...new Set(calcClaims.map((cl) => cl.memberId))];
+      if (splitMemberIds.length === 0) continue;
+
+      const result = calculateSplit(calcItems, calcClaims, calcTotals, splitMemberIds);
+      for (const split of result.splits) {
+        memberTotalMap.set(
+          split.memberId,
+          (memberTotalMap.get(split.memberId) || 0) + split.totalAmount,
+        );
+      }
+    }
+
+    return members
+      .map((m) => ({
+        memberId: m.id,
+        displayName: m.displayName,
+        isHost: (m as { isHost?: boolean }).isHost ?? false,
+        total: memberTotalMap.get(m.id) ?? 0,
+      }))
+      .sort((a, b) => b.total - a.total);
+  }, [sections, members, totalItems]);
+
   const handleFinalize = () => {
     // Validate: every item in every section must have at least 1 person
     for (const sec of sections) {
@@ -796,6 +858,29 @@ export default function BillDetailsPage({
             <p className="mt-1 text-xs text-gray-400">
               {sections.length} sections, {totalItems} items
             </p>
+          </div>
+        )}
+
+        {/* Live split preview per member */}
+        {liveSplits.length > 0 && liveSplits.some((s) => s.total > 0) && (
+          <div className="mt-3 rounded-lg border border-gray-200 px-4 py-3">
+            <p className="mb-2 text-xs font-medium uppercase tracking-wide text-gray-400">
+              Each person pays
+            </p>
+            <div className="flex flex-col gap-1.5">
+              {liveSplits.map((split) => (
+                <div key={split.memberId} className="flex items-center justify-between">
+                  <span className={`text-sm ${split.memberId === currentMemberId ? "font-semibold text-gray-800" : "text-gray-600"}`}>
+                    {split.displayName}
+                    {split.isHost && <span className="ml-1 text-xs text-gray-400">(host)</span>}
+                    {split.memberId === currentMemberId && <span className="ml-1 text-xs text-gray-400">(you)</span>}
+                  </span>
+                  <span className={`text-sm tabular-nums ${split.memberId === currentMemberId ? "font-semibold text-gray-800" : "text-gray-600"}`}>
+                    {split.total > 0 ? `฿${split.total.toFixed(2)}` : "—"}
+                  </span>
+                </div>
+              ))}
+            </div>
           </div>
         )}
 
