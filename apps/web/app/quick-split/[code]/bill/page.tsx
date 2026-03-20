@@ -734,7 +734,7 @@ export default function BillDetailsPage({
         ))}
 
         {/* Add section button (host only, not locked) */}
-        {!isLocked && isHost && (
+        {!isLocked && (
           <button
             type="button"
             onClick={() => addSection("")}
