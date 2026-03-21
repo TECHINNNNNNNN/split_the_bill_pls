@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback, useRef } from "react";
+import { useState, useEffect, useCallback } from "react";
 import type PartySocket from "partysocket";
 
 // ─── Types ───
@@ -63,43 +63,25 @@ export function usePresence(
 ) {
   const [cursors, setCursors] = useState<Map<string, CursorState>>(new Map());
   const [onlineUsers, setOnlineUsers] = useState<PresenceUser[]>([]);
-  const joinedRef = useRef(false);
 
-  // Send presence:join when socket is ready and we have an identity
+  // Send presence:join when socket is ready AND we have a displayName
+  // Re-sends when displayName changes (e.g., room data loads after socket connects)
   useEffect(() => {
-    if (!socket || !currentMemberId || joinedRef.current) return;
+    if (!socket || !currentMemberId || !displayName) return;
 
-    const handleOpen = () => {
-      socket.send(JSON.stringify({
-        type: "presence:join",
-        data: { memberId: currentMemberId, displayName },
-      }));
-      joinedRef.current = true;
+    const sendJoin = () => {
+      if (socket.readyState === WebSocket.OPEN) {
+        socket.send(JSON.stringify({
+          type: "presence:join",
+          data: { memberId: currentMemberId, displayName },
+        }));
+      }
     };
 
-    // If already connected, send immediately
-    if (socket.readyState === WebSocket.OPEN) {
-      handleOpen();
-    }
-    socket.addEventListener("open", handleOpen);
-    return () => {
-      socket.removeEventListener("open", handleOpen);
-    };
-  }, [socket, currentMemberId, displayName]);
-
-  // Re-announce on reconnect
-  useEffect(() => {
-    if (!socket || !currentMemberId) return;
-
-    const handleReopen = () => {
-      socket.send(JSON.stringify({
-        type: "presence:join",
-        data: { memberId: currentMemberId, displayName },
-      }));
-    };
-
-    socket.addEventListener("open", handleReopen);
-    return () => socket.removeEventListener("open", handleReopen);
+    // Send immediately if connected, also re-send on reconnect
+    sendJoin();
+    socket.addEventListener("open", sendJoin);
+    return () => socket.removeEventListener("open", sendJoin);
   }, [socket, currentMemberId, displayName]);
 
   // Listen for incoming presence/cursor messages
