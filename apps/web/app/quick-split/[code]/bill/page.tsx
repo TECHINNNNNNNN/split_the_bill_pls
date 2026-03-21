@@ -9,8 +9,11 @@ import { calculateSplit } from "@pladuk/shared/utils";
 import { roomQueries } from "@/lib/queries/rooms";
 import { useFinalizeRoom, useScanReceipt } from "@/lib/mutations/rooms";
 import { useBillCollab } from "@/lib/hooks/use-bill-collab";
+import { usePresence } from "@/lib/hooks/use-presence";
 import { SectionCard } from "@/components/bill/section-card";
 import { BreakdownModal } from "@/components/bill/breakdown-modal";
+import { LiveCursors } from "@/components/bill/live-cursors";
+import { PresenceAvatars } from "@/components/bill/presence-avatars";
 import type { SectionBreakdown } from "@/components/bill/breakdown-modal";
 
 // ─── Main Page ───
@@ -40,6 +43,7 @@ export default function BillDetailsPage({
 
   // ─── Collaborative editing via PartyKit WebSocket ───
   const {
+    socket,
     sections,
     isLocked,
     addSection,
@@ -60,6 +64,11 @@ export default function BillDetailsPage({
       }
     },
   });
+
+  // ─── Live cursors & presence ───
+  const billContainerRef = useRef<HTMLDivElement>(null);
+  const currentDisplayName = members.find((m) => m.id === currentMemberId)?.displayName ?? "";
+  const { cursors, onlineUsers } = usePresence(socket, billContainerRef, currentMemberId, currentDisplayName);
 
   // Breakdown modal state
   const [showBreakdown, setShowBreakdown] = useState(false);
@@ -289,7 +298,10 @@ export default function BillDetailsPage({
   const singleVat = (singleDiscountedSubtotal + singleServiceCharge) * singleVRate;
 
   return (
-    <div className="flex min-h-svh flex-col px-6 py-6 md:mx-auto md:max-w-lg md:py-12">
+    <div ref={billContainerRef} className="relative flex min-h-svh flex-col px-6 py-6 md:mx-auto md:max-w-lg md:py-12">
+      {/* Live cursors overlay */}
+      <LiveCursors cursors={cursors} members={members} containerRef={billContainerRef} />
+
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
@@ -300,9 +312,12 @@ export default function BillDetailsPage({
           >
             Back
           </button>
-          <h1 className="font-heading text-2xl font-bold text-gray-800 md:text-3xl">
-            Bill Details
-          </h1>
+          <div className="flex items-center gap-3">
+            <h1 className="font-heading text-2xl font-bold text-gray-800 md:text-3xl">
+              Bill Details
+            </h1>
+            <PresenceAvatars onlineUsers={onlineUsers} members={members} currentMemberId={currentMemberId} />
+          </div>
         </div>
         {/* Scan receipt button — only for single-section mode */}
         {!isLocked && !isMultiSection && (

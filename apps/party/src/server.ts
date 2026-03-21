@@ -41,6 +41,10 @@ type ClientMessage =
   | { type: "item:select-all"; data: { itemId: string; sectionId: string; allMemberIds: string[] } }
   | { type: "extras:update"; data: Partial<BillExtras> & { sectionId?: string } }
   | { type: "state:request" }
+  // Presence & cursor messages
+  | { type: "presence:join"; data: { memberId: string; displayName: string } }
+  | { type: "cursor:move"; data: { memberId: string; displayName: string; x: number; y: number } }
+  | { type: "cursor:leave"; data: { memberId: string } }
 
 // ─── Server ───
 
@@ -68,6 +72,8 @@ function createSection(id: string, name: string): CollabSection {
 export default class RoomParty implements Party.Server {
   sections: Map<string, CollabSection> = new Map()
   locked = false
+  // Presence: connection.id → { memberId, displayName }
+  presenceMap: Map<string, { memberId: string; displayName: string }> = new Map()
 
   constructor(readonly room: Party.Room) {}
 
@@ -94,10 +100,28 @@ export default class RoomParty implements Party.Server {
       type: "items:sync",
       data: { sections: this.getSectionsList(), locked: this.locked },
     }))
+    // Send current presence list to the new connection
+    conn.send(JSON.stringify({
+      type: "presence:sync",
+      data: { users: this.getPresenceList() },
+    }))
   }
 
-  // WebSocket messages from clients (collaborative editing)
-  onMessage(message: string) {
+  // Connection closed: clean up presence and notify others
+  onClose(conn: Party.Connection) {
+    const presence = this.presenceMap.get(conn.id)
+    if (presence) {
+      this.presenceMap.delete(conn.id)
+      this.room.broadcast(JSON.stringify({
+        type: "cursor:remove",
+        data: { memberId: presence.memberId },
+      }))
+      this.broadcastPresence()
+    }
+  }
+
+  // WebSocket messages from clients (collaborative editing + presence)
+  onMessage(message: string, sender: Party.Connection) {
     let msg: ClientMessage
     try {
       msg = JSON.parse(message)
@@ -105,7 +129,32 @@ export default class RoomParty implements Party.Server {
       return
     }
 
-    // Reject all mutations when locked
+    // Handle presence/cursor messages (work even when locked)
+    switch (msg.type) {
+      case "presence:join": {
+        const { memberId, displayName } = msg.data
+        this.presenceMap.set(sender.id, { memberId, displayName })
+        this.broadcastPresence()
+        return
+      }
+      case "cursor:move": {
+        // Relay to all EXCEPT sender
+        this.room.broadcast(JSON.stringify({
+          type: "cursor:move",
+          data: msg.data,
+        }), [sender.id])
+        return
+      }
+      case "cursor:leave": {
+        this.room.broadcast(JSON.stringify({
+          type: "cursor:remove",
+          data: { memberId: msg.data.memberId },
+        }), [sender.id])
+        return
+      }
+    }
+
+    // Reject all bill mutations when locked
     if (this.locked && msg.type !== "state:request") return
 
     switch (msg.type) {
@@ -265,6 +314,22 @@ export default class RoomParty implements Party.Server {
     this.room.broadcast(JSON.stringify({
       type: "items:sync",
       data: { sections: this.getSectionsList(), locked: this.locked },
+    }))
+  }
+
+  private getPresenceList(): { memberId: string; displayName: string }[] {
+    // Deduplicate by memberId (same user might have multiple tabs)
+    const unique = new Map<string, { memberId: string; displayName: string }>()
+    for (const presence of this.presenceMap.values()) {
+      unique.set(presence.memberId, presence)
+    }
+    return Array.from(unique.values())
+  }
+
+  private broadcastPresence() {
+    this.room.broadcast(JSON.stringify({
+      type: "presence:sync",
+      data: { users: this.getPresenceList() },
     }))
   }
 }

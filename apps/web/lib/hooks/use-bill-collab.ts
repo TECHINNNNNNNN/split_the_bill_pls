@@ -178,6 +178,7 @@ export function useBillCollab(
   );
 
   return {
+    socket,
     sections,
     isLocked,
     addSection,
