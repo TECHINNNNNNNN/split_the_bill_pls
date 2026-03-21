@@ -73,6 +73,12 @@ export default function HomePage() {
               unoptimized
             />
           )}
+          <Link
+            href="/settings"
+            className="text-sm text-gray-400 hover:text-gray-600"
+          >
+            Settings
+          </Link>
           <button
             onClick={() => signOut()}
             className="text-sm text-gray-400 hover:text-gray-600"
