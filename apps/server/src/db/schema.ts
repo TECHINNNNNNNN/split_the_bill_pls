@@ -256,6 +256,7 @@ export const roomBillSectionsRelations = relations(roomBillSections, ({ one, man
 
 export const roomMembersRelations = relations(roomMembers, ({ one, many }) => ({
   room: one(rooms, { fields: [roomMembers.roomId], references: [rooms.id] }),
+  user: one(user, { fields: [roomMembers.userId], references: [user.id] }),
   itemSplits: many(roomItemSplits),
   payments: many(roomPayments),
 }));

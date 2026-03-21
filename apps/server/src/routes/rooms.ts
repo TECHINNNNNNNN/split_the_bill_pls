@@ -498,7 +498,11 @@ const app = new Hono()
     const room = await db.query.rooms.findFirst({
       where: eq(rooms.id, roomId),
       with: {
-        members: true,
+        members: {
+          with: {
+            user: { columns: { image: true } },
+          },
+        },
         billItems: {
           with: {
             splits: {

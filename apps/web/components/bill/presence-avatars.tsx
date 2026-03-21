@@ -5,7 +5,7 @@ import { getCursorColor } from "@/lib/hooks/use-presence";
 
 interface PresenceAvatarsProps {
   onlineUsers: PresenceUser[];
-  members: { id: string; displayName: string }[];
+  members: { id: string; displayName: string; user?: { image: string | null } | null }[];
   currentMemberId: string;
 }
 
@@ -29,9 +29,22 @@ export function PresenceAvatars({ onlineUsers, members, currentMemberId }: Prese
       {visible.map((user) => {
         const color = getCursorColor(user.memberId, members);
         const isYou = user.memberId === currentMemberId;
+        const member = members.find((m) => m.id === user.memberId);
+        const image = member?.user?.image;
         const initial = user.displayName.charAt(0).toUpperCase();
 
-        return (
+        return image ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img
+            key={user.memberId}
+            src={image}
+            alt={user.displayName}
+            className={`h-5 w-5 rounded-full border-2 border-white object-cover transition-all ${
+              isYou ? "ring-1 ring-gray-800" : ""
+            }`}
+            title={isYou ? `${user.displayName} (you)` : user.displayName}
+          />
+        ) : (
           <div
             key={user.memberId}
             className={`flex h-5 w-5 items-center justify-center rounded-full border-2 border-white text-[8px] font-bold text-white transition-all ${
