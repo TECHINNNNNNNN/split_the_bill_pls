@@ -123,6 +123,24 @@ const app = new Hono()
     return c.json({ balances })
   })
 
+  // ─── GET /settlements/pending ───────────────
+  // Returns claimed settlements where this user is the creditor (needs to confirm/reject)
+  .get("/pending", requireAuth, async (c) => {
+    const currentUser = c.get("user")
+
+    const pending = await db.query.settlements.findMany({
+      where: and(
+        eq(settlements.payeeUserId, currentUser.id),
+        eq(settlements.status, "claimed"),
+      ),
+      with: {
+        payer: true,
+      },
+    })
+
+    return c.json({ pending })
+  })
+
   // ─── GET /settlements/:id ──────────────────
   // Returns settlement details for the detail page
   .get("/:id", requireAuth, async (c) => {

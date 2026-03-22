@@ -47,6 +47,7 @@ export default function HomePage() {
   const { data: myRooms, isLoading: roomsLoading } = useQuery(roomQueries.my());
   const { data: invites, isLoading: invitesLoading } = useQuery(roomQueries.invites());
   const { data: balancesData } = useQuery(settlementQueries.balances());
+  const { data: pendingSettlements } = useQuery(settlementQueries.pending());
   const [showCreateGroup, setShowCreateGroup] = useState(false);
   const [showJoinGroup, setShowJoinGroup] = useState(false);
   const [groupCode, setGroupCode] = useState("");
@@ -101,6 +102,44 @@ export default function HomePage() {
         </div>
         <span className="text-2xl">+</span>
       </Link>
+
+      {/* Pending Settlements (creditor needs to confirm) */}
+      {pendingSettlements?.pending && pendingSettlements.pending.length > 0 && (
+        <section className="mb-6">
+          <h2 className="font-heading mb-3 text-lg font-semibold">Pending Settlements</h2>
+          <div className="space-y-2">
+            {pendingSettlements.pending.map((s) => {
+              const payerName = (s as { payer?: { name?: string } }).payer?.name ?? "Someone";
+              const payerImage = (s as { payer?: { image?: string | null } }).payer?.image;
+              return (
+                <Link
+                  key={s.id}
+                  href={`/settle/detail/${s.id}`}
+                  className="flex items-center justify-between rounded-xl border border-yellow-200 bg-yellow-50 p-3 transition-colors hover:bg-yellow-100"
+                >
+                  <div className="flex items-center gap-3">
+                    {payerImage ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img src={payerImage} alt={payerName} className="h-8 w-8 rounded-full object-cover" />
+                    ) : (
+                      <div className="flex h-8 w-8 items-center justify-center rounded-full bg-yellow-200 text-sm font-bold text-yellow-700">
+                        {payerName.charAt(0).toUpperCase()}
+                      </div>
+                    )}
+                    <div>
+                      <p className="text-sm font-medium text-gray-800">{payerName} claims they&apos;ve paid</p>
+                      <p className="text-xs text-gray-500">Tap to review and confirm</p>
+                    </div>
+                  </div>
+                  <span className="text-sm font-semibold text-yellow-700">
+                    ฿{parseFloat(s.netAmount).toFixed(2)}
+                  </span>
+                </Link>
+              );
+            })}
+          </div>
+        </section>
+      )}
 
       {/* Balances */}
       {balancesData?.balances && balancesData.balances.length > 0 && (
