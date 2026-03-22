@@ -617,29 +617,8 @@ function PaymentTrackingContent({
       )}
 
       {push.isSupported && push.permission === "granted" && (
-        <div className="mt-4 flex items-center justify-between rounded-lg border border-green-200 bg-green-50 px-4 py-2.5">
+        <div className="mt-4 rounded-lg border border-green-200 bg-green-50 px-4 py-2.5">
           <span className="text-sm text-green-700">Reminders enabled</span>
-          {process.env.NODE_ENV === "development" && (
-            <button
-              type="button"
-              onClick={async () => {
-                try {
-                  const res = await fetch(
-                    `${process.env.NEXT_PUBLIC_API_URL}/api/rooms/${roomId}/push-test`,
-                    { method: "POST", credentials: "include" },
-                  );
-                  const data = await res.json();
-                  if (res.ok) alert(`Test sent to ${data.displayName}`);
-                  else alert(`Error: ${data.error}`);
-                } catch (e) {
-                  alert(`Failed: ${e}`);
-                }
-              }}
-              className="rounded bg-green-600 px-2 py-1 text-xs text-white hover:bg-green-700"
-            >
-              Test Push
-            </button>
-          )}
         </div>
       )}
 
