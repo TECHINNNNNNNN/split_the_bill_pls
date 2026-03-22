@@ -1,12 +1,13 @@
 import { Hono } from "hono"
 import { zValidator } from "@hono/zod-validator"
 import { db } from "../db/index.js"
-import { rooms, roomPayments, settlements, settlementPayments } from "../db/schema.js"
+import { rooms, roomMembers, roomPayments, settlements, settlementPayments, user, pushSubscriptions } from "../db/schema.js"
 import { eq, and, or, inArray, sql } from "drizzle-orm"
 import { settleUpSchema } from "@pladuk/shared/schemas"
 import { notifyPartyKit } from "../lib/partykit.js"
 import { verifySlip } from "../lib/verify-slip.js"
 import { requireAuth } from "../lib/middleware.js"
+import { sendPushToMember } from "../lib/push.js"
 
 // ─── Helper: compute net balances for a user ───
 
@@ -23,11 +24,8 @@ interface BalanceEntry {
 }
 
 async function computeBalances(userId: string): Promise<BalanceEntry[]> {
-  // Query all unsettled room payments where this user is involved
-  // (as debtor or as host) in rooms that are in payment/settled status
   const result = await db.execute(sql`
     WITH user_payments AS (
-      -- Payments where this user OWES someone (they are the non-host member)
       SELECT
         rp.id as payment_id,
         rp.amount,
@@ -47,7 +45,6 @@ async function computeBalances(userId: string): Promise<BalanceEntry[]> {
 
       UNION ALL
 
-      -- Payments where someone OWES this user (they are the host)
       SELECT
         rp.id as payment_id,
         rp.amount,
@@ -81,6 +78,7 @@ async function computeBalances(userId: string): Promise<BalanceEntry[]> {
       OR SUM(CASE WHEN up.direction = 'they_owe' THEN up.amount::numeric ELSE 0 END) > 0
   `)
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   return (result.rows as any[]).map((row) => ({
     otherUserId: row.other_user_id,
     otherUserName: row.other_user_name,
@@ -94,21 +92,75 @@ async function computeBalances(userId: string): Promise<BalanceEntry[]> {
   }))
 }
 
+// ─── Helper: send push to a user across all their room subscriptions ───
+
+async function sendPushToUser(userId: string, payload: { title: string; body: string; url: string; tag: string }) {
+  // Find all push subscriptions for this user across rooms
+  const subs = await db.execute(sql`
+    SELECT DISTINCT ps.id, ps.member_id, ps.room_id
+    FROM push_subscriptions ps
+    JOIN room_members rm ON ps.member_id = rm.id
+    WHERE rm.user_id = ${userId}
+    LIMIT 5
+  `)
+
+  // Send to the first subscription found (any room context works for push)
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  for (const row of subs.rows as any[]) {
+    sendPushToMember(row.member_id, row.room_id, payload)
+    break // One push is enough
+  }
+}
+
 // ─── Routes ───
 
 const app = new Hono()
 
   // ─── GET /settlements/balances ──────────────
-  // Returns aggregated net balances for the logged-in user
   .get("/balances", requireAuth, async (c) => {
     const currentUser = c.get("user")
     const balances = await computeBalances(currentUser.id)
     return c.json({ balances })
   })
 
-  // ─── POST /settlements/settle ──────────────
-  // Settle up with another user — confirms all underlying room payments
-  .post("/settle", requireAuth, zValidator("json", settleUpSchema), async (c) => {
+  // ─── GET /settlements/:id ──────────────────
+  // Returns settlement details for the detail page
+  .get("/:id", requireAuth, async (c) => {
+    const currentUser = c.get("user")
+    const settlementId = c.req.param("id")
+
+    const settlement = await db.query.settlements.findFirst({
+      where: eq(settlements.id, settlementId),
+      with: {
+        payer: true,
+        payee: true,
+        payments: {
+          with: {
+            roomPayment: {
+              with: {
+                room: true,
+              },
+            },
+          },
+        },
+      },
+    })
+
+    if (!settlement) {
+      return c.json({ error: "Settlement not found" }, 404)
+    }
+
+    // Only the payer or payee can view
+    if (settlement.payerUserId !== currentUser.id && settlement.payeeUserId !== currentUser.id) {
+      return c.json({ error: "Not authorized" }, 403)
+    }
+
+    return c.json({ settlement, currentUserId: currentUser.id })
+  })
+
+  // ─── POST /settlements/claim ───────────────
+  // Debtor claims they've paid the net amount. Same as "I've Paid" in rooms.
+  .post("/claim", requireAuth, zValidator("json", settleUpSchema), async (c) => {
     const currentUser = c.get("user")
     const { otherUserId, slipImage, transRef, sendingBank } = c.req.valid("json")
 
@@ -116,7 +168,6 @@ const app = new Hono()
       return c.json({ error: "Cannot settle with yourself" }, 400)
     }
 
-    // Compute fresh balance to prevent stale data
     const balances = await computeBalances(currentUser.id)
     const balance = balances.find((b) => b.otherUserId === otherUserId)
 
@@ -124,103 +175,141 @@ const app = new Hono()
       return c.json({ error: "You don't owe this person anything" }, 400)
     }
 
-    // Execute settlement in a transaction
-    const result = await db.transaction(async (tx) => {
-      // Create settlement record
-      const [settlement] = await tx.insert(settlements).values({
-        payerUserId: currentUser.id,
-        payeeUserId: otherUserId,
-        netAmount: balance.netAmount.toFixed(2),
-        status: "pending",
-        slipImageData: slipImage ?? null,
-        slipTransRef: transRef ?? null,
-        slipSendingBank: sendingBank ?? null,
-      }).returning()
+    // Verify slip if QR data provided
+    let slipVerifiedAmount: string | null = null
+    let slipVerifiedAt: Date | null = null
 
-      // Verify slip if provided
-      if (transRef && sendingBank) {
-        try {
-          const verification = await verifySlip({ transRef, sendingBank })
-          if (verification) {
-            await tx.update(settlements).set({
-              slipVerifiedAmount: verification.amount?.toString() ?? null,
-              slipVerifiedAt: new Date(),
-            }).where(eq(settlements.id, settlement.id))
-          }
-        } catch {
-          // Slip verification is best-effort, don't fail the settlement
+    if (transRef && sendingBank) {
+      try {
+        const verifyResult = await verifySlip({ transRef, sendingBank })
+        if (verifyResult) {
+          slipVerifiedAmount = String(verifyResult.amount)
+          slipVerifiedAt = new Date()
         }
+      } catch {
+        // Verification is best-effort
       }
+    }
 
-      // Find all unpaid room payments between these two users
+    // Create settlement record as 'claimed'
+    const [settlement] = await db.insert(settlements).values({
+      payerUserId: currentUser.id,
+      payeeUserId: otherUserId,
+      netAmount: balance.netAmount.toFixed(2),
+      status: "claimed",
+      claimedAt: new Date(),
+      slipImageData: slipImage ?? null,
+      slipTransRef: transRef ?? null,
+      slipSendingBank: sendingBank ?? null,
+      slipVerifiedAmount,
+      slipVerifiedAt,
+    }).returning()
+
+    // Send push notification to creditor
+    sendPushToUser(otherUserId, {
+      title: "PlaDuk — Settlement Claimed",
+      body: `${currentUser.name} claims they've settled ฿${balance.netAmount.toFixed(2)} with you`,
+      url: `/settle/detail/${settlement.id}`,
+      tag: `settlement-claim-${settlement.id}`,
+    })
+
+    return c.json({ settlement }, 201)
+  })
+
+  // ─── PATCH /settlements/:id/confirm ────────
+  // Creditor confirms the settlement. Cascades to all room payments.
+  .patch("/:id/confirm", requireAuth, async (c) => {
+    const currentUser = c.get("user")
+    const settlementId = c.req.param("id")
+
+    const settlement = await db.query.settlements.findFirst({
+      where: eq(settlements.id, settlementId),
+    })
+
+    if (!settlement) {
+      return c.json({ error: "Settlement not found" }, 404)
+    }
+
+    // Only the payee (creditor) can confirm
+    if (settlement.payeeUserId !== currentUser.id) {
+      return c.json({ error: "Only the creditor can confirm" }, 403)
+    }
+
+    if (settlement.status !== "claimed") {
+      return c.json({ error: "Settlement must be claimed before confirming" }, 400)
+    }
+
+    await db.transaction(async (tx) => {
       const now = new Date()
 
-      // 1. Payments where current user owes the other user (other is host)
-      const iOwePayments = await tx.execute(sql`
-        SELECT rp.id, rp.room_id
+      // Update settlement status
+      await tx.update(settlements).set({
+        status: "confirmed",
+        confirmedAt: now,
+      }).where(eq(settlements.id, settlementId))
+
+      // Find and confirm all unpaid/claimed room payments between these two users
+      // 1. Debtor owes creditor (debtor is non-host, creditor is host)
+      const debtorPayments = await tx.execute(sql`
+        SELECT rp.id, rp.room_id, r.invite_code
         FROM room_payments rp
         JOIN room_members rm ON rp.member_id = rm.id
         JOIN rooms r ON rp.room_id = r.id
         JOIN room_members rm_host ON r.id = rm_host.room_id AND rm_host.is_host = true
-        WHERE rm.user_id = ${currentUser.id}
+        WHERE rm.user_id = ${settlement.payerUserId}
           AND rm.is_host = false
-          AND rm_host.user_id = ${otherUserId}
+          AND rm_host.user_id = ${settlement.payeeUserId}
           AND rp.status IN ('unpaid', 'claimed')
           AND r.status IN ('payment', 'settled')
       `)
 
-      // 2. Payments where the other user owes current user (current is host)
-      const theyOwePayments = await tx.execute(sql`
-        SELECT rp.id, rp.room_id
+      // 2. Creditor owes debtor (creditor is non-host, debtor is host)
+      const creditorPayments = await tx.execute(sql`
+        SELECT rp.id, rp.room_id, r.invite_code
         FROM room_payments rp
         JOIN room_members rm ON rp.member_id = rm.id
         JOIN rooms r ON rp.room_id = r.id
         JOIN room_members rm_host ON r.id = rm_host.room_id AND rm_host.is_host = true
-        WHERE rm.user_id = ${otherUserId}
+        WHERE rm.user_id = ${settlement.payeeUserId}
           AND rm.is_host = false
-          AND rm_host.user_id = ${currentUser.id}
+          AND rm_host.user_id = ${settlement.payerUserId}
           AND rp.status IN ('unpaid', 'claimed')
           AND r.status IN ('payment', 'settled')
       `)
 
       const allPaymentIds: string[] = []
-      const affectedRoomIds = new Set<string>()
+      const affectedRooms: { id: string; inviteCode: string }[] = []
+      const seenRooms = new Set<string>()
 
-      for (const row of iOwePayments.rows as any[]) {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      for (const row of [...debtorPayments.rows, ...creditorPayments.rows] as any[]) {
         allPaymentIds.push(row.id)
-        affectedRoomIds.add(row.room_id)
-      }
-      for (const row of theyOwePayments.rows as any[]) {
-        allPaymentIds.push(row.id)
-        affectedRoomIds.add(row.room_id)
+        if (!seenRooms.has(row.room_id)) {
+          seenRooms.add(row.room_id)
+          affectedRooms.push({ id: row.room_id, inviteCode: row.invite_code })
+        }
       }
 
-      // Confirm all these payments
+      // Confirm all room payments
       if (allPaymentIds.length > 0) {
         await tx.update(roomPayments)
           .set({ status: "confirmed", confirmedAt: now })
           .where(inArray(roomPayments.id, allPaymentIds))
 
-        // Create settlement_payments join records
+        // Create audit trail
         await tx.insert(settlementPayments).values(
           allPaymentIds.map((paymentId) => ({
-            settlementId: settlement.id,
+            settlementId,
             roomPaymentId: paymentId,
           }))
         )
       }
 
-      // Mark settlement as completed
-      await tx.update(settlements).set({
-        status: "completed",
-        completedAt: now,
-      }).where(eq(settlements.id, settlement.id))
-
       // Auto-settle rooms where all payments are now confirmed
-      for (const roomId of affectedRoomIds) {
-        const unpaidInRoom = await tx.query.roomPayments.findFirst({
+      for (const room of affectedRooms) {
+        const unpaid = await tx.query.roomPayments.findFirst({
           where: and(
-            eq(roomPayments.roomId, roomId),
+            eq(roomPayments.roomId, room.id),
             or(
               eq(roomPayments.status, "unpaid"),
               eq(roomPayments.status, "claimed"),
@@ -228,28 +317,70 @@ const app = new Hono()
           ),
         })
 
-        if (!unpaidInRoom) {
-          // All payments confirmed — advance room to settled
-          const [room] = await tx.update(rooms)
+        if (!unpaid) {
+          await tx.update(rooms)
             .set({ status: "settled" })
-            .where(eq(rooms.id, roomId))
-            .returning()
-
-          if (room) {
-            notifyPartyKit(room.inviteCode, "status-changed", { status: "settled" })
-          }
+            .where(eq(rooms.id, room.id))
+          notifyPartyKit(room.inviteCode, "status-changed", { status: "settled" })
         }
-      }
 
-      return {
-        settlementId: settlement.id,
-        confirmedPayments: allPaymentIds.length,
-        affectedRooms: affectedRoomIds.size,
-        netAmount: balance.netAmount,
+        // Notify tracking pages
+        notifyPartyKit(room.inviteCode, "payment-toggled", {})
       }
     })
 
-    return c.json(result, 201)
+    // Notify debtor
+    sendPushToUser(settlement.payerUserId, {
+      title: "PlaDuk — Settlement Confirmed!",
+      body: `${currentUser.name} confirmed your ฿${parseFloat(settlement.netAmount).toFixed(2)} settlement`,
+      url: "/home",
+      tag: `settlement-confirmed-${settlementId}`,
+    })
+
+    return c.json({ success: true })
+  })
+
+  // ─── PATCH /settlements/:id/reject ─────────
+  // Creditor rejects the settlement. Debtor can re-claim.
+  .patch("/:id/reject", requireAuth, async (c) => {
+    const currentUser = c.get("user")
+    const settlementId = c.req.param("id")
+
+    const settlement = await db.query.settlements.findFirst({
+      where: eq(settlements.id, settlementId),
+    })
+
+    if (!settlement) {
+      return c.json({ error: "Settlement not found" }, 404)
+    }
+
+    if (settlement.payeeUserId !== currentUser.id) {
+      return c.json({ error: "Only the creditor can reject" }, 403)
+    }
+
+    if (settlement.status !== "claimed") {
+      return c.json({ error: "Can only reject claimed settlements" }, 400)
+    }
+
+    await db.update(settlements).set({
+      status: "rejected",
+      rejectedAt: new Date(),
+      slipImageData: null,
+      slipTransRef: null,
+      slipSendingBank: null,
+      slipVerifiedAmount: null,
+      slipVerifiedAt: null,
+    }).where(eq(settlements.id, settlementId))
+
+    // Notify debtor
+    sendPushToUser(settlement.payerUserId, {
+      title: "PlaDuk — Settlement Rejected",
+      body: `${currentUser.name} rejected your settlement claim`,
+      url: `/settle/${currentUser.id}`,
+      tag: `settlement-rejected-${settlementId}`,
+    })
+
+    return c.json({ success: true })
   })
 
 export default app
