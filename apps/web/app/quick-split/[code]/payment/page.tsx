@@ -4,6 +4,7 @@ import { use, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useQuery } from "@tanstack/react-query";
 import toast from "react-hot-toast";
+import { useSession } from "@/lib/auth-client";
 import { roomQueries } from "@/lib/queries/rooms";
 import { useSetPaymentMethod, useAdvanceRoomStatus } from "@/lib/mutations/rooms";
 
@@ -31,8 +32,14 @@ export default function PaymentMethodPage({
   const setPaymentMethod = useSetPaymentMethod(roomId);
   const advanceStatus = useAdvanceRoomStatus(roomId);
 
+  const { data: session } = useSession();
+  const userPromptpayId = (session?.user as { promptpayId?: string | null })?.promptpayId ?? "";
+
   const [activeTab, setActiveTab] = useState<PaymentTab>("promptpay");
   const [promptpayId, setPromptpayId] = useState("");
+
+  // Use profile PromptPay ID as default if user hasn't typed anything yet
+  const displayPromptpayId = promptpayId || userPromptpayId;
 
   const total = payments.reduce((sum, p) => sum + parseFloat(p.amount), 0);
 
