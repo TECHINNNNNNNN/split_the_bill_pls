@@ -7,7 +7,7 @@ import { QRCodeSVG } from "qrcode.react";
 import { anyId } from "promptparse/generate";
 import toast from "react-hot-toast";
 import { settlementQueries } from "@/lib/queries/settlements";
-import { useSettleUp } from "@/lib/mutations/settlements";
+import { useClaimSettlement } from "@/lib/mutations/settlements";
 import { useSlipScanner } from "@/lib/hooks/use-slip-scanner";
 import type { SlipScanOutput } from "@/lib/hooks/use-slip-scanner";
 
@@ -21,7 +21,7 @@ export default function SettlePage({
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const { data: balancesData, isLoading } = useQuery(settlementQueries.balances());
-  const settleUp = useSettleUp();
+  const claimSettlement = useClaimSettlement();
   const slipScanner = useSlipScanner();
 
   const [slipPreview, setSlipPreview] = useState<string | null>(null);
@@ -78,13 +78,13 @@ export default function SettlePage({
   const handleSettle = async () => {
     setSettling(true);
     try {
-      await settleUp.mutateAsync({
+      await claimSettlement.mutateAsync({
         otherUserId,
         slipImage: slipPreview ?? undefined,
         transRef: scanResult?.slipData?.transRef ?? undefined,
         sendingBank: scanResult?.slipData?.sendingBank ?? undefined,
       });
-      toast.success(`Settled ฿${balance.netAmount.toFixed(2)} with ${balance.otherUserName}!`);
+      toast.success(`Payment claimed! Waiting for ${balance.otherUserName} to confirm.`);
       router.push("/home");
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Settlement failed");
@@ -234,8 +234,8 @@ export default function SettlePage({
         className="rounded-full bg-gray-800 px-8 py-3 text-sm font-medium text-white transition-colors hover:bg-gray-700 disabled:opacity-40"
       >
         {settling
-          ? "Settling..."
-          : `Settle ฿${balance.netAmount.toFixed(2)} with ${balance.otherUserName}`}
+          ? "Claiming..."
+          : `I've Paid ฿${balance.netAmount.toFixed(2)}`}
       </button>
     </div>
   );

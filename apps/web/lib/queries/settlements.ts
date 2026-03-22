@@ -13,4 +13,14 @@ export const settlementQueries = {
       staleTime: 0,
       refetchOnMount: "always" as const,
     }),
+  detail: (id: string) =>
+    queryOptions({
+      queryKey: ["settlements", id],
+      queryFn: async () => {
+        const res = await api.api.settlements[":id"].$get({ param: { id } });
+        if (!res.ok) throw new Error("Failed to fetch settlement");
+        return res.json();
+      },
+      enabled: !!id,
+    }),
 };
