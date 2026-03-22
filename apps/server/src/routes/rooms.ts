@@ -344,9 +344,10 @@ const app = new Hono()
   // A friend joins the room by entering their name.
   // Sets a cookie so we know who they are.
   // Notifies all SSE listeners so the lobby updates instantly.
-  .post("/code/:code/join", zValidator("json", joinRoomSchema), async (c) => {
+  .post("/code/:code/join", optionalAuth, zValidator("json", joinRoomSchema), async (c) => {
     const code = c.req.param("code")
     const { displayName } = c.req.valid("json")
+    const authUser = c.get("user")
 
     const room = await db.query.rooms.findFirst({
       where: eq(rooms.inviteCode, code),
@@ -378,6 +379,7 @@ const app = new Hono()
       roomId: room.id,
       displayName,
       isHost: false,
+      userId: authUser?.id ?? null,
     }).returning()
 
     setMemberCookie(c, room.id, member.id)
