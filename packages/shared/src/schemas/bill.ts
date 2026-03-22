@@ -139,3 +139,14 @@ export type ScanReceipt = z.infer<typeof scanReceiptSchema>
 export type ScanReceiptResponse = z.infer<typeof scanReceiptResponseSchema>
 export type PushSubscribe = z.infer<typeof pushSubscribeSchema>
 export type LineLink = z.infer<typeof lineLinkSchema>
+
+// ─── Settlements ────────────────────────────
+
+export const settleUpSchema = z.object({
+  otherUserId: z.string().min(1),
+  slipImage: z.string().optional(),
+  transRef: z.string().optional(),
+  sendingBank: z.string().optional(),
+})
+
+export type SettleUp = z.infer<typeof settleUpSchema>

@@ -217,6 +217,41 @@ export const roomPayments = pgTable("room_payments", {
 });
 
 // ════════════════════════════════════════════
+// Settlements (cross-room debt netting)
+// ════════════════════════════════════════════
+
+export const settlementStatusEnum = pgEnum("settlement_status", ["pending", "completed", "failed"]);
+
+export const settlements = pgTable("settlements", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  payerUserId: text("payer_user_id")
+    .references(() => user.id, { onDelete: "cascade" })
+    .notNull(),
+  payeeUserId: text("payee_user_id")
+    .references(() => user.id, { onDelete: "cascade" })
+    .notNull(),
+  netAmount: numeric("net_amount", { precision: 10, scale: 2 }).notNull(),
+  status: settlementStatusEnum("status").default("pending").notNull(),
+  slipImageData: text("slip_image_data"),
+  slipTransRef: text("slip_trans_ref"),
+  slipSendingBank: text("slip_sending_bank"),
+  slipVerifiedAmount: numeric("slip_verified_amount", { precision: 10, scale: 2 }),
+  slipVerifiedAt: timestamp("slip_verified_at", { withTimezone: true }),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  completedAt: timestamp("completed_at", { withTimezone: true }),
+});
+
+export const settlementPayments = pgTable("settlement_payments", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  settlementId: uuid("settlement_id")
+    .references(() => settlements.id, { onDelete: "cascade" })
+    .notNull(),
+  roomPaymentId: uuid("room_payment_id")
+    .references(() => roomPayments.id, { onDelete: "cascade" })
+    .notNull(),
+});
+
+// ════════════════════════════════════════════
 // Drizzle Relations (for relational query builder)
 // ════════════════════════════════════════════
 
@@ -292,4 +327,17 @@ export const pushSubscriptionsRelations = relations(pushSubscriptions, ({ one })
 
 export const pushNotificationLogRelations = relations(pushNotificationLog, ({ one }) => ({
   payment: one(roomPayments, { fields: [pushNotificationLog.paymentId], references: [roomPayments.id] }),
+}));
+
+// ── Settlement Relations ──
+
+export const settlementsRelations = relations(settlements, ({ one, many }) => ({
+  payer: one(user, { fields: [settlements.payerUserId], references: [user.id], relationName: "settlementsPaid" }),
+  payee: one(user, { fields: [settlements.payeeUserId], references: [user.id], relationName: "settlementsReceived" }),
+  payments: many(settlementPayments),
+}));
+
+export const settlementPaymentsRelations = relations(settlementPayments, ({ one }) => ({
+  settlement: one(settlements, { fields: [settlementPayments.settlementId], references: [settlements.id] }),
+  roomPayment: one(roomPayments, { fields: [settlementPayments.roomPaymentId], references: [roomPayments.id] }),
 }));
