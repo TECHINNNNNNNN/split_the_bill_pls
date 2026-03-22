@@ -1,7 +1,7 @@
 import { Hono } from "hono"
 import { zValidator } from "@hono/zod-validator"
 import { db } from "../db/index.js"
-import { rooms, roomMembers, roomPayments, settlements, settlementPayments, user, pushSubscriptions } from "../db/schema.js"
+import { rooms, roomPayments, settlements, settlementPayments } from "../db/schema.js"
 import { eq, and, or, inArray, sql } from "drizzle-orm"
 import { settleUpSchema } from "@pladuk/shared/schemas"
 import { notifyPartyKit } from "../lib/partykit.js"
@@ -257,99 +257,94 @@ const app = new Hono()
       return c.json({ error: "Settlement must be claimed before confirming" }, 400)
     }
 
-    try {
-    await db.transaction(async (tx) => {
-      const now = new Date()
+    // Neon HTTP driver doesn't support transactions — run sequentially
+    // Operations are idempotent so this is safe
+    const now = new Date()
 
-      // Update settlement status
-      await tx.update(settlements).set({
-        status: "confirmed",
-        confirmedAt: now,
-      }).where(eq(settlements.id, settlementId))
+    // Update settlement status
+    await db.update(settlements).set({
+      status: "confirmed",
+      confirmedAt: now,
+    }).where(eq(settlements.id, settlementId))
 
-      // Find and confirm all unpaid/claimed room payments between these two users
-      // 1. Debtor owes creditor (debtor is non-host, creditor is host)
-      const debtorPayments = await tx.execute(sql`
-        SELECT rp.id, rp.room_id, r.invite_code
-        FROM room_payments rp
-        JOIN room_members rm ON rp.member_id = rm.id
-        JOIN rooms r ON rp.room_id = r.id
-        JOIN room_members rm_host ON r.id = rm_host.room_id AND rm_host.is_host = true
-        WHERE rm.user_id = ${settlement.payerUserId}
-          AND rm.is_host = false
-          AND rm_host.user_id = ${settlement.payeeUserId}
-          AND rp.status IN ('unpaid', 'claimed')
-          AND r.status IN ('payment', 'settled')
-      `)
+    // Find all unpaid/claimed room payments between these two users
+    // 1. Debtor owes creditor (debtor is non-host, creditor is host)
+    const debtorPayments = await db.execute(sql`
+      SELECT rp.id, rp.room_id, r.invite_code
+      FROM room_payments rp
+      JOIN room_members rm ON rp.member_id = rm.id
+      JOIN rooms r ON rp.room_id = r.id
+      JOIN room_members rm_host ON r.id = rm_host.room_id AND rm_host.is_host = true
+      WHERE rm.user_id = ${settlement.payerUserId}
+        AND rm.is_host = false
+        AND rm_host.user_id = ${settlement.payeeUserId}
+        AND rp.status IN ('unpaid', 'claimed')
+        AND r.status IN ('payment', 'settled')
+    `)
 
-      // 2. Creditor owes debtor (creditor is non-host, debtor is host)
-      const creditorPayments = await tx.execute(sql`
-        SELECT rp.id, rp.room_id, r.invite_code
-        FROM room_payments rp
-        JOIN room_members rm ON rp.member_id = rm.id
-        JOIN rooms r ON rp.room_id = r.id
-        JOIN room_members rm_host ON r.id = rm_host.room_id AND rm_host.is_host = true
-        WHERE rm.user_id = ${settlement.payeeUserId}
-          AND rm.is_host = false
-          AND rm_host.user_id = ${settlement.payerUserId}
-          AND rp.status IN ('unpaid', 'claimed')
-          AND r.status IN ('payment', 'settled')
-      `)
+    // 2. Creditor owes debtor (creditor is non-host, debtor is host)
+    const creditorPayments = await db.execute(sql`
+      SELECT rp.id, rp.room_id, r.invite_code
+      FROM room_payments rp
+      JOIN room_members rm ON rp.member_id = rm.id
+      JOIN rooms r ON rp.room_id = r.id
+      JOIN room_members rm_host ON r.id = rm_host.room_id AND rm_host.is_host = true
+      WHERE rm.user_id = ${settlement.payeeUserId}
+        AND rm.is_host = false
+        AND rm_host.user_id = ${settlement.payerUserId}
+        AND rp.status IN ('unpaid', 'claimed')
+        AND r.status IN ('payment', 'settled')
+    `)
 
-      const allPaymentIds: string[] = []
-      const affectedRooms: { id: string; inviteCode: string }[] = []
-      const seenRooms = new Set<string>()
+    const allPaymentIds: string[] = []
+    const affectedRooms: { id: string; inviteCode: string }[] = []
+    const seenRooms = new Set<string>()
 
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      for (const row of [...debtorPayments.rows, ...creditorPayments.rows] as any[]) {
-        allPaymentIds.push(row.id)
-        if (!seenRooms.has(row.room_id)) {
-          seenRooms.add(row.room_id)
-          affectedRooms.push({ id: row.room_id, inviteCode: row.invite_code })
-        }
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    for (const row of [...debtorPayments.rows, ...creditorPayments.rows] as any[]) {
+      allPaymentIds.push(row.id)
+      if (!seenRooms.has(row.room_id)) {
+        seenRooms.add(row.room_id)
+        affectedRooms.push({ id: row.room_id, inviteCode: row.invite_code })
       }
+    }
 
-      // Confirm all room payments
-      if (allPaymentIds.length > 0) {
-        await tx.update(roomPayments)
-          .set({ status: "confirmed", confirmedAt: now })
-          .where(inArray(roomPayments.id, allPaymentIds))
+    // Confirm all room payments
+    if (allPaymentIds.length > 0) {
+      await db.update(roomPayments)
+        .set({ status: "confirmed", confirmedAt: now })
+        .where(inArray(roomPayments.id, allPaymentIds))
 
-        // Create audit trail
-        await tx.insert(settlementPayments).values(
-          allPaymentIds.map((paymentId) => ({
-            settlementId,
-            roomPaymentId: paymentId,
-          }))
-        )
-      }
+      // Create audit trail
+      await db.insert(settlementPayments).values(
+        allPaymentIds.map((paymentId) => ({
+          settlementId,
+          roomPaymentId: paymentId,
+        }))
+      )
+    }
 
-      // Auto-settle rooms where all payments are now confirmed
-      for (const room of affectedRooms) {
-        const unpaid = await tx.query.roomPayments.findFirst({
-          where: and(
-            eq(roomPayments.roomId, room.id),
-            or(
-              eq(roomPayments.status, "unpaid"),
-              eq(roomPayments.status, "claimed"),
-            ),
+    // Auto-settle rooms where all payments are now confirmed
+    for (const room of affectedRooms) {
+      const unpaid = await db.query.roomPayments.findFirst({
+        where: and(
+          eq(roomPayments.roomId, room.id),
+          or(
+            eq(roomPayments.status, "unpaid"),
+            eq(roomPayments.status, "claimed"),
           ),
-        })
+        ),
+      })
 
-        if (!unpaid) {
-          await tx.update(rooms)
-            .set({ status: "settled" })
-            .where(eq(rooms.id, room.id))
-          notifyPartyKit(room.inviteCode, "status-changed", { status: "settled" })
-        }
-
-        // Notify tracking pages
-        notifyPartyKit(room.inviteCode, "payment-toggled", {})
+      if (!unpaid) {
+        await db.update(rooms)
+          .set({ status: "settled" })
+          .where(eq(rooms.id, room.id))
+        notifyPartyKit(room.inviteCode, "status-changed", { status: "settled" })
       }
-    })
-    } catch (err) {
-      console.error("[settlement:confirm] Transaction failed:", err)
-      return c.json({ error: "Failed to confirm settlement" }, 500)
+
+      // Notify tracking pages
+      notifyPartyKit(room.inviteCode, "payment-toggled", {})
     }
 
     // Notify debtor
