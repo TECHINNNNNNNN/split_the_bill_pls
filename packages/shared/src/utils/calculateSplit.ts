@@ -133,9 +133,9 @@ export function calculateSplit(
 
     if (i === memberIds.length - 1) {
       // Last person absorbs rounding remainder
-      totalAmount = totals.totalAmount - runningTotal
+      totalAmount = Math.max(0, totals.totalAmount - runningTotal)
     } else {
-      totalAmount = Math.floor((itemsSubtotal - discountShare + serviceChargeShare + vatShare) * 100) / 100
+      totalAmount = Math.max(0, Math.floor((itemsSubtotal - discountShare + serviceChargeShare + vatShare) * 100) / 100)
       runningTotal += totalAmount
     }
 
