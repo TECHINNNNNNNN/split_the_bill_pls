@@ -220,7 +220,7 @@ export const roomPayments = pgTable("room_payments", {
 // Settlements (cross-room debt netting)
 // ════════════════════════════════════════════
 
-export const settlementStatusEnum = pgEnum("settlement_status", ["pending", "completed", "failed"]);
+export const settlementStatusEnum = pgEnum("settlement_status", ["pending", "claimed", "confirmed", "rejected"]);
 
 export const settlements = pgTable("settlements", {
   id: uuid("id").primaryKey().defaultRandom(),
@@ -237,8 +237,10 @@ export const settlements = pgTable("settlements", {
   slipSendingBank: text("slip_sending_bank"),
   slipVerifiedAmount: numeric("slip_verified_amount", { precision: 10, scale: 2 }),
   slipVerifiedAt: timestamp("slip_verified_at", { withTimezone: true }),
+  claimedAt: timestamp("claimed_at", { withTimezone: true }),
+  confirmedAt: timestamp("confirmed_at", { withTimezone: true }),
+  rejectedAt: timestamp("rejected_at", { withTimezone: true }),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
-  completedAt: timestamp("completed_at", { withTimezone: true }),
 });
 
 export const settlementPayments = pgTable("settlement_payments", {
