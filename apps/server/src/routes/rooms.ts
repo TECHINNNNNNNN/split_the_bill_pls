@@ -344,9 +344,10 @@ const app = new Hono()
   // A friend joins the room by entering their name.
   // Sets a cookie so we know who they are.
   // Notifies all SSE listeners so the lobby updates instantly.
-  .post("/code/:code/join", zValidator("json", joinRoomSchema), async (c) => {
+  .post("/code/:code/join", optionalAuth, zValidator("json", joinRoomSchema), async (c) => {
     const code = c.req.param("code")
     const { displayName } = c.req.valid("json")
+    const authUser = c.get("user")
 
     const room = await db.query.rooms.findFirst({
       where: eq(rooms.inviteCode, code),
@@ -378,6 +379,7 @@ const app = new Hono()
       roomId: room.id,
       displayName,
       isHost: false,
+      userId: authUser?.id ?? null,
     }).returning()
 
     setMemberCookie(c, room.id, member.id)
@@ -1394,29 +1396,6 @@ const app = new Hono()
 
       return c.json({ success: true, nudgedCount })
     }
-  })
-
-  // ─── POST /rooms/:id/push-test
-  // DEV ONLY: Send a test push notification to the current member.
-  .post("/:id/push-test", optionalAuth, async (c) => {
-    const roomId = c.req.param("id")
-    const memberId = await resolveMemberId(c, roomId)
-
-    const member = await verifyRoomMember(roomId, memberId)
-    if (!member) {
-      return c.json({ error: "Not a member of this room" }, 403)
-    }
-
-    const room = await db.query.rooms.findFirst({ where: eq(rooms.id, roomId) })
-
-    sendPushToMember(member.id, roomId, {
-      title: "PlaDuk Test",
-      body: `This is a test notification for ${member.displayName}`,
-      url: `/quick-split/${room?.inviteCode ?? ""}/tracking`,
-      tag: "test",
-    })
-
-    return c.json({ success: true, memberId: member.id, displayName: member.displayName })
   })
 
 export default app

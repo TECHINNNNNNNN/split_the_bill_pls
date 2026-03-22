@@ -6,6 +6,7 @@ import { useQuery } from "@tanstack/react-query";
 import { groupQueries } from "@/lib/queries/groups";
 import { roomQueries } from "@/lib/queries/rooms";
 import { useAcceptInvite, useDeclineInvite } from "@/lib/mutations/rooms";
+import { settlementQueries } from "@/lib/queries/settlements";
 import { useUserSocket } from "@/lib/hooks/use-user-socket";
 import { CreateGroupDialog } from "@/components/groups/create-group-dialog";
 import Image from "next/image";
@@ -45,6 +46,8 @@ export default function HomePage() {
   const { data: groups, isLoading: groupsLoading } = useQuery(groupQueries.all());
   const { data: myRooms, isLoading: roomsLoading } = useQuery(roomQueries.my());
   const { data: invites, isLoading: invitesLoading } = useQuery(roomQueries.invites());
+  const { data: balancesData } = useQuery(settlementQueries.balances());
+  const { data: pendingSettlements } = useQuery(settlementQueries.pending());
   const [showCreateGroup, setShowCreateGroup] = useState(false);
   const [showJoinGroup, setShowJoinGroup] = useState(false);
   const [groupCode, setGroupCode] = useState("");
@@ -73,6 +76,12 @@ export default function HomePage() {
               unoptimized
             />
           )}
+          <Link
+            href="/settings"
+            className="text-sm text-gray-400 hover:text-gray-600"
+          >
+            Settings
+          </Link>
           <button
             onClick={() => signOut()}
             className="text-sm text-gray-400 hover:text-gray-600"
@@ -93,6 +102,98 @@ export default function HomePage() {
         </div>
         <span className="text-2xl">+</span>
       </Link>
+
+      {/* Pending Settlements (creditor needs to confirm) */}
+      {pendingSettlements?.pending && pendingSettlements.pending.length > 0 && (
+        <section className="mb-6">
+          <h2 className="font-heading mb-3 text-lg font-semibold">Pending Settlements</h2>
+          <div className="space-y-2">
+            {pendingSettlements.pending.map((s) => {
+              const payerName = (s as { payer?: { name?: string } }).payer?.name ?? "Someone";
+              const payerImage = (s as { payer?: { image?: string | null } }).payer?.image;
+              return (
+                <Link
+                  key={s.id}
+                  href={`/settle/detail/${s.id}`}
+                  className="flex items-center justify-between rounded-xl border border-yellow-200 bg-yellow-50 p-3 transition-colors hover:bg-yellow-100"
+                >
+                  <div className="flex items-center gap-3">
+                    {payerImage ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img src={payerImage} alt={payerName} className="h-8 w-8 rounded-full object-cover" />
+                    ) : (
+                      <div className="flex h-8 w-8 items-center justify-center rounded-full bg-yellow-200 text-sm font-bold text-yellow-700">
+                        {payerName.charAt(0).toUpperCase()}
+                      </div>
+                    )}
+                    <div>
+                      <p className="text-sm font-medium text-gray-800">{payerName} claims they&apos;ve paid</p>
+                      <p className="text-xs text-gray-500">Tap to review and confirm</p>
+                    </div>
+                  </div>
+                  <span className="text-sm font-semibold text-yellow-700">
+                    ฿{parseFloat(s.netAmount).toFixed(2)}
+                  </span>
+                </Link>
+              );
+            })}
+          </div>
+        </section>
+      )}
+
+      {/* Balances */}
+      {balancesData?.balances && balancesData.balances.length > 0 && (
+        <section className="mb-6">
+          <h2 className="font-heading mb-3 text-lg font-semibold">Your Balances</h2>
+          <div className="space-y-2">
+            {balancesData.balances.map((balance) => {
+              const isPositive = balance.netAmount > 0;
+              return (
+                <div
+                  key={balance.otherUserId}
+                  className="flex items-center justify-between rounded-xl border border-gray-200 p-3"
+                >
+                  <div className="flex items-center gap-3">
+                    {balance.otherUserImage ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img
+                        src={balance.otherUserImage}
+                        alt={balance.otherUserName}
+                        className="h-8 w-8 rounded-full object-cover"
+                      />
+                    ) : (
+                      <div className="flex h-8 w-8 items-center justify-center rounded-full bg-gray-200 text-sm font-bold text-gray-500">
+                        {balance.otherUserName.charAt(0).toUpperCase()}
+                      </div>
+                    )}
+                    <div>
+                      <p className="text-sm font-medium text-gray-800">{balance.otherUserName}</p>
+                      <p className="text-xs text-gray-400">
+                        {balance.roomCount} room{balance.roomCount > 1 ? "s" : ""}
+                      </p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <div className="text-right">
+                      <p className={`text-sm font-semibold ${isPositive ? "text-red-500" : "text-green-600"}`}>
+                        {isPositive ? `You owe ฿${balance.netAmount.toFixed(2)}` : `Owes you ฿${Math.abs(balance.netAmount).toFixed(2)}`}
+                      </p>
+                    </div>
+                    {isPositive && (
+                      <Link
+                        href={`/settle/${balance.otherUserId}`}
+                        className="rounded-full bg-gray-800 px-3 py-1.5 text-xs font-medium text-white transition-colors hover:bg-gray-700"
+                      >
+                        Settle
+                      </Link>
+                    )}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </section>
+      )}
 
       {/* Pending Invites */}
       {!invitesLoading && invites && invites.length > 0 && (
