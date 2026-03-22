@@ -257,6 +257,7 @@ const app = new Hono()
       return c.json({ error: "Settlement must be claimed before confirming" }, 400)
     }
 
+    try {
     await db.transaction(async (tx) => {
       const now = new Date()
 
@@ -346,6 +347,10 @@ const app = new Hono()
         notifyPartyKit(room.inviteCode, "payment-toggled", {})
       }
     })
+    } catch (err) {
+      console.error("[settlement:confirm] Transaction failed:", err)
+      return c.json({ error: "Failed to confirm settlement" }, 500)
+    }
 
     // Notify debtor
     sendPushToUser(settlement.payerUserId, {
