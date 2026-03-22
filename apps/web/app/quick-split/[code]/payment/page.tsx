@@ -44,10 +44,10 @@ export default function PaymentMethodPage({
   const total = payments.reduce((sum, p) => sum + parseFloat(p.amount), 0);
 
   const handleContinue = () => {
-    if (activeTab === "promptpay" && promptpayId.trim()) {
+    if (activeTab === "promptpay" && displayPromptpayId.trim()) {
       setPaymentMethod.mutate(
         {
-          promptpayId: promptpayId.trim(),
+          promptpayId: displayPromptpayId.trim(),
           promptpayType: "phone",
         },
         {
@@ -121,7 +121,7 @@ export default function PaymentMethodPage({
           <p className="text-sm font-medium text-gray-800">PromptPay Number</p>
           <input
             type="tel"
-            value={promptpayId}
+            value={displayPromptpayId}
             onChange={(e) => setPromptpayId(e.target.value)}
             placeholder="e.g. 09x-xxx-xxxx"
             className="mt-2 w-full rounded-lg border border-gray-300 px-4 py-2.5 text-sm focus:border-gray-500 focus:outline-none"
@@ -187,7 +187,7 @@ export default function PaymentMethodPage({
           type="button"
           onClick={handleContinue}
           disabled={
-            (activeTab === "promptpay" && !promptpayId.trim()) ||
+            (activeTab === "promptpay" && !displayPromptpayId.trim()) ||
             setPaymentMethod.isPending
           }
           className="rounded-full border border-gray-300 px-8 py-2.5 text-sm font-medium text-gray-800 transition-colors hover:bg-gray-50 active:bg-gray-100 disabled:opacity-40 md:px-10 md:py-3 md:text-base"
