@@ -1398,27 +1398,4 @@ const app = new Hono()
     }
   })
 
-  // ─── POST /rooms/:id/push-test
-  // DEV ONLY: Send a test push notification to the current member.
-  .post("/:id/push-test", optionalAuth, async (c) => {
-    const roomId = c.req.param("id")
-    const memberId = await resolveMemberId(c, roomId)
-
-    const member = await verifyRoomMember(roomId, memberId)
-    if (!member) {
-      return c.json({ error: "Not a member of this room" }, 403)
-    }
-
-    const room = await db.query.rooms.findFirst({ where: eq(rooms.id, roomId) })
-
-    sendPushToMember(member.id, roomId, {
-      title: "PlaDuk Test",
-      body: `This is a test notification for ${member.displayName}`,
-      url: `/quick-split/${room?.inviteCode ?? ""}/tracking`,
-      tag: "test",
-    })
-
-    return c.json({ success: true, memberId: member.id, displayName: member.displayName })
-  })
-
 export default app
