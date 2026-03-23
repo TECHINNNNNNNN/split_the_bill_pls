@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { useSession, signOut } from "@/lib/auth-client";
+import { useSession } from "@/lib/auth-client";
 import { useQuery } from "@tanstack/react-query";
 import { groupQueries } from "@/lib/queries/groups";
 import { roomQueries } from "@/lib/queries/rooms";
