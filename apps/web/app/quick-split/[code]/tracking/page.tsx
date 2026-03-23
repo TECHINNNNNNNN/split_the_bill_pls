@@ -133,12 +133,6 @@ function PaymentTrackingContent({
   const push = usePushNotifications(roomId, currentMemberId);
   const [iosDismissed, setIosDismissed] = useState(false);
 
-  // Ticking clock for relative time display (updates every 30s)
-  const [now, setNow] = useState(() => Date.now());
-  useEffect(() => {
-    const timer = setInterval(() => setNow(Date.now()), 30000);
-    return () => clearInterval(timer);
-  }, []);
 
   // LINE LIFF sharing
   const liff = useLiff();
@@ -279,6 +273,16 @@ function PaymentTrackingContent({
     );
   }
 
+  // Compute relative time for finalized display
+  const finalizedAgo = room.finalizedAt ? (() => {
+    const mins = Math.floor((now - new Date(room.finalizedAt).getTime()) / 60000);
+    if (mins < 1) return "just now";
+    if (mins < 60) return `${mins}m ago`;
+    const hrs = Math.floor(mins / 60);
+    if (hrs < 24) return `${hrs}h ago`;
+    return `${Math.floor(hrs / 24)}d ago`;
+  })() : null;
+
   return (
     <div className="flex min-h-svh flex-col px-6 py-6 md:mx-auto md:max-w-lg md:py-12">
       {/* Header */}
@@ -298,6 +302,7 @@ function PaymentTrackingContent({
       {room.finalizedAt && (
         <p className="mt-1 text-xs text-gray-400">
           Bill finalized {new Date(room.finalizedAt).toLocaleDateString("en-US", { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" })}
+          {" · "}{finalizedAgo}
         </p>
       )}
 
