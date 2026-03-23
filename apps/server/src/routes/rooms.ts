@@ -875,26 +875,6 @@ const app = new Hono()
       grandTotal += sectionTotal
     }
 
-    // Store room-level rates (use first section's rates for display, or null if multi-section)
-    if (sectionInputs.length === 1) {
-      const sec = sectionInputs[0]
-      const vRate = sec.vatRate ?? 0
-      const scRate = sec.serviceChargeRate ?? 0
-      const discount = sec.discountAmount ?? 0
-      await db.update(rooms).set({
-        vatRate: vRate ? vRate.toString() : null,
-        serviceChargeRate: scRate ? scRate.toString() : null,
-        discountAmount: discount ? discount.toString() : null,
-      }).where(eq(rooms.id, roomId))
-    } else {
-      // Multi-section: clear room-level extras (they're per-section now)
-      await db.update(rooms).set({
-        vatRate: null,
-        serviceChargeRate: null,
-        discountAmount: null,
-      }).where(eq(rooms.id, roomId))
-    }
-
     // Delete any old payments and create new ones
     await db.delete(roomPayments).where(eq(roomPayments.roomId, roomId))
 
@@ -1243,7 +1223,6 @@ const app = new Hono()
     await db.insert(pushSubscriptions).values({
       memberId: member.id,
       roomId,
-      userId: user?.id ?? null,
       endpoint,
       p256dh,
       auth,
