@@ -64,8 +64,8 @@ export default function HomePage() {
           </h1>
           <p className="text-sm text-gray-500">{session?.user.email}</p>
         </div>
-        <div className="flex items-center gap-3">
-          {session?.user.image && (
+        <Link href="/settings">
+          {session?.user.image ? (
             <Image
               src={session.user.image}
               alt="avatar"
@@ -75,20 +75,12 @@ export default function HomePage() {
               className="rounded-full"
               unoptimized
             />
+          ) : (
+            <div className="flex h-9 w-9 items-center justify-center rounded-full bg-gray-200 text-sm font-bold text-gray-500">
+              {session?.user.name?.charAt(0).toUpperCase()}
+            </div>
           )}
-          <Link
-            href="/settings"
-            className="text-sm text-gray-400 hover:text-gray-600"
-          >
-            Settings
-          </Link>
-          <button
-            onClick={() => signOut()}
-            className="text-sm text-gray-400 hover:text-gray-600"
-          >
-            Sign out
-          </button>
-        </div>
+        </Link>
       </div>
 
       {/* Quick Split CTA */}

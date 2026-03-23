@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { useSession, updateUser } from "@/lib/auth-client";
+import { useSession, updateUser, signOut } from "@/lib/auth-client";
 import { useRouter } from "next/navigation";
 import toast from "react-hot-toast";
 
@@ -123,6 +123,15 @@ export default function SettingsPage() {
           </button>
         </div>
       </div>
+
+      {/* Sign out */}
+      <button
+        type="button"
+        onClick={() => signOut()}
+        className="w-full rounded-xl border border-red-200 px-4 py-2.5 text-sm font-medium text-red-500 transition-colors hover:bg-red-50"
+      >
+        Sign out
+      </button>
     </div>
   );
 }
