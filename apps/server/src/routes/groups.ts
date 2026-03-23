@@ -52,12 +52,11 @@ const app = new Hono()
       inviteCode: randomUUID().slice(0, 8),
     }).returning()
 
-    // Auto-add the creator as a non-guest member
+    // Auto-add the creator as a member
     await db.insert(groupMembers).values({
       id: randomUUID(),
       groupId,
       displayName: user.name,
-      isGuest: false,
       userId: user.id,
     })
 
@@ -117,7 +116,6 @@ const app = new Hono()
       id: randomUUID(),
       groupId: group.id,
       displayName: user.name,
-      isGuest: false,
       userId: user.id,
     })
 

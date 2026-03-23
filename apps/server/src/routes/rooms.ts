@@ -931,7 +931,8 @@ const app = new Hono()
       )
     }
 
-    // Lock collaborative editing — members can no longer add/edit items
+    // Mark finalization time and lock collaborative editing
+    await db.update(rooms).set({ finalizedAt: new Date() }).where(eq(rooms.id, roomId))
     const room = await db.query.rooms.findFirst({ where: eq(rooms.id, roomId) })
     if (room) {
       notifyPartyKit(room.inviteCode, "bill-finalized", {})
