@@ -133,6 +133,13 @@ function PaymentTrackingContent({
   const push = usePushNotifications(roomId, currentMemberId);
   const [iosDismissed, setIosDismissed] = useState(false);
 
+  // Ticking clock for relative time display (updates every 30s)
+  const [now, setNow] = useState(() => Date.now());
+  useEffect(() => {
+    const timer = setInterval(() => setNow(Date.now()), 30000);
+    return () => clearInterval(timer);
+  }, []);
+
   // LINE LIFF sharing
   const liff = useLiff();
   const lineLinkRef = useRef(false);
