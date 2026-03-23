@@ -1,0 +1,226 @@
+erDiagram
+    user {
+        text id PK
+        text name "NOT NULL"
+        text email "NOT NULL, UNIQUE"
+        boolean email_verified "NOT NULL"
+        text image
+        text promptpay_id
+        text promptpay_type
+        timestamp created_at "NOT NULL"
+        timestamp updated_at "NOT NULL"
+    }
+
+    session {
+        text id PK
+        timestamp expires_at "NOT NULL"
+        text token "NOT NULL, UNIQUE"
+        text ip_address
+        text user_agent
+        text user_id FK "NOT NULL"
+        timestamp created_at "NOT NULL"
+        timestamp updated_at "NOT NULL"
+    }
+
+    account {
+        text id PK
+        text account_id "NOT NULL"
+        text provider_id "NOT NULL"
+        text user_id FK "NOT NULL"
+        text access_token
+        text refresh_token
+        text id_token
+        timestamp access_token_expires_at
+        timestamp refresh_token_expires_at
+        text scope
+        text password
+        timestamp created_at "NOT NULL"
+        timestamp updated_at "NOT NULL"
+    }
+
+    verification {
+        text id PK
+        text identifier "NOT NULL"
+        text value "NOT NULL"
+        timestamp expires_at "NOT NULL"
+        timestamp created_at "NOT NULL"
+        timestamp updated_at "NOT NULL"
+    }
+
+    groups {
+        uuid id PK
+        text name "NOT NULL"
+        text created_by FK "NOT NULL"
+        text invite_code "UNIQUE"
+        timestamp created_at "NOT NULL"
+    }
+
+    group_members {
+        uuid id PK
+        uuid group_id FK "NOT NULL"
+        text user_id FK
+        text display_name "NOT NULL"
+        boolean is_guest "NOT NULL"
+        timestamp created_at "NOT NULL"
+    }
+
+    rooms {
+        uuid id PK
+        text host_name "NOT NULL"
+        text name
+        integer expected_members "NOT NULL"
+        text invite_code "NOT NULL, UNIQUE"
+        text promptpay_id
+        text promptpay_type
+        numeric vat_rate
+        numeric service_charge_rate
+        numeric discount_amount
+        room_status status "NOT NULL"
+        text created_by_user_id FK
+        uuid group_id FK
+        timestamp created_at "NOT NULL"
+    }
+
+    room_members {
+        uuid id PK
+        uuid room_id FK "NOT NULL"
+        text user_id FK
+        text display_name "NOT NULL"
+        boolean is_host "NOT NULL"
+        text line_user_id
+        timestamp created_at "NOT NULL"
+    }
+
+    room_bill_sections {
+        uuid id PK
+        uuid room_id FK "NOT NULL"
+        text name "NOT NULL"
+        numeric vat_rate
+        numeric service_charge_rate
+        numeric discount_amount
+        integer sort_order
+    }
+
+    room_bill_items {
+        uuid id PK
+        uuid room_id FK "NOT NULL"
+        uuid section_id FK
+        text name "NOT NULL"
+        numeric amount "NOT NULL"
+        integer sort_order
+    }
+
+    room_item_splits {
+        uuid id PK
+        uuid item_id FK "NOT NULL"
+        uuid member_id FK "NOT NULL"
+    }
+
+    room_invites {
+        uuid id PK
+        uuid room_id FK "NOT NULL"
+        text user_id FK "NOT NULL"
+        text invited_by FK "NOT NULL"
+        text display_name "NOT NULL"
+        invite_status status "NOT NULL"
+        timestamp created_at "NOT NULL"
+    }
+
+    room_payments {
+        uuid id PK
+        uuid room_id FK "NOT NULL"
+        uuid member_id FK "NOT NULL"
+        numeric amount "NOT NULL"
+        payment_status status "NOT NULL"
+        timestamp claimed_at
+        timestamp confirmed_at
+        timestamp rejected_at
+        text slip_trans_ref
+        text slip_sending_bank
+        text slip_image_data
+        numeric slip_verified_amount
+        timestamp slip_verified_at
+    }
+
+    push_subscriptions {
+        uuid id PK
+        uuid member_id FK "NOT NULL"
+        uuid room_id FK "NOT NULL"
+        text user_id FK
+        text endpoint "NOT NULL"
+        text p256dh "NOT NULL"
+        text auth "NOT NULL"
+        timestamp created_at "NOT NULL"
+    }
+
+    push_notification_log {
+        uuid id PK
+        uuid payment_id FK "NOT NULL"
+        text tier "NOT NULL"
+        text channel "NOT NULL"
+        timestamp sent_at "NOT NULL"
+    }
+
+    settlements {
+        uuid id PK
+        text payer_user_id FK "NOT NULL"
+        text payee_user_id FK "NOT NULL"
+        numeric net_amount "NOT NULL"
+        settlement_status status "NOT NULL"
+        text slip_image_data
+        text slip_trans_ref
+        text slip_sending_bank
+        numeric slip_verified_amount
+        timestamp slip_verified_at
+        timestamp claimed_at
+        timestamp confirmed_at
+        timestamp rejected_at
+        timestamp created_at "NOT NULL"
+    }
+
+    settlement_payments {
+        uuid id PK
+        uuid settlement_id FK "NOT NULL"
+        uuid room_payment_id FK "NOT NULL"
+    }
+
+    %% Auth relationships
+    user ||--o{ session : "has"
+    user ||--o{ account : "has"
+
+    %% Group relationships
+    user ||--o{ groups : "creates"
+    groups ||--o{ group_members : "has"
+    user ||--o{ group_members : "is"
+
+    %% Room relationships
+    user ||--o{ rooms : "creates"
+    groups ||--o{ rooms : "contains"
+    rooms ||--o{ room_members : "has"
+    user ||--o{ room_members : "is"
+
+    %% Bill relationships
+    rooms ||--o{ room_bill_sections : "has"
+    rooms ||--o{ room_bill_items : "has"
+    room_bill_sections ||--o{ room_bill_items : "contains"
+    room_bill_items ||--o{ room_item_splits : "split by"
+    room_members ||--o{ room_item_splits : "assigned"
+
+    %% Invite relationships
+    rooms ||--o{ room_invites : "has"
+    user ||--o{ room_invites : "invited to"
+
+    %% Payment relationships
+    rooms ||--o{ room_payments : "has"
+    room_members ||--o{ room_payments : "owes"
+
+    %% Push notification relationships
+    room_members ||--o{ push_subscriptions : "subscribes"
+    rooms ||--o{ push_subscriptions : "for"
+    room_payments ||--o{ push_notification_log : "logs"
+
+    %% Settlement relationships
+    user ||--o{ settlements : "pays"
+    user ||--o{ settlements : "receives"
+    settlements ||--o{ settlement_payments : "resolves"
+    room_payments ||--o{ settlement_payments : "resolved by"
