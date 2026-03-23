@@ -58,9 +58,8 @@ erDiagram
     group_members {
         uuid id PK
         uuid group_id FK "NOT NULL"
-        text user_id FK
+        text user_id FK "NOT NULL"
         text display_name "NOT NULL"
-        boolean is_guest "NOT NULL"
         timestamp created_at "NOT NULL"
     }
 
@@ -72,13 +71,11 @@ erDiagram
         text invite_code "NOT NULL, UNIQUE"
         text promptpay_id
         text promptpay_type
-        numeric vat_rate
-        numeric service_charge_rate
-        numeric discount_amount
         room_status status "NOT NULL"
         text created_by_user_id FK
         uuid group_id FK
         timestamp created_at "NOT NULL"
+        timestamp finalized_at
     }
 
     room_members {
@@ -146,7 +143,6 @@ erDiagram
         uuid id PK
         uuid member_id FK "NOT NULL"
         uuid room_id FK "NOT NULL"
-        text user_id FK
         text endpoint "NOT NULL"
         text p256dh "NOT NULL"
         text auth "NOT NULL"
