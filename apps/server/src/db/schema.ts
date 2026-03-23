@@ -71,9 +71,9 @@ export const groupMembers = pgTable("group_members", {
     .references(() => groups.id, { onDelete: "cascade" })
     .notNull(),
   userId: text("user_id")
-    .references(() => user.id, { onDelete: "set null" }),
+    .references(() => user.id, { onDelete: "cascade" })
+    .notNull(),
   displayName: text("display_name").notNull(),
-  isGuest: boolean("is_guest").default(true).notNull(),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 });
 
@@ -129,6 +129,7 @@ export const rooms = pgTable("rooms", {
   createdByUserId: text("created_by_user_id").references(() => user.id, { onDelete: "set null" }),
   groupId: uuid("group_id").references(() => groups.id, { onDelete: "set null" }),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  finalizedAt: timestamp("finalized_at", { withTimezone: true }),
 });
 
 export const roomMembers = pgTable("room_members", {
