@@ -368,6 +368,25 @@ export default function BillDetailsPage({
         )}
       </div>
 
+      {/* Shake to split — mobile only */}
+      {!isLocked && shakeSupported && totalItems > 0 && (
+        <button
+          type="button"
+          onClick={async () => {
+            const granted = await requestShakePermission();
+            if (granted) {
+              toast("Shake your phone to split everything equally!", { icon: "📱" });
+            } else {
+              toast.error("Motion access denied — enable in browser settings");
+            }
+          }}
+          className="mt-4 flex items-center justify-center gap-2 self-center rounded-full border border-dashed border-gray-300 px-5 py-2 text-sm font-medium text-gray-500 transition-colors hover:border-gray-400 hover:bg-gray-50 hover:text-gray-700"
+        >
+          <span className="text-base">📱</span>
+          Shake to split equally
+        </button>
+      )}
+
       {/* Section cards */}
       <div className="mt-6 flex flex-1 flex-col gap-6">
         {sections.map((section) => (
