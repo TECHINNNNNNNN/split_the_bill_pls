@@ -5,6 +5,7 @@ describe("calculateSplit", () => {
   it("returns empty splits when no members", () => {
     const result = calculateSplit([], [], {
       subtotal: 0,
+      discountAmount: null,
       vatAmount: null,
       serviceChargeAmount: null,
       totalAmount: 0,
@@ -17,6 +18,7 @@ describe("calculateSplit", () => {
   it("returns zero splits when no items", () => {
     const result = calculateSplit([], [], {
       subtotal: 0,
+      discountAmount: null,
       vatAmount: null,
       serviceChargeAmount: null,
       totalAmount: 0,
@@ -35,6 +37,7 @@ describe("calculateSplit", () => {
     ]
     const totals = {
       subtotal: 200,
+      discountAmount: null,
       vatAmount: null,
       serviceChargeAmount: null,
       totalAmount: 200,
@@ -59,6 +62,7 @@ describe("calculateSplit", () => {
     ]
     const totals = {
       subtotal: 350,
+      discountAmount: null,
       vatAmount: null,
       serviceChargeAmount: null,
       totalAmount: 350,
@@ -81,6 +85,7 @@ describe("calculateSplit", () => {
     ]
     const totals = {
       subtotal: 400,
+      discountAmount: null,
       vatAmount: 28, // 7% VAT
       serviceChargeAmount: null,
       totalAmount: 428,
@@ -103,6 +108,7 @@ describe("calculateSplit", () => {
     ]
     const totals = {
       subtotal: 500,
+      discountAmount: null,
       vatAmount: null,
       serviceChargeAmount: 50, // 10% service
       totalAmount: 550,
@@ -123,6 +129,7 @@ describe("calculateSplit", () => {
     ]
     const totals = {
       subtotal: 100,
+      discountAmount: null,
       vatAmount: null,
       serviceChargeAmount: null,
       totalAmount: 100,
@@ -139,6 +146,29 @@ describe("calculateSplit", () => {
     expect(result.roundingDifference).toBeCloseTo(0.0066, 3)
   })
 
+  it("floors negative totals to zero when discount exceeds subtotal", () => {
+    const items = [{ id: "item1", name: "Rice", totalPrice: 7 }]
+    const claims = [
+      { billItemId: "item1", memberId: "alice" },
+      { billItemId: "item1", memberId: "bob" },
+      { billItemId: "item1", memberId: "charlie" },
+    ]
+    // Discount (10) is larger than subtotal (7) → everyone should be ฿0, not negative
+    const totals = {
+      subtotal: 7,
+      discountAmount: 10,
+      vatAmount: null,
+      serviceChargeAmount: null,
+      totalAmount: 0,
+    }
+
+    const result = calculateSplit(items, claims, totals, ["alice", "bob", "charlie"])
+
+    expect(result.splits[0].totalAmount).toBe(0)
+    expect(result.splits[1].totalAmount).toBe(0)
+    expect(result.splits[2].totalAmount).toBe(0)
+  })
+
   it("skips unclaimed items", () => {
     const items = [
       { id: "item1", name: "Pizza", totalPrice: 200 },
@@ -149,6 +179,7 @@ describe("calculateSplit", () => {
     ]
     const totals = {
       subtotal: 300,
+      discountAmount: null,
       vatAmount: null,
       serviceChargeAmount: null,
       totalAmount: 300,
