@@ -374,7 +374,8 @@ export default function BillDetailsPage({
           onClick={async () => {
             const granted = await requestShakePermission();
             if (granted) {
-              toast("Shake your phone to split everything equally!", { icon: "📱", duration: 3000 });
+              // Also split on tap (fallback for iOS where shake triggers "Undo Typing")
+              handleShake();
             } else {
               toast.error("Motion access denied — enable in browser settings");
             }
@@ -382,7 +383,7 @@ export default function BillDetailsPage({
           className="mt-4 flex items-center justify-center gap-2 self-center rounded-full border border-dashed border-gray-300 px-5 py-2 text-sm font-medium text-gray-500 transition-colors hover:border-gray-400 hover:bg-gray-50 hover:text-gray-700"
         >
           <span className="text-base">📱</span>
-          Shake to split equally
+          Split equally
         </button>
       )}
 
