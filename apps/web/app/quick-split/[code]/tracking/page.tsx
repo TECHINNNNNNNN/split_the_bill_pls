@@ -576,11 +576,11 @@ function PaymentTrackingContent({
               if (!storyCardRef.current) return;
               const toastId = toast.loading("Generating recap...");
               try {
-                const dataUrl = await toPng(storyCardRef.current, {
-                  width: 1080,
-                  height: 1920,
-                  pixelRatio: 1,
-                });
+                const captureOpts = { width: 1080, height: 1920, pixelRatio: 1 };
+                // Safari needs warm-up renders (known html-to-image issue)
+                await toPng(storyCardRef.current, captureOpts).catch(() => {});
+                await toPng(storyCardRef.current, captureOpts).catch(() => {});
+                const dataUrl = await toPng(storyCardRef.current, captureOpts);
                 const res = await fetch(dataUrl);
                 const blob = await res.blob();
                 const file = new File([blob], "pladuk-recap.png", { type: "image/png" });

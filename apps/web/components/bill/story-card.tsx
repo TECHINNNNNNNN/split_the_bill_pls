@@ -63,9 +63,8 @@ export const StoryCard = forwardRef<HTMLDivElement, StoryCardProps>(
           flexDirection: "column",
           padding: "80px 70px",
           position: "fixed",
-          left: "0",
+          left: "-9999px",
           top: "0",
-          opacity: 0,
           pointerEvents: "none" as const,
           zIndex: -1,
         }}
@@ -184,12 +183,7 @@ export const StoryCard = forwardRef<HTMLDivElement, StoryCardProps>(
                   overflow: "hidden",
                 }}
               >
-                {member.image ? (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img src={member.image} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
-                ) : (
-                  member.displayName.charAt(0).toUpperCase()
-                )}
+                {member.displayName.charAt(0).toUpperCase()}
               </div>
             ))}
           </div>
