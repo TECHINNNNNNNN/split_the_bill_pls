@@ -374,7 +374,7 @@ export default function BillDetailsPage({
           onClick={async () => {
             const granted = await requestShakePermission();
             if (granted) {
-              toast("Shake your phone to split everything equally!", { icon: "📱" });
+              toast("Shake your phone to split everything equally!", { icon: "📱", duration: 3000 });
             } else {
               toast.error("Motion access denied — enable in browser settings");
             }

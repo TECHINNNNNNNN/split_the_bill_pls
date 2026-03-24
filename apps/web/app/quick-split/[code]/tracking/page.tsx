@@ -935,7 +935,7 @@ function PaymentTrackingContent({
                     <button
                       type="button"
                       onClick={() => unconfirmPayment.mutate(payment.id, {
-                        onSuccess: () => toast(`${payment.member?.displayName} unconfirmed`, { icon: "↩️" }),
+                        onSuccess: () => toast(`${payment.member?.displayName} unconfirmed`, { icon: "↩️", duration: 3000 }),
                         onError: () => toast.error("Couldn't unconfirm — try again"),
                       })}
                       disabled={unconfirmPayment.isPending && unconfirmPayment.variables === payment.id}
@@ -970,7 +970,7 @@ function PaymentTrackingContent({
                       <button
                         type="button"
                         onClick={() => rejectPayment.mutate(payment.id, {
-                          onSuccess: () => toast(`${payment.member?.displayName}'s claim rejected`, { icon: "🚫" }),
+                          onSuccess: () => toast(`${payment.member?.displayName}'s claim rejected`, { icon: "🚫", duration: 3000 }),
                           onError: () => toast.error("Couldn't reject — try again"),
                         })}
                         disabled={rejectPayment.isPending && rejectPayment.variables === payment.id}
@@ -985,7 +985,7 @@ function PaymentTrackingContent({
                         onClick={() => {
                           nudgeMember.mutate(payment.memberId, {
                             onSuccess: () => {
-                              toast(`Nudged ${payment.member?.displayName}`, { icon: "🔔" });
+                              toast(`Nudged ${payment.member?.displayName}`, { icon: "🔔", duration: 3000 });
                               const expiry = Date.now() + 5 * 60 * 1000;
                               setNudgeCooldowns((prev) => ({
                                 ...prev,

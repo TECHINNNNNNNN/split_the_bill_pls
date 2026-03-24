@@ -83,7 +83,9 @@ export function useShake(onShake: () => void, enabled = true) {
   }, []);
 
   const isSupported =
-    typeof window !== "undefined" && "DeviceMotionEvent" in window;
+    typeof window !== "undefined" &&
+    "DeviceMotionEvent" in window &&
+    (navigator.maxTouchPoints > 0 || "ontouchstart" in window);
 
   return { requestPermission, isSupported };
 }
