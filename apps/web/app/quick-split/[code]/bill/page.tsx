@@ -14,6 +14,7 @@ import { SectionCard } from "@/components/bill/section-card";
 import { BreakdownModal } from "@/components/bill/breakdown-modal";
 import { LiveCursors } from "@/components/bill/live-cursors";
 import { PresenceAvatars } from "@/components/bill/presence-avatars";
+import { useShake } from "@/lib/hooks/use-shake";
 import type { SectionBreakdown } from "@/components/bill/breakdown-modal";
 
 // ─── Main Page ───
@@ -70,6 +71,20 @@ export default function BillDetailsPage({
   const billContainerRef = useRef<HTMLDivElement>(null);
   const currentDisplayName = members.find((m) => m.id === currentMemberId)?.displayName ?? "";
   const { cursors, onlineUsers } = usePresence(socket, billContainerRef, currentMemberId, currentDisplayName);
+
+  // ─── Shake to split equally ───
+  const handleShake = () => {
+    for (const sec of sections) {
+      for (const item of sec.items) {
+        selectAll(item.id, sec.id);
+      }
+    }
+    toast.success("Shook! Everything split equally 🤝");
+  };
+  const { requestPermission: requestShakePermission, isSupported: shakeSupported } = useShake(
+    handleShake,
+    !isLocked && sections.some((s) => s.items.length > 0),
+  );
 
   // Breakdown modal state
   const [showBreakdown, setShowBreakdown] = useState(false);
@@ -388,6 +403,24 @@ export default function BillDetailsPage({
           </button>
         )}
       </div>
+
+      {/* Shake to split hint */}
+      {!isLocked && shakeSupported && totalItems > 0 && (
+        <button
+          type="button"
+          onClick={async () => {
+            const granted = await requestShakePermission();
+            if (granted) {
+              toast("Shake your phone to split everything equally!", { icon: "📱" });
+            } else {
+              toast.error("Motion access denied — enable in browser settings");
+            }
+          }}
+          className="mt-2 self-center text-xs text-gray-400 transition-colors hover:text-gray-600"
+        >
+          📱 Shake to split equally
+        </button>
+      )}
 
       {/* Grand total + Finalize */}
       <div className="mt-8 border-t border-gray-200 pt-4">
