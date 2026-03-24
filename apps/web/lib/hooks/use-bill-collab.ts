@@ -9,7 +9,8 @@ import { useQueryClient } from "@tanstack/react-query";
 export interface CollabItem {
   id: string;
   name: string;
-  amount: number;
+  quantity: number;
+  unitPrice: number;
   memberIds: string[];
   addedBy: string;
 }
@@ -122,17 +123,17 @@ export function useBillCollab(
   // ─── Item operations (now section-scoped) ───
 
   const addItem = useCallback(
-    (name: string, amount: number, sectionId?: string) => {
+    (name: string, unitPrice: number, sectionId?: string, quantity?: number) => {
       send({
         type: "item:add",
-        data: { name, amount, memberId: opts.currentMemberId, sectionId },
+        data: { name, quantity: quantity ?? 1, unitPrice, memberId: opts.currentMemberId, sectionId },
       });
     },
     [send, opts.currentMemberId],
   );
 
   const updateItem = useCallback(
-    (itemId: string, sectionId: string, updates: { name?: string; amount?: number }) => {
+    (itemId: string, sectionId: string, updates: { name?: string; quantity?: number; unitPrice?: number }) => {
       send({
         type: "item:update",
         data: { itemId, sectionId, ...updates },

@@ -55,7 +55,7 @@ export function SectionCard({
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const { extras, items } = section;
-  const subtotal = items.reduce((sum, item) => sum + item.amount, 0);
+  const subtotal = items.reduce((sum, item) => sum + item.quantity * item.unitPrice, 0);
 
   const hasVat = extras.vatRate != null;
   const hasServiceCharge = extras.serviceChargeRate != null;
@@ -81,9 +81,9 @@ export function SectionCard({
   const sectionTotal = discountedSubtotal + serviceChargeAmount + vatAmount;
 
   const handleAddItem = () => {
-    const amount = parseFloat(itemAmount);
-    if (!itemName.trim() || isNaN(amount) || amount <= 0) return;
-    onAddItem(itemName.trim(), amount);
+    const price = parseFloat(itemAmount);
+    if (!itemName.trim() || isNaN(price) || price <= 0) return;
+    onAddItem(itemName.trim(), price);
     setItemName("");
     setItemAmount("");
     setShowForm(false);
@@ -211,7 +211,7 @@ export function SectionCard({
                 type="number"
                 value={itemAmount}
                 onChange={(e) => setItemAmount(e.target.value)}
-                placeholder="Amount"
+                placeholder="Price"
                 className="w-24 rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-gray-500 focus:outline-none"
                 min="0"
                 step="0.01"

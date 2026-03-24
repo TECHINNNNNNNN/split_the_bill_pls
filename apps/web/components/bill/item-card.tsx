@@ -29,21 +29,27 @@ export function ItemCard({
 
   const [editing, setEditing] = useState(false);
   const [nameDraft, setNameDraft] = useState(item.name);
-  const [amountDraft, setAmountDraft] = useState(String(item.amount));
+  const [qtyDraft, setQtyDraft] = useState(String(item.quantity));
+  const [priceDraft, setPriceDraft] = useState(String(item.unitPrice));
+
+  const totalPrice = item.quantity * item.unitPrice;
 
   const startEditing = () => {
     if (!canEdit) return;
     setNameDraft(item.name);
-    setAmountDraft(String(item.amount));
+    setQtyDraft(String(item.quantity));
+    setPriceDraft(String(item.unitPrice));
     setEditing(true);
   };
 
   const save = () => {
     const trimmedName = nameDraft.trim();
-    const parsedAmount = parseFloat(amountDraft);
-    const updates: { name?: string; amount?: number } = {};
+    const parsedQty = parseInt(qtyDraft);
+    const parsedPrice = parseFloat(priceDraft);
+    const updates: { name?: string; quantity?: number; unitPrice?: number } = {};
     if (trimmedName && trimmedName !== item.name) updates.name = trimmedName;
-    if (!isNaN(parsedAmount) && parsedAmount > 0 && parsedAmount !== item.amount) updates.amount = parsedAmount;
+    if (!isNaN(parsedQty) && parsedQty >= 1 && parsedQty !== item.quantity) updates.quantity = parsedQty;
+    if (!isNaN(parsedPrice) && parsedPrice > 0 && parsedPrice !== item.unitPrice) updates.unitPrice = parsedPrice;
     if (Object.keys(updates).length > 0) onUpdate(updates);
     setEditing(false);
   };
