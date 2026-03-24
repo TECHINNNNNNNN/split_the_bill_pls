@@ -18,6 +18,8 @@ import { api } from "@/lib/api-client";
 import { ScanProgress } from "@/components/tracking/scan-progress";
 import { ScanResultBadge } from "@/components/tracking/scan-result-badge";
 import { SlipModal } from "@/components/tracking/slip-modal";
+import { StoryCard } from "@/components/bill/story-card";
+import { toPng } from "html-to-image";
 import { statusConfig, bankNames } from "@/components/tracking/constants";
 import type { PaymentStatus } from "@/components/tracking/constants";
 
@@ -133,6 +135,9 @@ function PaymentTrackingContent({
   const push = usePushNotifications(roomId, currentMemberId);
   const [iosDismissed, setIosDismissed] = useState(false);
 
+
+  // Story card for sharing
+  const storyCardRef = useRef<HTMLDivElement>(null);
 
   // LINE LIFF sharing
   const liff = useLiff();
@@ -541,6 +546,71 @@ function PaymentTrackingContent({
           />
         </div>
       </div>
+
+      {/* Share Recap — when all confirmed */}
+      {confirmedCount === payments.length && payments.length > 0 && (
+        <>
+          <StoryCard
+            ref={storyCardRef}
+            roomName={room.name || `${room.hostName}'s Split`}
+            date={room.finalizedAt
+              ? new Date(room.finalizedAt).toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" })
+              : new Date(room.createdAt).toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" })
+            }
+            totalAmount={total}
+            members={payments.map((p) => ({
+              displayName: p.member?.displayName ?? "?",
+              image: (p.member as { user?: { image?: string | null } })?.user?.image ?? null,
+              amount: parseFloat(p.amount),
+              claimedAt: p.claimedAt,
+            }))}
+            items={(room.billItems ?? []).map((item) => ({
+              name: item.name,
+              splitCount: item.splits?.length ?? 0,
+            }))}
+            finalizedAt={room.finalizedAt}
+          />
+          <button
+            type="button"
+            onClick={async () => {
+              if (!storyCardRef.current) return;
+              const toastId = toast.loading("Generating recap...");
+              try {
+                const dataUrl = await toPng(storyCardRef.current, {
+                  width: 1080,
+                  height: 1920,
+                  pixelRatio: 1,
+                });
+                const res = await fetch(dataUrl);
+                const blob = await res.blob();
+                const file = new File([blob], "pladuk-recap.png", { type: "image/png" });
+
+                if (navigator.canShare?.({ files: [file] })) {
+                  await navigator.share({ files: [file], title: "PlaDuk Recap" });
+                  toast.success("Shared!", { id: toastId });
+                } else {
+                  // Fallback: download
+                  const url = URL.createObjectURL(blob);
+                  const a = document.createElement("a");
+                  a.href = url;
+                  a.download = "pladuk-recap.png";
+                  a.click();
+                  URL.revokeObjectURL(url);
+                  toast.success("Downloaded!", { id: toastId });
+                }
+              } catch {
+                toast.error("Couldn't generate recap", { id: toastId });
+              }
+            }}
+            className="mt-3 flex w-full items-center justify-center gap-2 rounded-lg bg-gradient-to-r from-purple-600 to-pink-500 px-4 py-3 text-sm font-semibold text-white transition-opacity hover:opacity-90"
+          >
+            <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z" />
+            </svg>
+            Share Recap
+          </button>
+        </>
+      )}
 
       {/* Host: Notify All unpaid members */}
       {isHost && payments.some((p) => p.status === "unpaid" || p.status === "rejected") && (
