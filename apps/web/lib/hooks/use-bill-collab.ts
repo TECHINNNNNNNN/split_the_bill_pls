@@ -131,6 +131,16 @@ export function useBillCollab(
     [send, opts.currentMemberId],
   );
 
+  const updateItem = useCallback(
+    (itemId: string, sectionId: string, updates: { name?: string; amount?: number }) => {
+      send({
+        type: "item:update",
+        data: { itemId, sectionId, ...updates },
+      });
+    },
+    [send],
+  );
+
   const deleteItem = useCallback(
     (itemId: string, sectionId: string) => {
       send({

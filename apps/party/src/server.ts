@@ -36,6 +36,7 @@ type ClientMessage =
   | { type: "section:update"; data: { sectionId: string; name: string } }
   | { type: "section:delete"; data: { sectionId: string } }
   | { type: "item:add"; data: { name: string; amount: number; memberId: string; sectionId?: string } }
+  | { type: "item:update"; data: { itemId: string; sectionId: string; name?: string; amount?: number } }
   | { type: "item:delete"; data: { itemId: string; sectionId: string; memberId: string; isHost: boolean } }
   | { type: "item:toggle-member"; data: { itemId: string; sectionId: string; targetMemberId: string } }
   | { type: "item:select-all"; data: { itemId: string; sectionId: string; allMemberIds: string[] } }
@@ -200,6 +201,18 @@ export default class RoomParty implements Party.Server {
           memberIds: [],
           addedBy: memberId,
         })
+        this.broadcastItems()
+        break
+      }
+
+      case "item:update": {
+        const { itemId, sectionId, name, amount } = msg.data
+        const section = this.sections.get(sectionId)
+        if (!section) return
+        const item = section.items.get(itemId)
+        if (!item) return
+        if (name !== undefined) item.name = name.trim() || item.name
+        if (amount !== undefined && typeof amount === "number" && amount > 0) item.amount = amount
         this.broadcastItems()
         break
       }
