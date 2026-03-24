@@ -50,6 +50,7 @@ export default function BillDetailsPage({
     updateSection,
     deleteSection,
     addItem,
+    updateItem,
     deleteItem,
     toggleMember,
     selectAll,
@@ -362,6 +363,7 @@ export default function BillDetailsPage({
             currentMemberId={currentMemberId}
             members={members}
             onAddItem={(name, amount) => addItem(name, amount, section.id)}
+            onUpdateItem={(itemId, updates) => updateItem(itemId, section.id, updates)}
             onDeleteItem={(itemId) => deleteItem(itemId, section.id)}
             onToggleMember={(itemId, memberId) => toggleMember(itemId, section.id, memberId)}
             onSelectAll={(itemId) => selectAll(itemId, section.id)}

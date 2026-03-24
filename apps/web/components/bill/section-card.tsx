@@ -12,6 +12,7 @@ export function SectionCard({
   currentMemberId,
   members,
   onAddItem,
+  onUpdateItem,
   onDeleteItem,
   onToggleMember,
   onSelectAll,
@@ -28,6 +29,7 @@ export function SectionCard({
   currentMemberId: string;
   members: { id: string; displayName: string }[];
   onAddItem: (name: string, amount: number) => void;
+  onUpdateItem: (itemId: string, updates: { name?: string; amount?: number }) => void;
   onDeleteItem: (itemId: string) => void;
   onToggleMember: (itemId: string, memberId: string) => void;
   onSelectAll: (itemId: string) => void;
@@ -187,6 +189,7 @@ export function SectionCard({
             currentMemberId={currentMemberId}
             members={members}
             onDelete={() => onDeleteItem(item.id)}
+            onUpdate={(updates) => onUpdateItem(item.id, updates)}
             onToggleMember={(memberId) => onToggleMember(item.id, memberId)}
             onSelectAll={() => onSelectAll(item.id)}
           />
