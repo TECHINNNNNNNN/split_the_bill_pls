@@ -200,35 +200,37 @@ export function SectionCard({
         {/* Add item form / button */}
         {isLocked ? null : showForm ? (
           <div className="rounded-lg border border-gray-200 p-3">
-            <div className="flex gap-2">
+            <div className="space-y-2">
               <input
                 type="text"
                 value={itemName}
                 onChange={(e) => setItemName(e.target.value)}
                 placeholder="Item name"
-                className="flex-1 rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-gray-500 focus:outline-none"
+                className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-gray-500 focus:outline-none"
                 onKeyDown={(e) => { if (e.key === "Enter") handleAddItem(); }}
               />
-              <input
-                type="number"
-                value={itemQty}
-                onChange={(e) => setItemQty(e.target.value)}
-                placeholder="Qty"
-                className="w-16 rounded-lg border border-gray-300 px-2 py-2 text-center text-sm focus:border-gray-500 focus:outline-none"
-                min="1"
-                step="1"
-                onKeyDown={(e) => { if (e.key === "Enter") handleAddItem(); }}
-              />
-              <input
-                type="number"
-                value={itemAmount}
-                onChange={(e) => setItemAmount(e.target.value)}
-                placeholder="Price"
-                className="w-24 rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-gray-500 focus:outline-none"
-                min="0"
-                step="0.01"
-                onKeyDown={(e) => { if (e.key === "Enter") handleAddItem(); }}
-              />
+              <div className="flex gap-2">
+                <input
+                  type="number"
+                  value={itemQty}
+                  onChange={(e) => setItemQty(e.target.value)}
+                  placeholder="Qty"
+                  className="w-20 rounded-lg border border-gray-300 px-2 py-2 text-center text-sm focus:border-gray-500 focus:outline-none"
+                  min="1"
+                  step="1"
+                  onKeyDown={(e) => { if (e.key === "Enter") handleAddItem(); }}
+                />
+                <input
+                  type="number"
+                  value={itemAmount}
+                  onChange={(e) => setItemAmount(e.target.value)}
+                  placeholder="Unit price"
+                  className="flex-1 rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-gray-500 focus:outline-none"
+                  min="0"
+                  step="0.01"
+                  onKeyDown={(e) => { if (e.key === "Enter") handleAddItem(); }}
+                />
+              </div>
             </div>
             <div className="mt-2 flex gap-2">
               <button

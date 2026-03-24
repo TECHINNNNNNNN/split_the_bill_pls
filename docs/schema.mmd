@@ -103,7 +103,8 @@ erDiagram
         uuid room_id FK "NOT NULL"
         uuid section_id FK
         text name "NOT NULL"
-        numeric amount "NOT NULL"
+        integer quantity "NOT NULL, DEFAULT 1"
+        numeric unit_price "NOT NULL"
         integer sort_order
     }
 

@@ -43,3 +43,11 @@
 5. **Slip verification** — Milestone 2 had `slipImageUrl` on payments. Milestone 3 stores the full verification pipeline result: `slipTransRef`, `slipSendingBank`, `slipImageData` (base64), `slipVerifiedAmount`, `slipVerifiedAt`.
 
 6. **Room member identity** — Milestone 2 identified friends via `groupMembers`. Milestone 3 has `room_members` with per-room HTTP-only cookies for guest identification, and optional `userId` linking for logged-in users.
+
+7. **Item quantity + unit price** — Milestone 2 had a single `amount` column on bill items (total price). Milestone 3 splits this into `quantity` (integer, default 1) and `unitPrice` (numeric). Total price is computed at runtime as `quantity × unitPrice`. This enables OCR to extract "2x Pad Thai ฿60" as quantity: 2, unitPrice: 60.
+
+8. **Removed legacy fields** — Milestone 3 removed room-level `vatRate`, `serviceChargeRate`, `discountAmount` (superseded by per-section rates on `room_bill_sections`), `pushSubscriptions.userId` (never queried), and `groupMembers.isGuest` (groups are logged-in only, `userId` is now NOT NULL).
+
+9. **Finalized timestamp** — Added `rooms.finalizedAt` to track when the bill was actually split, separate from `createdAt`. Used for reminder scheduling and display.
+
+10. **Settlements** — Added `settlements` and `settlement_payments` tables for cross-room debt netting. Settlements track net amounts between two users, with slip verification and claim/confirm/reject lifecycle mirroring room payments.
