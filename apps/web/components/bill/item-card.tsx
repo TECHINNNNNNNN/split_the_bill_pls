@@ -20,7 +20,7 @@ export function ItemCard({
   currentMemberId: string;
   members: { id: string; displayName: string }[];
   onDelete: () => void;
-  onUpdate: (updates: { name?: string; amount?: number }) => void;
+  onUpdate: (updates: { name?: string; quantity?: number; unitPrice?: number }) => void;
   onToggleMember: (memberId: string) => void;
   onSelectAll: () => void;
 }) {
@@ -56,7 +56,7 @@ export function ItemCard({
 
   return (
     <div className="rounded-lg border border-gray-200 p-3">
-      {/* Edit mode — same layout as "Add Item" form */}
+      {/* Edit mode — name + qty + price */}
       {editing ? (
         <div>
           <div className="flex gap-2">
@@ -71,9 +71,19 @@ export function ItemCard({
             />
             <input
               type="number"
-              value={amountDraft}
-              onChange={(e) => setAmountDraft(e.target.value)}
-              placeholder="Amount"
+              value={qtyDraft}
+              onChange={(e) => setQtyDraft(e.target.value)}
+              placeholder="Qty"
+              className="w-16 rounded-lg border border-gray-300 px-2 py-2 text-center text-sm focus:border-gray-500 focus:outline-none"
+              min="1"
+              step="1"
+              onKeyDown={(e) => { if (e.key === "Enter") save(); }}
+            />
+            <input
+              type="number"
+              value={priceDraft}
+              onChange={(e) => setPriceDraft(e.target.value)}
+              placeholder="Price"
               className="w-24 rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-gray-500 focus:outline-none"
               min="0"
               step="0.01"
@@ -108,6 +118,7 @@ export function ItemCard({
             <div className="flex items-center gap-1.5">
               <p className={`font-medium text-gray-800 ${canEdit ? "group-hover:text-gray-500 transition-colors" : ""}`}>
                 {item.name}
+                {item.quantity > 1 && <span className="ml-1 text-sm font-normal text-gray-400">(x{item.quantity})</span>}
               </p>
               {canEdit && (
                 <svg className="h-3 w-3 shrink-0 text-gray-300 group-hover:text-gray-500 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -115,7 +126,10 @@ export function ItemCard({
                 </svg>
               )}
             </div>
-            <p className="text-sm text-gray-500">฿{item.amount.toFixed(2)}</p>
+            <p className="text-sm text-gray-500">
+              ฿{totalPrice.toFixed(2)}
+              {item.quantity > 1 && <span className="ml-1 text-xs text-gray-400">(฿{item.unitPrice.toFixed(2)} each)</span>}
+            </p>
           </button>
           {canDelete && (
             <button
