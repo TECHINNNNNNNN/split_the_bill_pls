@@ -4,6 +4,8 @@ import { useEffect, useState } from "react";
 import type { CursorState } from "@/lib/hooks/use-presence";
 import { getCursorColor } from "@/lib/hooks/use-presence";
 
+const MAX_CURSORS = 6;
+
 interface LiveCursorsProps {
   cursors: Map<string, CursorState>;
   members: { id: string }[];
@@ -41,7 +43,7 @@ export function LiveCursors({ cursors, members, containerRef }: LiveCursorsProps
       className="pointer-events-none absolute inset-0 z-50 overflow-hidden"
       aria-hidden
     >
-      {Array.from(cursors.values()).map((cursor) => {
+      {Array.from(cursors.values()).slice(0, MAX_CURSORS).map((cursor) => {
         const px = cursor.x * containerRect.scrollWidth;
         const py = cursor.y * containerRect.scrollHeight;
         const color = getCursorColor(cursor.memberId, members);
