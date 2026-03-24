@@ -29,7 +29,7 @@ export function SectionCard({
   currentMemberId: string;
   members: { id: string; displayName: string }[];
   onAddItem: (name: string, amount: number) => void;
-  onUpdateItem: (itemId: string, updates: { name?: string; amount?: number }) => void;
+  onUpdateItem: (itemId: string, updates: { name?: string; quantity?: number; unitPrice?: number }) => void;
   onDeleteItem: (itemId: string) => void;
   onToggleMember: (itemId: string, memberId: string) => void;
   onSelectAll: (itemId: string) => void;

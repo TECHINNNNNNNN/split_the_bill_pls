@@ -105,7 +105,7 @@ export default function BillDetailsPage({
 
       // Bulk-add items to the target section
       for (const item of result.items) {
-        addItem(item.name, item.amount, sectionId);
+        addItem(item.name, item.unitPrice, sectionId, item.quantity);
       }
 
       // Auto-set extras if detected
@@ -123,7 +123,7 @@ export default function BillDetailsPage({
 
   // Grand total across all sections
   const grandTotal = sections.reduce((total, sec) => {
-    const subtotal = sec.items.reduce((sum, item) => sum + item.amount, 0);
+    const subtotal = sec.items.reduce((sum, item) => sum + item.quantity * item.unitPrice, 0);
     const discount = sec.extras.discountAmount ?? 0;
     const discountedSubtotal = Math.max(0, subtotal - discount);
     const scRate = sec.extras.serviceChargeRate ?? 0;
@@ -155,7 +155,7 @@ export default function BillDetailsPage({
       const calcItems = assignedItems.map((item) => ({
         id: item.id,
         name: item.name,
-        totalPrice: item.amount,
+        totalPrice: item.quantity * item.unitPrice,
       }));
 
       const calcClaims = assignedItems.flatMap((item) =>
@@ -243,7 +243,8 @@ export default function BillDetailsPage({
             name: sec.name || "Untitled",
             items: sec.items.map((item) => ({
               name: item.name,
-              amount: item.amount,
+              quantity: item.quantity,
+              unitPrice: item.unitPrice,
               memberIds: item.memberIds,
             })),
             vatRate: sec.extras.vatRate,
@@ -290,7 +291,7 @@ export default function BillDetailsPage({
   // For single section, compute breakdown values for display
   const singleSection = !isMultiSection ? sections[0] : null;
   const singleExtras = singleSection?.extras;
-  const singleSubtotal = singleSection?.items.reduce((sum, item) => sum + item.amount, 0) ?? 0;
+  const singleSubtotal = singleSection?.items.reduce((sum, item) => sum + item.quantity * item.unitPrice, 0) ?? 0;
   const singleDiscount = singleExtras?.discountAmount ?? 0;
   const singleDiscountedSubtotal = Math.max(0, singleSubtotal - singleDiscount);
   const singleScRate = singleExtras?.serviceChargeRate ?? 0;
