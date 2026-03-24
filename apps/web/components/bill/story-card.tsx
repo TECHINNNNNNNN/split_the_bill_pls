@@ -63,10 +63,11 @@ export const StoryCard = forwardRef<HTMLDivElement, StoryCardProps>(
           flexDirection: "column",
           padding: "80px 70px",
           position: "fixed",
-          left: "-9999px",
+          left: "0",
           top: "0",
           pointerEvents: "none" as const,
           zIndex: -1,
+          clipPath: "inset(50%)",
         }}
       >
         {/* Top: Branding */}

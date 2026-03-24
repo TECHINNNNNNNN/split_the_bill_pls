@@ -19,7 +19,7 @@ import { ScanProgress } from "@/components/tracking/scan-progress";
 import { ScanResultBadge } from "@/components/tracking/scan-result-badge";
 import { SlipModal } from "@/components/tracking/slip-modal";
 import { StoryCard } from "@/components/bill/story-card";
-import { toPng } from "html-to-image";
+import html2canvas from "html2canvas";
 import { statusConfig, bankNames } from "@/components/tracking/constants";
 import type { PaymentStatus } from "@/components/tracking/constants";
 
@@ -354,12 +354,21 @@ function PaymentTrackingContent({
               if (!storyCardRef.current) return;
               const toastId = toast.loading("Generating recap...");
               try {
-                const captureOpts = { width: 1080, height: 1920, pixelRatio: 1 };
-                await toPng(storyCardRef.current, captureOpts).catch(() => {});
-                await toPng(storyCardRef.current, captureOpts).catch(() => {});
-                const dataUrl = await toPng(storyCardRef.current, captureOpts);
-                const res = await fetch(dataUrl);
-                const blob = await res.blob();
+                // Temporarily remove clip-path so html2canvas can see the element
+                storyCardRef.current.style.clipPath = "none";
+                const canvas = await html2canvas(storyCardRef.current, {
+                  scale: 1,
+                  width: 1080,
+                  height: 1920,
+                  windowWidth: 1080,
+                  windowHeight: 1920,
+                  backgroundColor: null,
+                  useCORS: true,
+                });
+                storyCardRef.current.style.clipPath = "inset(50%)";
+                const blob = await new Promise<Blob>((resolve) =>
+                  canvas.toBlob((b) => resolve(b!), "image/png")
+                );
                 const file = new File([blob], "pladuk-recap.png", { type: "image/png" });
 
                 if (navigator.canShare?.({ files: [file] })) {
