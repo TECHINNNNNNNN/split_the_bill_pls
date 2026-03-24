@@ -404,24 +404,6 @@ export default function BillDetailsPage({
         )}
       </div>
 
-      {/* Shake to split hint */}
-      {!isLocked && shakeSupported && totalItems > 0 && (
-        <button
-          type="button"
-          onClick={async () => {
-            const granted = await requestShakePermission();
-            if (granted) {
-              toast("Shake your phone to split everything equally!", { icon: "📱" });
-            } else {
-              toast.error("Motion access denied — enable in browser settings");
-            }
-          }}
-          className="mt-2 self-center text-xs text-gray-400 transition-colors hover:text-gray-600"
-        >
-          📱 Shake to split equally
-        </button>
-      )}
-
       {/* Grand total + Finalize */}
       <div className="mt-8 border-t border-gray-200 pt-4">
         {/* Single-section breakdown (same as old UI) */}
