@@ -354,18 +354,24 @@ function PaymentTrackingContent({
               if (!storyCardRef.current) return;
               const toastId = toast.loading("Generating recap...");
               try {
-                // Temporarily remove clip-path so html2canvas can see the element
-                storyCardRef.current.style.clipPath = "none";
-                const canvas = await html2canvas(storyCardRef.current, {
+                // Clone the card so the original never flashes on screen
+                const clone = storyCardRef.current.cloneNode(true) as HTMLElement;
+                clone.style.clipPath = "none";
+                clone.style.left = "0";
+                clone.style.top = "0";
+                clone.style.zIndex = "-9999";
+                document.body.appendChild(clone);
+
+                const canvas = await html2canvas(clone, {
                   scale: 1,
                   width: 1080,
                   height: 1920,
                   windowWidth: 1080,
                   windowHeight: 1920,
                   backgroundColor: null,
-                  useCORS: true,
                 });
-                storyCardRef.current.style.clipPath = "inset(50%)";
+
+                document.body.removeChild(clone);
                 const blob = await new Promise<Blob>((resolve) =>
                   canvas.toBlob((b) => resolve(b!), "image/png")
                 );

@@ -73,6 +73,7 @@ export default function BillDetailsPage({
   const { cursors, onlineUsers } = usePresence(socket, billContainerRef, currentMemberId, currentDisplayName);
 
   // ─── Shake to split equally ───
+  const [shakeEnabled, setShakeEnabled] = useState(false);
   const handleShake = () => {
     for (const sec of sections) {
       for (const item of sec.items) {
@@ -83,7 +84,7 @@ export default function BillDetailsPage({
   };
   const { requestPermission: requestShakePermission, isSupported: shakeSupported } = useShake(
     handleShake,
-    !isLocked && sections.some((s) => s.items.length > 0),
+    shakeEnabled && !isLocked && sections.some((s) => s.items.length > 0),
   );
 
   // Breakdown modal state
@@ -369,22 +370,28 @@ export default function BillDetailsPage({
 
       {/* Shake to split — mobile only */}
       {!isLocked && shakeSupported && totalItems > 0 && (
-        <button
-          type="button"
-          onClick={async () => {
-            const granted = await requestShakePermission();
-            if (granted) {
-              // Also split on tap (fallback for iOS where shake triggers "Undo Typing")
-              handleShake();
-            } else {
-              toast.error("Motion access denied — enable in browser settings");
-            }
-          }}
-          className="mt-4 flex items-center justify-center gap-2 self-center rounded-full border border-dashed border-gray-300 px-5 py-2 text-sm font-medium text-gray-500 transition-colors hover:border-gray-400 hover:bg-gray-50 hover:text-gray-700"
-        >
-          <span className="text-base">📱</span>
-          Split equally
-        </button>
+        shakeEnabled ? (
+          <p className="mt-4 text-center text-xs text-gray-400">
+            📱 Shake your phone to split equally!
+          </p>
+        ) : (
+          <button
+            type="button"
+            onClick={async () => {
+              const granted = await requestShakePermission();
+              if (granted) {
+                setShakeEnabled(true);
+                toast.success("Shake enabled! Give your phone a good shake 📱");
+              } else {
+                toast.error("Motion access denied — enable in browser settings");
+              }
+            }}
+            className="mt-4 flex items-center justify-center gap-2 self-center rounded-full border border-dashed border-gray-300 px-5 py-2 text-sm font-medium text-gray-500 transition-colors hover:border-gray-400 hover:bg-gray-50 hover:text-gray-700"
+          >
+            <span className="text-base">📱</span>
+            Enable shake to split
+          </button>
+        )
       )}
 
       {/* Section cards */}
