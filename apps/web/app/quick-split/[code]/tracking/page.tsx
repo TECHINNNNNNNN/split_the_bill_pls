@@ -357,9 +357,8 @@ function PaymentTrackingContent({
                 // Clone the card so the original never flashes on screen
                 const clone = storyCardRef.current.cloneNode(true) as HTMLElement;
                 clone.style.clipPath = "none";
-                clone.style.left = "0";
+                clone.style.left = "-9999px";
                 clone.style.top = "0";
-                clone.style.zIndex = "-9999";
                 document.body.appendChild(clone);
 
                 const canvas = await html2canvas(clone, {

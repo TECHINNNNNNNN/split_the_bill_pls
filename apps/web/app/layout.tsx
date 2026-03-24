@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import { IBM_Plex_Sans_Thai, Prompt } from "next/font/google";
 import { Toaster } from "react-hot-toast";
 import { Providers } from "./providers";
+import { ToastCleanup } from "./toast-cleanup";
 import "./globals.css";
 
 const body = IBM_Plex_Sans_Thai({
@@ -40,6 +41,7 @@ export default function RootLayout({
     <html lang="th" className={`${body.variable} ${heading.variable}`}>
       <body className="font-body antialiased">
         <Providers>{children}</Providers>
+        <ToastCleanup />
         <Toaster
           position="top-center"
           toastOptions={{
