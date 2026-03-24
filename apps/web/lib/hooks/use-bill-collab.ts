@@ -195,6 +195,7 @@ export function useBillCollab(
     updateSection,
     deleteSection,
     addItem,
+    updateItem,
     deleteItem,
     toggleMember,
     selectAll,
