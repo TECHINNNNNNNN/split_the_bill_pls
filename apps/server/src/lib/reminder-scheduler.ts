@@ -71,11 +71,11 @@ export interface ReminderScheduleInfo {
  * Returns absolute timestamps for each tier so the client can count down locally.
  */
 export function computeReminderSchedule(
-  roomCreatedAt: Date,
+  roomBaseTime: Date,
   sentTiers: string[],
 ): ReminderScheduleInfo {
   const sentSet = new Set(sentTiers)
-  const baseMs = roomCreatedAt.getTime()
+  const baseMs = roomBaseTime.getTime()
   const roomAge = Date.now() - baseMs
 
   // Get all tiers applicable to current room age
@@ -156,9 +156,8 @@ async function checkAndSendReminders() {
     const paidCount = room.payments.filter((p) => p.status === "confirmed").length
     const totalCount = room.payments.length
 
-    // Use room creation time as baseline for reminder timing
-    // (status changes to "payment" after finalize, but createdAt is consistent)
-    const roomAge = Date.now() - new Date(room.createdAt).getTime()
+    // Use finalization time as baseline for reminder timing (falls back to createdAt for legacy rooms)
+    const roomAge = Date.now() - new Date(room.finalizedAt ?? room.createdAt).getTime()
     const ageMinutes = Math.floor(roomAge / MINUTE)
 
     console.log(`[reminders] Room ${room.inviteCode}: ${unpaidPayments.length} unpaid, age=${ageMinutes}m, paid=${paidCount}/${totalCount}`)

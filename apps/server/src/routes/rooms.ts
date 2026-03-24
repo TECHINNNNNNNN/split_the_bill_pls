@@ -549,7 +549,7 @@ const app = new Hono()
       for (const paymentId of unpaidPaymentIds) {
         const sentTiers = tiersByPayment.get(paymentId) ?? []
         reminderSchedule[paymentId] = computeReminderSchedule(
-          new Date(room.createdAt),
+          new Date(room.finalizedAt ?? room.createdAt),
           sentTiers,
         )
       }
