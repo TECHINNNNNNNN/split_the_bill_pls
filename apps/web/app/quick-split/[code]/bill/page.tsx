@@ -265,7 +265,8 @@ export default function BillDetailsPage({
         {
           items: sec.items.map((item) => ({
             name: item.name,
-            amount: item.amount,
+            quantity: item.quantity,
+            unitPrice: item.unitPrice,
             memberIds: item.memberIds,
           })),
           vatRate: sec.extras.vatRate,
