@@ -5,7 +5,8 @@ import type * as Party from "partykit/server"
 interface CollabItem {
   id: string
   name: string
-  amount: number
+  quantity: number
+  unitPrice: number
   memberIds: string[]
   addedBy: string
 }

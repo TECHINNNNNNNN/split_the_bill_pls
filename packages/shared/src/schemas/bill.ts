@@ -98,7 +98,8 @@ export const scanReceiptSchema = z.object({
 export const scanReceiptResponseSchema = z.object({
   items: z.array(z.object({
     name: z.string(),
-    amount: z.number().positive(),
+    quantity: z.number().int().min(1).default(1),
+    unitPrice: z.number().positive(),
   })),
   vatRate: z.number().min(0).max(1).nullable(),
   serviceChargeRate: z.number().min(0).max(1).nullable(),
