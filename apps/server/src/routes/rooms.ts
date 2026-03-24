@@ -613,7 +613,7 @@ const app = new Hono()
       return c.json({ error: "Only the host can add items" }, 403)
     }
 
-    const { name, amount } = c.req.valid("json")
+    const { name, quantity, unitPrice } = c.req.valid("json")
 
     // Get current item count for sort order
     const existingItems = await db.query.roomBillItems.findMany({
@@ -623,7 +623,8 @@ const app = new Hono()
     const [item] = await db.insert(roomBillItems).values({
       roomId,
       name,
-      amount: amount.toString(),
+      quantity: quantity ?? 1,
+      unitPrice: unitPrice.toString(),
       sortOrder: existingItems.length,
     }).returning()
 
@@ -812,7 +813,8 @@ const app = new Hono()
           roomId,
           sectionId: sectionDbId,
           name: ci.name,
-          amount: ci.amount.toString(),
+          quantity: ci.quantity ?? 1,
+          unitPrice: ci.unitPrice.toString(),
           sortOrder: i,
         }).returning()
 
@@ -832,7 +834,7 @@ const app = new Hono()
       const calcItems = createdItems.map((item) => ({
         id: item.id,
         name: item.name,
-        totalPrice: parseFloat(item.amount),
+        totalPrice: (item.quantity ?? 1) * parseFloat(item.unitPrice),
       }))
 
       const calcClaims = createdItems.flatMap((item) =>

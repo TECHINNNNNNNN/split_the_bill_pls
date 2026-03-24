@@ -5,7 +5,8 @@
 
 export interface ScannedItem {
   name: string
-  amount: number
+  quantity: number
+  unitPrice: number
 }
 
 export interface ScanReceiptResult {
@@ -19,7 +20,7 @@ const SYSTEM_PROMPT = `You extract structured data from restaurant/food receipt 
 
 Output format:
 {
-  "items": [{ "name": "Item name", "amount": 123.45 }],
+  "items": [{ "name": "Item name", "quantity": 1, "unitPrice": 123.45 }],
   "taxPct": null,
   "serviceChargePct": null,
   "discountAmount": null
@@ -27,7 +28,9 @@ Output format:
 
 ITEMS — what to INCLUDE:
 - Food, drinks, and product line items only.
-- If quantity is shown (e.g. "2x Cola 25"), multiply: amount = unit price × qty = 50.
+- If quantity is shown (e.g. "2x Cola 25"), return quantity: 2, unitPrice: 25 (the per-unit price, NOT the total).
+- If quantity is NOT shown, use quantity: 1.
+- If the receipt shows a total price for multiple items (e.g. "Cola x2  50"), divide to get the unit price: quantity: 2, unitPrice: 25.
 - Include real charges like container fees, cover charges, corkage, packaging fees.
 - Combo/set items: use the total combo price as one item.
 - Sub-descriptions (e.g. "Shrimp", "Chicken", "Beef" below an item) are modifiers, NOT separate items. Merge them into the parent item name (e.g. "Yellow Curry (D) - Shrimp").
@@ -149,9 +152,12 @@ export async function scanReceipt(imageBase64: string): Promise<ScanReceiptResul
     for (const item of parsed.items) {
       const entry = item as Record<string, unknown>
       const name = typeof entry.name === "string" ? entry.name.trim() : ""
-      const amount = typeof entry.amount === "number" ? entry.amount : parseFloat(String(entry.amount))
-      if (name && !isNaN(amount) && amount > 0) {
-        items.push({ name, amount })
+      const qty = typeof entry.quantity === "number" && entry.quantity >= 1 ? Math.floor(entry.quantity) : 1
+      // Support both "unitPrice" and legacy "amount" from the AI response
+      const rawPrice = entry.unitPrice ?? entry.amount
+      const unitPrice = typeof rawPrice === "number" ? rawPrice : parseFloat(String(rawPrice))
+      if (name && !isNaN(unitPrice) && unitPrice > 0) {
+        items.push({ name, quantity: qty, unitPrice })
       }
     }
   }
