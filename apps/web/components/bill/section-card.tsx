@@ -28,7 +28,7 @@ export function SectionCard({
   isHost: boolean;
   currentMemberId: string;
   members: { id: string; displayName: string }[];
-  onAddItem: (name: string, amount: number) => void;
+  onAddItem: (name: string, unitPrice: number, quantity?: number) => void;
   onUpdateItem: (itemId: string, updates: { name?: string; quantity?: number; unitPrice?: number }) => void;
   onDeleteItem: (itemId: string) => void;
   onToggleMember: (itemId: string, memberId: string) => void;
@@ -212,6 +212,16 @@ export function SectionCard({
               />
               <input
                 type="number"
+                value={itemQty}
+                onChange={(e) => setItemQty(e.target.value)}
+                placeholder="Qty"
+                className="w-16 rounded-lg border border-gray-300 px-2 py-2 text-center text-sm focus:border-gray-500 focus:outline-none"
+                min="1"
+                step="1"
+                onKeyDown={(e) => { if (e.key === "Enter") handleAddItem(); }}
+              />
+              <input
+                type="number"
                 value={itemAmount}
                 onChange={(e) => setItemAmount(e.target.value)}
                 placeholder="Price"
@@ -232,7 +242,7 @@ export function SectionCard({
               </button>
               <button
                 type="button"
-                onClick={() => { setShowForm(false); setItemName(""); setItemAmount(""); }}
+                onClick={() => { setShowForm(false); setItemName(""); setItemQty("1"); setItemAmount(""); }}
                 className="text-sm text-gray-500 hover:text-gray-800"
               >
                 Cancel

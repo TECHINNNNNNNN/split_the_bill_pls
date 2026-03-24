@@ -364,7 +364,7 @@ export default function BillDetailsPage({
             isHost={isHost}
             currentMemberId={currentMemberId}
             members={members}
-            onAddItem={(name, amount) => addItem(name, amount, section.id)}
+            onAddItem={(name, unitPrice, quantity) => addItem(name, unitPrice, section.id, quantity)}
             onUpdateItem={(itemId, updates) => updateItem(itemId, section.id, updates)}
             onDeleteItem={(itemId) => deleteItem(itemId, section.id)}
             onToggleMember={(itemId, memberId) => toggleMember(itemId, section.id, memberId)}
