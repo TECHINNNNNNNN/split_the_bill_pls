@@ -39,7 +39,8 @@ export const joinRoomSchema = z.object({
 
 export const addRoomItemSchema = z.object({
   name: z.string().min(1).max(200),
-  amount: z.number().positive(),
+  quantity: z.number().int().min(1).default(1),
+  unitPrice: z.number().positive(),
 })
 
 export const setRoomItemSplitsSchema = z.object({
@@ -48,7 +49,8 @@ export const setRoomItemSplitsSchema = z.object({
 
 const billItemSchema = z.object({
   name: z.string().min(1).max(200),
-  amount: z.number().positive(),
+  quantity: z.number().int().min(1).default(1),
+  unitPrice: z.number().positive(),
   memberIds: z.array(z.string().uuid()).min(1),
 })
 

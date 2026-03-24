@@ -160,7 +160,8 @@ export const roomBillItems = pgTable("room_bill_items", {
   sectionId: uuid("section_id")
     .references(() => roomBillSections.id, { onDelete: "cascade" }),
   name: text("name").notNull(),
-  amount: numeric("amount", { precision: 10, scale: 2 }).notNull(),
+  quantity: integer("quantity").notNull().default(1),
+  unitPrice: numeric("unit_price", { precision: 10, scale: 2 }).notNull(),
   sortOrder: integer("sort_order").default(0),
 });
 
