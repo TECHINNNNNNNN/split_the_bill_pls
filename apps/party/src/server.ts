@@ -36,8 +36,8 @@ type ClientMessage =
   | { type: "section:add"; data: { name: string } }
   | { type: "section:update"; data: { sectionId: string; name: string } }
   | { type: "section:delete"; data: { sectionId: string } }
-  | { type: "item:add"; data: { name: string; amount: number; memberId: string; sectionId?: string } }
-  | { type: "item:update"; data: { itemId: string; sectionId: string; name?: string; amount?: number } }
+  | { type: "item:add"; data: { name: string; quantity: number; unitPrice: number; memberId: string; sectionId?: string } }
+  | { type: "item:update"; data: { itemId: string; sectionId: string; name?: string; quantity?: number; unitPrice?: number } }
   | { type: "item:delete"; data: { itemId: string; sectionId: string; memberId: string; isHost: boolean } }
   | { type: "item:toggle-member"; data: { itemId: string; sectionId: string; targetMemberId: string } }
   | { type: "item:select-all"; data: { itemId: string; sectionId: string; allMemberIds: string[] } }
@@ -190,15 +190,16 @@ export default class RoomParty implements Party.Server {
       }
 
       case "item:add": {
-        const { name, amount, memberId, sectionId } = msg.data
-        if (!name?.trim() || typeof amount !== "number" || amount <= 0) return
+        const { name, quantity, unitPrice, memberId, sectionId } = msg.data
+        if (!name?.trim() || typeof unitPrice !== "number" || unitPrice <= 0) return
         const section = this.findSectionForItem(sectionId)
         if (!section) return
         const id = generateItemId()
         section.items.set(id, {
           id,
           name: name.trim(),
-          amount,
+          quantity: quantity ?? 1,
+          unitPrice,
           memberIds: [],
           addedBy: memberId,
         })
@@ -207,13 +208,14 @@ export default class RoomParty implements Party.Server {
       }
 
       case "item:update": {
-        const { itemId, sectionId, name, amount } = msg.data
+        const { itemId, sectionId, name, quantity, unitPrice } = msg.data
         const section = this.sections.get(sectionId)
         if (!section) return
         const item = section.items.get(itemId)
         if (!item) return
         if (name !== undefined) item.name = name.trim() || item.name
-        if (amount !== undefined && typeof amount === "number" && amount > 0) item.amount = amount
+        if (quantity !== undefined && typeof quantity === "number" && quantity >= 1) item.quantity = Math.floor(quantity)
+        if (unitPrice !== undefined && typeof unitPrice === "number" && unitPrice > 0) item.unitPrice = unitPrice
         this.broadcastItems()
         break
       }
