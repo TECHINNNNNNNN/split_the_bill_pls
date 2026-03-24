@@ -74,104 +74,135 @@ If you cannot read the receipt or it's not a receipt image, return:
 
 Return ONLY the JSON. No markdown fences, no explanation.`
 
-export async function scanReceipt(imageBase64: string): Promise<ScanReceiptResult> {
-  const apiKey = process.env.QWEN_API_KEY
-  const baseUrl = process.env.QWEN_BASE_URL || "https://dashscope-intl.aliyuncs.com/compatible-mode/v1"
-  const model = process.env.QWEN_MODEL || "qwen-vl-max"
-
-  if (!apiKey) {
-    throw new Error("QWEN_API_KEY is not configured")
-  }
-
+async function callVisionModel(
+  baseUrl: string,
+  apiKey: string,
+  model: string,
+  imageBase64: string,
+  timeoutMs: number,
+): Promise<ScanReceiptResult> {
   // Strip data URL prefix if present
   const base64Data = imageBase64.replace(/^data:image\/[a-z]+;base64,/, "")
 
-  const response = await fetch(`${baseUrl}/chat/completions`, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${apiKey}`,
-    },
-    body: JSON.stringify({
-      model,
-      messages: [
-        { role: "system", content: SYSTEM_PROMPT },
-        {
-          role: "user",
-          content: [
-            {
-              type: "image_url",
-              image_url: { url: `data:image/jpeg;base64,${base64Data}` },
-            },
-            {
-              type: "text",
-              text: "Extract all line items, tax, service charge, and discount from this receipt.",
-            },
-          ],
-        },
-      ],
-      max_tokens: 2048,
-      temperature: 0.1,
-    }),
-  })
+  const controller = new AbortController()
+  const timeoutId = setTimeout(() => controller.abort(), timeoutMs)
 
-  if (!response.ok) {
-    const errorText = await response.text()
-    throw new Error(`Qwen API error (${response.status}): ${errorText}`)
-  }
-
-  const body = (await response.json()) as {
-    choices?: Array<{ message?: { content?: string } }>
-  }
-
-  const raw = body.choices?.[0]?.message?.content?.trim()
-  if (!raw) {
-    throw new Error("Empty response from Qwen API")
-  }
-
-  console.log("[scan-receipt] Raw Qwen response:", raw)
-
-  // Parse JSON — handle potential markdown code fences
-  const jsonStr = raw.replace(/^```json?\s*/, "").replace(/\s*```$/, "")
-
-  let parsed: {
-    items?: unknown[]
-    taxPct?: number | null
-    serviceChargePct?: number | null
-    discountAmount?: number | null
-  }
   try {
-    parsed = JSON.parse(jsonStr)
-  } catch {
-    throw new Error(`Failed to parse Qwen response as JSON: ${jsonStr.slice(0, 200)}`)
-  }
+    const response = await fetch(`${baseUrl}/chat/completions`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${apiKey}`,
+      },
+      signal: controller.signal,
+      body: JSON.stringify({
+        model,
+        messages: [
+          { role: "system", content: SYSTEM_PROMPT },
+          {
+            role: "user",
+            content: [
+              {
+                type: "image_url",
+                image_url: { url: `data:image/jpeg;base64,${base64Data}` },
+              },
+              {
+                type: "text",
+                text: "Extract all line items, tax, service charge, and discount from this receipt.",
+              },
+            ],
+          },
+        ],
+        max_tokens: 2048,
+        temperature: 0.1,
+      }),
+    })
 
-  // Validate and normalize
-  const items: ScannedItem[] = []
-  if (Array.isArray(parsed.items)) {
-    for (const item of parsed.items) {
-      const entry = item as Record<string, unknown>
-      const name = typeof entry.name === "string" ? entry.name.trim() : ""
-      const qty = typeof entry.quantity === "number" && entry.quantity >= 1 ? Math.floor(entry.quantity) : 1
-      // Support both "unitPrice" and legacy "amount" from the AI response
-      const rawPrice = entry.unitPrice ?? entry.amount
-      const unitPrice = typeof rawPrice === "number" ? rawPrice : parseFloat(String(rawPrice))
-      if (name && !isNaN(unitPrice) && unitPrice > 0) {
-        items.push({ name, quantity: qty, unitPrice })
+    if (!response.ok) {
+      const errorText = await response.text()
+      throw new Error(`Vision API error (${response.status}): ${errorText}`)
+    }
+
+    const body = (await response.json()) as {
+      choices?: Array<{ message?: { content?: string } }>
+    }
+
+    const raw = body.choices?.[0]?.message?.content?.trim()
+    if (!raw) {
+      throw new Error("Empty response from vision API")
+    }
+
+    // Parse JSON — handle potential markdown code fences
+    const jsonStr = raw.replace(/^```json?\s*/, "").replace(/\s*```$/, "")
+
+    let parsed: {
+      items?: unknown[]
+      taxPct?: number | null
+      serviceChargePct?: number | null
+      discountAmount?: number | null
+    }
+    try {
+      parsed = JSON.parse(jsonStr)
+    } catch {
+      throw new Error(`Failed to parse vision API response as JSON: ${jsonStr.slice(0, 200)}`)
+    }
+
+    // Validate and normalize
+    const items: ScannedItem[] = []
+    if (Array.isArray(parsed.items)) {
+      for (const item of parsed.items) {
+        const entry = item as Record<string, unknown>
+        const name = typeof entry.name === "string" ? entry.name.trim() : ""
+        const qty = typeof entry.quantity === "number" && entry.quantity >= 1 ? Math.floor(entry.quantity) : 1
+        // Support both "unitPrice" and legacy "amount" from the AI response
+        const rawPrice = entry.unitPrice ?? entry.amount
+        const unitPrice = typeof rawPrice === "number" ? rawPrice : parseFloat(String(rawPrice))
+        if (name && !isNaN(unitPrice) && unitPrice > 0) {
+          items.push({ name, quantity: qty, unitPrice })
+        }
       }
+    }
+
+    const taxPct = typeof parsed.taxPct === "number" ? parsed.taxPct : null
+    const scPct = typeof parsed.serviceChargePct === "number" ? parsed.serviceChargePct : null
+    const discountAmt = typeof parsed.discountAmount === "number" && parsed.discountAmount > 0
+      ? parsed.discountAmount
+      : null
+
+    return {
+      items,
+      vatRate: taxPct != null ? taxPct / 100 : null,
+      serviceChargeRate: scPct != null ? scPct / 100 : null,
+      discountAmount: discountAmt,
+    }
+  } finally {
+    clearTimeout(timeoutId)
+  }
+}
+
+export async function scanReceipt(imageBase64: string): Promise<ScanReceiptResult> {
+  const qwenKey = process.env.QWEN_API_KEY
+  const qwenBaseUrl = process.env.QWEN_BASE_URL || "https://dashscope-intl.aliyuncs.com/compatible-mode/v1"
+  const qwenModel = process.env.QWEN_MODEL || "qwen-vl-max"
+
+  // Try Qwen first with 30s timeout
+  if (qwenKey) {
+    try {
+      return await callVisionModel(qwenBaseUrl, qwenKey, qwenModel, imageBase64, 30_000)
+    } catch (err) {
+      console.warn("[scan-receipt] Qwen failed, attempting fallback to OpenAI:", err instanceof Error ? err.message : err)
     }
   }
 
-  const taxPct = typeof parsed.taxPct === "number" ? parsed.taxPct : null
-  const scPct = typeof parsed.serviceChargePct === "number" ? parsed.serviceChargePct : null
-  const discountAmt = typeof parsed.discountAmount === "number" && parsed.discountAmount > 0
-    ? parsed.discountAmount
-    : null
-
-  return {
-    items,
-    vatRate: taxPct != null ? taxPct / 100 : null,
-    serviceChargeRate: scPct != null ? scPct / 100 : null,
-    discountAmount: discountAmt,
+  // Fallback to OpenAI with 25s timeout
+  const openAiKey = process.env.OPENAI_API_KEY
+  if (!openAiKey) {
+    throw new Error(
+      qwenKey
+        ? "Qwen failed and OPENAI_API_KEY is not configured — configure at least one vision API key"
+        : "Neither QWEN_API_KEY nor OPENAI_API_KEY is configured"
+    )
   }
+
+  return await callVisionModel("https://api.openai.com/v1", openAiKey, "gpt-4o-mini", imageBase64, 25_000)
 }
