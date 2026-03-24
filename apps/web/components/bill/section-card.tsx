@@ -42,6 +42,7 @@ export function SectionCard({
   // Per-section form state
   const [showForm, setShowForm] = useState(false);
   const [itemName, setItemName] = useState("");
+  const [itemQty, setItemQty] = useState("1");
   const [itemAmount, setItemAmount] = useState("");
 
   // Per-section extras draft state
@@ -82,9 +83,11 @@ export function SectionCard({
 
   const handleAddItem = () => {
     const price = parseFloat(itemAmount);
+    const qty = parseInt(itemQty) || 1;
     if (!itemName.trim() || isNaN(price) || price <= 0) return;
-    onAddItem(itemName.trim(), price);
+    onAddItem(itemName.trim(), price, qty);
     setItemName("");
+    setItemQty("1");
     setItemAmount("");
     setShowForm(false);
   };
