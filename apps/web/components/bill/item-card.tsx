@@ -27,87 +27,103 @@ export function ItemCard({
   const canEdit = !isLocked;
   const canDelete = canEdit && (item.addedBy === currentMemberId || isHost);
 
-  const [editingName, setEditingName] = useState(false);
-  const [editingAmount, setEditingAmount] = useState(false);
+  const [editing, setEditing] = useState(false);
   const [nameDraft, setNameDraft] = useState(item.name);
   const [amountDraft, setAmountDraft] = useState(String(item.amount));
 
-  const saveName = () => {
-    const trimmed = nameDraft.trim();
-    if (trimmed && trimmed !== item.name) {
-      onUpdate({ name: trimmed });
-    }
-    setEditingName(false);
+  const startEditing = () => {
+    if (!canEdit) return;
+    setNameDraft(item.name);
+    setAmountDraft(String(item.amount));
+    setEditing(true);
   };
 
-  const saveAmount = () => {
-    const parsed = parseFloat(amountDraft);
-    if (!isNaN(parsed) && parsed > 0 && parsed !== item.amount) {
-      onUpdate({ amount: parsed });
-    }
-    setEditingAmount(false);
+  const save = () => {
+    const trimmedName = nameDraft.trim();
+    const parsedAmount = parseFloat(amountDraft);
+    const updates: { name?: string; amount?: number } = {};
+    if (trimmedName && trimmedName !== item.name) updates.name = trimmedName;
+    if (!isNaN(parsedAmount) && parsedAmount > 0 && parsedAmount !== item.amount) updates.amount = parsedAmount;
+    if (Object.keys(updates).length > 0) onUpdate(updates);
+    setEditing(false);
   };
 
   return (
     <div className="rounded-lg border border-gray-200 p-3">
-      <div className="flex items-center justify-between">
-        <div className="min-w-0 flex-1">
-          {/* Item name — tap to edit */}
-          {canEdit && editingName ? (
+      {/* Edit mode — same layout as "Add Item" form */}
+      {editing ? (
+        <div>
+          <div className="flex gap-2">
             <input
               type="text"
               value={nameDraft}
               onChange={(e) => setNameDraft(e.target.value)}
-              onBlur={saveName}
-              onKeyDown={(e) => { if (e.key === "Enter") saveName(); }}
-              className="w-full rounded border border-gray-300 px-2 py-0.5 text-sm font-medium text-gray-800 focus:border-gray-500 focus:outline-none"
+              placeholder="Item name"
+              className="flex-1 rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-gray-500 focus:outline-none"
+              onKeyDown={(e) => { if (e.key === "Enter") save(); }}
               autoFocus
             />
-          ) : (
-            <button
-              type="button"
-              onClick={() => { if (canEdit) { setNameDraft(item.name); setEditingName(true); } }}
-              className={`text-left font-medium text-gray-800 ${canEdit ? "transition-colors hover:text-gray-500" : ""}`}
-            >
-              {item.name}
-            </button>
-          )}
-
-          {/* Item amount — tap to edit */}
-          {canEdit && editingAmount ? (
             <input
               type="number"
               value={amountDraft}
               onChange={(e) => setAmountDraft(e.target.value)}
-              onBlur={saveAmount}
-              onKeyDown={(e) => { if (e.key === "Enter") saveAmount(); }}
-              className="mt-0.5 w-24 rounded border border-gray-300 px-2 py-0.5 text-sm text-gray-500 focus:border-gray-500 focus:outline-none"
+              placeholder="Amount"
+              className="w-24 rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-gray-500 focus:outline-none"
               min="0"
               step="0.01"
-              autoFocus
+              onKeyDown={(e) => { if (e.key === "Enter") save(); }}
             />
-          ) : (
+          </div>
+          <div className="mt-2 flex gap-2">
             <button
               type="button"
-              onClick={() => { if (canEdit) { setAmountDraft(String(item.amount)); setEditingAmount(true); } }}
-              className={`block text-sm text-gray-500 ${canEdit ? "transition-colors hover:text-gray-400" : ""}`}
+              onClick={save}
+              className="rounded-lg bg-gray-800 px-4 py-1.5 text-sm font-medium text-white disabled:opacity-40"
             >
-              ฿{item.amount.toFixed(2)}
+              Save
+            </button>
+            <button
+              type="button"
+              onClick={() => setEditing(false)}
+              className="text-sm text-gray-500 hover:text-gray-800"
+            >
+              Cancel
+            </button>
+          </div>
+        </div>
+      ) : (
+        /* Display mode */
+        <div className="flex items-center justify-between">
+          <button
+            type="button"
+            onClick={startEditing}
+            className={`min-w-0 flex-1 text-left ${canEdit ? "group" : ""}`}
+          >
+            <div className="flex items-center gap-1.5">
+              <p className={`font-medium text-gray-800 ${canEdit ? "group-hover:text-gray-500 transition-colors" : ""}`}>
+                {item.name}
+              </p>
+              {canEdit && (
+                <svg className="h-3 w-3 shrink-0 text-gray-300 group-hover:text-gray-500 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+                </svg>
+              )}
+            </div>
+            <p className="text-sm text-gray-500">฿{item.amount.toFixed(2)}</p>
+          </button>
+          {canDelete && (
+            <button
+              type="button"
+              onClick={onDelete}
+              className="ml-2 shrink-0 text-gray-400 transition-colors hover:text-red-500"
+            >
+              <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+              </svg>
             </button>
           )}
         </div>
-        {canDelete && (
-          <button
-            type="button"
-            onClick={onDelete}
-            className="ml-2 shrink-0 text-gray-400 transition-colors hover:text-red-500"
-          >
-            <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-            </svg>
-          </button>
-        )}
-      </div>
+      )}
 
       {/* Split amongst chips */}
       <div className="mt-2 border-t border-gray-100 pt-2">
