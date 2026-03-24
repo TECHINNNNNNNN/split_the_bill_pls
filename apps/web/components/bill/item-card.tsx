@@ -59,36 +59,38 @@ export function ItemCard({
       {/* Edit mode — name + qty + price */}
       {editing ? (
         <div>
-          <div className="flex gap-2">
+          <div className="space-y-2">
             <input
               type="text"
               value={nameDraft}
               onChange={(e) => setNameDraft(e.target.value)}
               placeholder="Item name"
-              className="flex-1 rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-gray-500 focus:outline-none"
+              className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-gray-500 focus:outline-none"
               onKeyDown={(e) => { if (e.key === "Enter") save(); }}
               autoFocus
             />
-            <input
-              type="number"
-              value={qtyDraft}
-              onChange={(e) => setQtyDraft(e.target.value)}
-              placeholder="Qty"
-              className="w-16 rounded-lg border border-gray-300 px-2 py-2 text-center text-sm focus:border-gray-500 focus:outline-none"
-              min="1"
-              step="1"
-              onKeyDown={(e) => { if (e.key === "Enter") save(); }}
-            />
-            <input
-              type="number"
-              value={priceDraft}
-              onChange={(e) => setPriceDraft(e.target.value)}
-              placeholder="Price"
-              className="w-24 rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-gray-500 focus:outline-none"
-              min="0"
-              step="0.01"
-              onKeyDown={(e) => { if (e.key === "Enter") save(); }}
-            />
+            <div className="flex gap-2">
+              <input
+                type="number"
+                value={qtyDraft}
+                onChange={(e) => setQtyDraft(e.target.value)}
+                placeholder="Qty"
+                className="w-20 rounded-lg border border-gray-300 px-2 py-2 text-center text-sm focus:border-gray-500 focus:outline-none"
+                min="1"
+                step="1"
+                onKeyDown={(e) => { if (e.key === "Enter") save(); }}
+              />
+              <input
+                type="number"
+                value={priceDraft}
+                onChange={(e) => setPriceDraft(e.target.value)}
+                placeholder="Unit price"
+                className="flex-1 rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-gray-500 focus:outline-none"
+                min="0"
+                step="0.01"
+                onKeyDown={(e) => { if (e.key === "Enter") save(); }}
+              />
+            </div>
           </div>
           <div className="mt-2 flex gap-2">
             <button
