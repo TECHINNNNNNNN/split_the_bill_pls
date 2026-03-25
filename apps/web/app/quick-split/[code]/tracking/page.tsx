@@ -137,6 +137,10 @@ function PaymentTrackingContent({
   const [iosDismissed, setIosDismissed] = useState(false);
 
 
+  // Keep screen awake while QR code is showing
+  const myPayment = payments.find((p) => p.memberId === currentMemberId);
+  useWakeLock(!isHost && !!myPayment && myPayment.status !== "confirmed" && !!room?.promptpayId);
+
   // Story card for sharing
   const storyCardRef = useRef<HTMLDivElement>(null);
 
