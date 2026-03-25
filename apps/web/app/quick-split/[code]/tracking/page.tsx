@@ -173,6 +173,16 @@ function PaymentTrackingContent({
   const confirmedPayments = payments.filter((p) => p.status === "confirmed");
   const confirmedTotal = confirmedPayments.reduce((sum, p) => sum + parseFloat(p.amount), 0);
   const confirmedCount = confirmedPayments.length;
+  const allPaid = confirmedCount === payments.length && payments.length > 0;
+
+  // Fire confetti once when all payments are confirmed
+  const hasFiredConfetti = useRef(false);
+  useEffect(() => {
+    if (allPaid && !hasFiredConfetti.current) {
+      hasFiredConfetti.current = true;
+      fireAllPaidConfetti();
+    }
+  }, [allPaid]);
 
   // Handle slip file selection — set scanning state SYNCHRONOUSLY before async work
   const handleSlipUpload = async (e: React.ChangeEvent<HTMLInputElement>, paymentId: string) => {
