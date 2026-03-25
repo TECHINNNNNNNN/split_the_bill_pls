@@ -395,7 +395,43 @@ export default function BillDetailsPage({
             </button>
           </>
         )}
+        {!isLocked && !isMultiSection && voice.isSupported && (
+          <button
+            type="button"
+            onClick={async () => {
+              if (voice.isRecording) {
+                const blob = await voice.stop();
+                handleVoiceResult(blob, sections[0]?.id);
+              } else {
+                voice.start();
+              }
+            }}
+            disabled={parseVoice.isPending}
+            className={`flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-sm font-medium transition-colors disabled:opacity-40 ${
+              voice.isRecording
+                ? "border-red-300 bg-red-50 text-red-600"
+                : "border-gray-300 text-gray-600 hover:bg-gray-50"
+            }`}
+          >
+            <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11a7 7 0 01-14 0m7 7v4m-4 0h8M12 1a3 3 0 00-3 3v7a3 3 0 006 0V4a3 3 0 00-3-3z" />
+            </svg>
+            {parseVoice.isPending
+              ? "Processing..."
+              : voice.isRecording
+                ? `Stop (${voice.duration}s)`
+                : "Voice"}
+          </button>
+        )}
       </div>
+
+      {/* Voice recording indicator */}
+      {voice.isRecording && (
+        <div className="mt-3 flex items-center justify-center gap-2 text-sm text-red-500">
+          <span className="inline-block h-2 w-2 animate-pulse rounded-full bg-red-500" />
+          Recording... Speak your order, then tap Stop
+        </div>
+      )}
 
       {/* Shake to split — mobile only */}
       {!isLocked && shakeSupported && totalItems > 0 && (
@@ -444,6 +480,13 @@ export default function BillDetailsPage({
             onUpdateSectionName={(name) => updateSection(section.id, name)}
             onScanReceipt={(file) => handleScanReceipt(file, section.id)}
             scanPending={scanReceipt.isPending}
+            onVoiceResult={(blob) => handleVoiceResult(blob, section.id)}
+            voicePending={parseVoice.isPending}
+            voiceSupported={voice.isSupported}
+            voiceRecording={voice.isRecording}
+            voiceDuration={voice.duration}
+            onVoiceStart={voice.start}
+            onVoiceStop={voice.stop}
           />
         ))}
 
