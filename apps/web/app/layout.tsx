@@ -1,6 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import { IBM_Plex_Sans_Thai, Prompt } from "next/font/google";
-import { Toaster } from "react-hot-toast";
+import toast, { Toaster } from "react-hot-toast";
 import { Providers } from "./providers";
 import { ToastCleanup } from "./toast-cleanup";
 import "./globals.css";
@@ -54,6 +54,7 @@ export default function RootLayout({
               fontSize: "14px",
               fontWeight: 500,
               boxShadow: "0 8px 30px rgba(0,0,0,0.2)",
+              cursor: "pointer",
             },
             success: {
               iconTheme: {
@@ -70,6 +71,7 @@ export default function RootLayout({
               duration: 4000,
             },
           }}
+          containerStyle={{ pointerEvents: "auto" }}
         />
       </body>
     </html>
