@@ -22,6 +22,7 @@ import { SlipModal } from "@/components/tracking/slip-modal";
 import { StoryCard } from "@/components/bill/story-card";
 import html2canvas from "html2canvas";
 import { statusConfig, bankNames } from "@/components/tracking/constants";
+import { fireAllPaidConfetti } from "@/lib/confetti";
 import type { PaymentStatus } from "@/components/tracking/constants";
 
 // ─── Main component ───
