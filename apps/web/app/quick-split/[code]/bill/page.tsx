@@ -373,80 +373,79 @@ export default function BillDetailsPage({
       <LiveCursors cursors={cursors} members={members} containerRef={billContainerRef} />
 
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <button
-            type="button"
-            onClick={() => router.back()}
-            className="text-sm text-gray-500 hover:text-gray-800"
-          >
-            Back
-          </button>
+      <div>
+        <button
+          type="button"
+          onClick={() => router.back()}
+          className="text-sm text-gray-500 hover:text-gray-800"
+        >
+          Back
+        </button>
+        <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
             <h1 className="font-heading text-2xl font-bold text-gray-800 md:text-3xl">
               Bill Details
             </h1>
             <PresenceAvatars onlineUsers={onlineUsers} members={members} currentMemberId={currentMemberId} />
           </div>
+          {!isLocked && !isMultiSection && (
+            <div className="flex items-center gap-2">
+              <input
+                ref={singleSectionFileRef}
+                type="file"
+                accept="image/*"
+                className="hidden"
+                onChange={(e) => {
+                  const file = e.target.files?.[0];
+                  if (file) handleScanReceipt(file, sections[0]?.id);
+                  e.target.value = "";
+                }}
+              />
+              <button
+                type="button"
+                onClick={() => singleSectionFileRef.current?.click()}
+                disabled={scanReceipt.isPending}
+                className="flex items-center gap-1.5 rounded-full border border-gray-300 p-2.5 text-sm font-medium text-gray-600 transition-colors hover:bg-gray-50 disabled:opacity-40 md:px-3 md:py-1.5"
+              >
+                <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
+                </svg>
+                <span className="text-xs md:text-sm">{scanReceipt.isPending ? "Scanning..." : "Scan"}</span>
+              </button>
+              {voice.isSupported && (
+                <button
+                  type="button"
+                  onClick={async () => {
+                    if (voice.isRecording) {
+                      const blob = await voice.stop();
+                      handleVoiceResult(blob, sections[0]?.id);
+                    } else {
+                      voice.start();
+                    }
+                  }}
+                  disabled={parseVoice.isPending}
+                  className={`flex items-center gap-1.5 rounded-full border p-2.5 text-sm font-medium transition-colors disabled:opacity-40 md:px-3 md:py-1.5 ${
+                    voice.isRecording
+                      ? "border-red-300 bg-red-50 text-red-600"
+                      : "border-gray-300 text-gray-600 hover:bg-gray-50"
+                  }`}
+                >
+                  <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11a7 7 0 01-14 0m7 7v4m-4 0h8M12 1a3 3 0 00-3 3v7a3 3 0 006 0V4a3 3 0 00-3-3z" />
+                  </svg>
+                  <span className="hidden md:inline">
+                    {parseVoice.isPending
+                      ? "Processing..."
+                      : voice.isRecording
+                        ? `Stop (${voice.duration}s)`
+                        : "Voice"}
+                  </span>
+                </button>
+              )}
+            </div>
+          )}
         </div>
-        {/* Scan receipt button — only for single-section mode */}
-        {!isLocked && !isMultiSection && (
-          <>
-            <input
-              ref={singleSectionFileRef}
-              type="file"
-              accept="image/*"
-              className="hidden"
-              onChange={(e) => {
-                const file = e.target.files?.[0];
-                if (file) handleScanReceipt(file, sections[0]?.id);
-                e.target.value = "";
-              }}
-            />
-            <button
-              type="button"
-              onClick={() => singleSectionFileRef.current?.click()}
-              disabled={scanReceipt.isPending}
-              className="flex items-center gap-1.5 rounded-full border border-gray-300 px-2.5 py-2.5 text-sm font-medium text-gray-600 transition-colors hover:bg-gray-50 disabled:opacity-40 md:px-3 md:py-1.5"
-            >
-              <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
-              </svg>
-              <span className="hidden md:inline">{scanReceipt.isPending ? "Scanning..." : "Scan Receipt"}</span>
-            </button>
-          </>
-        )}
-        {!isLocked && !isMultiSection && voice.isSupported && (
-          <button
-            type="button"
-            onClick={async () => {
-              if (voice.isRecording) {
-                const blob = await voice.stop();
-                handleVoiceResult(blob, sections[0]?.id);
-              } else {
-                voice.start();
-              }
-            }}
-            disabled={parseVoice.isPending}
-            className={`flex items-center gap-1.5 rounded-full border px-2.5 py-2.5 text-sm font-medium transition-colors disabled:opacity-40 md:px-3 md:py-1.5 ${
-              voice.isRecording
-                ? "border-red-300 bg-red-50 text-red-600"
-                : "border-gray-300 text-gray-600 hover:bg-gray-50"
-            }`}
-          >
-            <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11a7 7 0 01-14 0m7 7v4m-4 0h8M12 1a3 3 0 00-3 3v7a3 3 0 006 0V4a3 3 0 00-3-3z" />
-            </svg>
-            <span className="hidden md:inline">
-              {parseVoice.isPending
-                ? "Processing..."
-                : voice.isRecording
-                  ? `Stop (${voice.duration}s)`
-                  : "Voice"}
-            </span>
-          </button>
-        )}
       </div>
 
       {/* Voice recording indicator */}
