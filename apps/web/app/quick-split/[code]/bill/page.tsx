@@ -145,8 +145,24 @@ export default function BillDetailsPage({
     try {
       const result = await parseVoice.mutateAsync(audioBlob);
 
-      if (result.items.length === 0) {
-        toast.error("Couldn't find any items — try again", { id: toastId });
+      const hasItems = result.items.length > 0;
+
+      // Calculate flat discount from percentage using section's existing + new items
+      let discountAmount = result.discountAmount;
+      if (discountAmount == null && result.discountPct != null && result.discountPct > 0) {
+        const section = sections.find((s) => s.id === sectionId) ?? sections[0];
+        const existingSubtotal = section?.items.reduce((sum, i) => sum + i.quantity * i.unitPrice, 0) ?? 0;
+        const newSubtotal = result.items.reduce((sum, i) => sum + i.quantity * i.unitPrice, 0);
+        const totalSubtotal = existingSubtotal + newSubtotal;
+        if (totalSubtotal > 0) {
+          discountAmount = Math.round(totalSubtotal * result.discountPct / 100 * 100) / 100;
+        }
+      }
+
+      const hasExtras = result.vatRate != null || result.serviceChargeRate != null || discountAmount != null;
+
+      if (!hasItems && !hasExtras) {
+        toast.error("Couldn't find any items or extras — try again", { id: toastId });
         return;
       }
 
@@ -156,9 +172,14 @@ export default function BillDetailsPage({
 
       if (result.vatRate != null) updateExtras({ vatRate: result.vatRate }, sectionId);
       if (result.serviceChargeRate != null) updateExtras({ serviceChargeRate: result.serviceChargeRate }, sectionId);
-      if (result.discountAmount != null) updateExtras({ discountAmount: result.discountAmount }, sectionId);
+      if (discountAmount != null) updateExtras({ discountAmount }, sectionId);
 
-      toast.success(`Added ${result.items.length} items from voice`, { id: toastId });
+      const parts: string[] = [];
+      if (hasItems) parts.push(`${result.items.length} items`);
+      if (result.vatRate != null) parts.push(`VAT ${(result.vatRate * 100).toFixed(0)}%`);
+      if (result.serviceChargeRate != null) parts.push(`SC ${(result.serviceChargeRate * 100).toFixed(0)}%`);
+      if (discountAmount != null) parts.push(`discount ฿${discountAmount}`);
+      toast.success(`Added ${parts.join(", ")} from voice`, { id: toastId });
     } catch {
       toast.error("Failed to process voice — try again", { id: toastId });
     }

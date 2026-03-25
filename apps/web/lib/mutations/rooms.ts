@@ -317,6 +317,7 @@ export function useParseVoice() {
         vatRate: number | null;
         serviceChargeRate: number | null;
         discountAmount: number | null;
+        discountPct: number | null;
         transcript: string;
       };
     },

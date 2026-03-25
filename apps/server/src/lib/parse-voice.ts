@@ -3,7 +3,15 @@
 
 import { experimental_transcribe as transcribe } from "ai"
 import { openai } from "@ai-sdk/openai"
-import type { ScanReceiptResult, ScannedItem } from "./scan-receipt"
+import type { ScannedItem } from "./scan-receipt"
+
+export interface VoiceParseResult {
+  items: ScannedItem[]
+  vatRate: number | null
+  serviceChargeRate: number | null
+  discountAmount: number | null
+  discountPct: number | null
+}
 
 const TRANSCRIPTION_MODEL = process.env.TRANSCRIPTION_MODEL || "whisper-1"
 
@@ -14,7 +22,8 @@ Output format:
   "items": [{ "name": "Item name", "quantity": 1, "unitPrice": 123.45 }],
   "taxPct": null,
   "serviceChargePct": null,
-  "discountAmount": null
+  "discountAmount": null,
+  "discountPct": null
 }
 
 ITEMS:
@@ -36,22 +45,28 @@ SERVICE CHARGE ("serviceChargePct"):
 - "service charge 10%" or "ค่าบริการ 10%" or "SC 10%" → serviceChargePct: 10
 - If no service charge mentioned → serviceChargePct: null
 
-DISCOUNT ("discountAmount"):
-- "discount 50 baht" or "ส่วนลด 50" or "ลด 50" → discountAmount: 50
-- If a percentage discount is mentioned (e.g. "ลด 10%"), calculate from context if possible.
-- If no discount mentioned → discountAmount: null
+DISCOUNT ("discountAmount" or "discountPct"):
+- If a flat amount: "discount 50 baht" or "ส่วนลด 50" → discountAmount: 50, discountPct: null
+- If a percentage: "10% discount" or "ลด 10%" → discountPct: 10, discountAmount: null
+- If both are mentioned, prefer the flat amount.
+- If no discount mentioned → discountAmount: null, discountPct: null
 
 If the transcript contains no recognizable food items or prices, return:
-{ "items": [], "taxPct": null, "serviceChargePct": null, "discountAmount": null }
+{ "items": [], "taxPct": null, "serviceChargePct": null, "discountAmount": null, "discountPct": null }
 
 Return ONLY the JSON. No markdown fences, no explanation.`
 
 // ─── Step 1: Whisper transcription (audio buffer → text) ───
 
+const WHISPER_PROMPT = `Thai restaurant food ordering. Common terms: som tam, pad thai, khao pad, tom yum, khao moo yang, khao moo daeng, green curry, massaman, papaya salad, sticky rice, mango sticky rice, pad see ew, pad kra pao, larb, nam tok, som tam, gai yang, baht, VAT, service charge, discount, ส่วนลด, ค่าบริการ, ภาษี`
+
 async function transcribeAudio(audioBuffer: Uint8Array): Promise<string> {
   const result = await transcribe({
     model: openai.transcription(TRANSCRIPTION_MODEL),
     audio: audioBuffer,
+    providerOptions: {
+      openai: { prompt: WHISPER_PROMPT },
+    },
   })
 
   if (!result.text?.trim()) {
@@ -69,7 +84,7 @@ async function callTextModel(
   model: string,
   transcript: string,
   timeoutMs: number,
-): Promise<ScanReceiptResult> {
+): Promise<VoiceParseResult> {
   const controller = new AbortController()
   const timeoutId = setTimeout(() => controller.abort(), timeoutMs)
 
@@ -113,6 +128,7 @@ async function callTextModel(
       taxPct?: number | null
       serviceChargePct?: number | null
       discountAmount?: number | null
+      discountPct?: number | null
     }
     try {
       parsed = JSON.parse(jsonStr)
@@ -136,8 +152,20 @@ async function callTextModel(
 
     const taxPct = typeof parsed.taxPct === "number" ? parsed.taxPct : null
     const scPct = typeof parsed.serviceChargePct === "number" ? parsed.serviceChargePct : null
-    const discountAmt = typeof parsed.discountAmount === "number" && parsed.discountAmount > 0
+    let discountAmt = typeof parsed.discountAmount === "number" && parsed.discountAmount > 0
       ? parsed.discountAmount
+      : null
+
+    // If discount was given as percentage, calculate flat amount from items subtotal
+    if (discountAmt == null && typeof parsed.discountPct === "number" && parsed.discountPct > 0) {
+      const subtotal = items.reduce((sum, i) => sum + i.quantity * i.unitPrice, 0)
+      if (subtotal > 0) {
+        discountAmt = Math.round(subtotal * parsed.discountPct / 100 * 100) / 100
+      }
+    }
+
+    const discountPctValue = typeof parsed.discountPct === "number" && parsed.discountPct > 0
+      ? parsed.discountPct
       : null
 
     return {
@@ -145,13 +173,14 @@ async function callTextModel(
       vatRate: taxPct != null ? taxPct / 100 : null,
       serviceChargeRate: scPct != null ? scPct / 100 : null,
       discountAmount: discountAmt,
+      discountPct: discountPctValue,
     }
   } finally {
     clearTimeout(timeoutId)
   }
 }
 
-async function parseTranscript(transcript: string): Promise<ScanReceiptResult> {
+async function parseTranscript(transcript: string): Promise<VoiceParseResult> {
   const qwenKey = process.env.QWEN_API_KEY
   const qwenBaseUrl = process.env.QWEN_BASE_URL || "https://dashscope-intl.aliyuncs.com/compatible-mode/v1"
   const qwenModel = process.env.QWEN_TEXT_MODEL || "qwen-max"
@@ -180,7 +209,7 @@ async function parseTranscript(transcript: string): Promise<ScanReceiptResult> {
 
 export async function parseVoiceAudio(
   audioBuffer: Uint8Array,
-): Promise<ScanReceiptResult & { transcript: string }> {
+): Promise<VoiceParseResult & { transcript: string }> {
   const transcript = await transcribeAudio(audioBuffer)
   console.log("[parse-voice] Whisper transcript:", transcript)
 
