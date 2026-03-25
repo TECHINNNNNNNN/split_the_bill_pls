@@ -1,14 +1,5 @@
 import { z } from "zod"
 
-// ─── Health Check ────────────────────────────
-
-export const healthCheckResponseSchema = z.object({
-    status: z.string(),
-    timestamp: z.string()
-});
-
-export type HealthCheckResponse = z.infer<typeof healthCheckResponseSchema>;
-
 // ─── Enums ───────────────────────────────────
 
 export const paymentStatusSchema = z.enum(["unpaid", "claimed", "confirmed", "rejected"])
@@ -93,17 +84,6 @@ export const updateRoomStatusSchema = z.object({
 
 export const scanReceiptSchema = z.object({
   image: z.string().min(1),  // base64-encoded image
-})
-
-export const scanReceiptResponseSchema = z.object({
-  items: z.array(z.object({
-    name: z.string(),
-    quantity: z.number().int().min(1).default(1),
-    unitPrice: z.number().positive(),
-  })),
-  vatRate: z.number().min(0).max(1).nullable(),
-  serviceChargeRate: z.number().min(0).max(1).nullable(),
-  discountAmount: z.number().min(0).nullable(),
 })
 
 export const startGroupSplitSchema = z.object({
