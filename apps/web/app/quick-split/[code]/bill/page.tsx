@@ -139,6 +139,7 @@ export default function BillDetailsPage({
   // Voice-to-Bill
   const parseVoice = useParseVoice();
   const voice = useVoiceInput();
+  const [voiceSectionId, setVoiceSectionId] = useState<string | null>(null);
 
   const handleVoiceResult = async (audioBlob: Blob, sectionId?: string) => {
     const toastId = toast.loading("Processing voice input...");
@@ -504,9 +505,9 @@ export default function BillDetailsPage({
             onVoiceResult={(blob) => handleVoiceResult(blob, section.id)}
             voicePending={parseVoice.isPending}
             voiceSupported={voice.isSupported}
-            voiceRecording={voice.isRecording}
+            voiceRecording={voice.isRecording && voiceSectionId === section.id}
             voiceDuration={voice.duration}
-            onVoiceStart={voice.start}
+            onVoiceStart={() => { setVoiceSectionId(section.id); voice.start(); }}
             onVoiceStop={voice.stop}
           />
         ))}
