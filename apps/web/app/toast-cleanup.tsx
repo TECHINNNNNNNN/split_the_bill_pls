@@ -34,5 +34,14 @@ export function ToastCleanup() {
     return () => document.removeEventListener("click", handleTap);
   }, []);
 
+  // Safety net: force-dismiss all toasts every 6s (iOS hover-pause can freeze timers)
+  useEffect(() => {
+    const interval = setInterval(() => {
+      // Only dismiss if there are visible toasts — this is a no-op otherwise
+      toast.dismiss();
+    }, 6000);
+    return () => clearInterval(interval);
+  }, []);
+
   return null;
 }

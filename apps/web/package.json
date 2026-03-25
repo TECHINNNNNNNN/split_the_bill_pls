@@ -27,7 +27,7 @@
     "qrcode.react": "^4.2.0",
     "react": "19.2.3",
     "react-dom": "19.2.3",
-    "react-hot-toast": "^2.6.0"
+    "sonner": "^2.0.7"
   },
   "devDependencies": {
     "@pladuk/typescript-config": "workspace:*",
