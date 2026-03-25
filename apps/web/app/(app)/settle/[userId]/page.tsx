@@ -31,6 +31,9 @@ export default function SettlePage({
 
   const balance = balancesData?.balances.find((b) => b.otherUserId === otherUserId);
 
+  // Keep screen awake while QR code is showing
+  useWakeLock(!!balance && balance.netAmount > 0 && !!balance.otherUserPromptpayId);
+
   if (isLoading) {
     return (
       <div className="flex min-h-[50vh] items-center justify-center">
