@@ -15,6 +15,7 @@ import {
   finalizeRoomSchema,
   claimRoomPaymentSchema,
   scanReceiptSchema,
+  parseVoiceSchema,
   pushSubscribeSchema,
   lineLinkSchema,
 } from "@pladuk/shared/schemas"
@@ -25,6 +26,7 @@ import { verifyLineIdToken, sendLineMessage, buildClaimNotifyFlex, buildNudgeFle
 import { computeReminderSchedule, type ReminderScheduleInfo } from "../lib/reminder-scheduler.js"
 import { verifySlip } from "../lib/verify-slip.js"
 import { scanReceipt } from "../lib/scan-receipt.js"
+import { parseVoiceTranscript } from "../lib/parse-voice.js"
 import { optionalAuth } from "../lib/middleware.js"
 import { requireAuth } from "../lib/middleware.js"
 
