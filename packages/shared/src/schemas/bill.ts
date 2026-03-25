@@ -106,14 +106,6 @@ export const scanReceiptResponseSchema = z.object({
   discountAmount: z.number().min(0).nullable(),
 })
 
-// ─── Voice-to-Bill Parsing ───────────────────
-
-export const parseVoiceSchema = z.object({
-  transcript: z.string().min(1),
-})
-
-// Response reuses scanReceiptResponseSchema
-
 export const startGroupSplitSchema = z.object({
   memberIds: z.array(z.string().uuid()).min(1),
 })
