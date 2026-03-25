@@ -299,3 +299,18 @@ export function useScanReceipt() {
     },
   });
 }
+
+export function useParseVoice() {
+  return useMutation({
+    mutationFn: async (transcript: string) => {
+      const res = await api.api.rooms["parse-voice"].$post({
+        json: { transcript },
+      });
+      if (!res.ok) {
+        const err = await res.json();
+        throw new Error((err as { error?: string }).error || "Voice parsing failed");
+      }
+      return res.json();
+    },
+  });
+}
