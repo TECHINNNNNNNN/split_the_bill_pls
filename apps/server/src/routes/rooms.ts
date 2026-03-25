@@ -731,6 +731,22 @@ const app = new Hono()
     }
   })
 
+  // ─── POST /rooms/parse-voice ────────────────
+  // Accepts a voice transcript, calls AI to extract
+  // line items + VAT/service charge — same output as scan-receipt.
+  .post("/parse-voice", zValidator("json", parseVoiceSchema), async (c) => {
+    const { transcript } = c.req.valid("json")
+
+    try {
+      const result = await parseVoiceTranscript(transcript)
+      return c.json(result)
+    } catch (err) {
+      console.error("[parse-voice]", err)
+      const message = err instanceof Error ? err.message : "Voice parsing failed"
+      return c.json({ error: message }, 500)
+    }
+  })
+
   // ─── POST /rooms/:id/finalize ────────────────
   // Accepts the full bill in one request. Supports two formats:
   // 1. sections[] — each section has its own items + extras (new)
