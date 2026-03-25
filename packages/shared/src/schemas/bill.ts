@@ -119,7 +119,6 @@ export type SetRoomPaymentMethod = z.infer<typeof setRoomPaymentMethodSchema>
 export type ClaimRoomPayment = z.infer<typeof claimRoomPaymentSchema>
 export type StartGroupSplit = z.infer<typeof startGroupSplitSchema>
 export type ScanReceipt = z.infer<typeof scanReceiptSchema>
-export type ScanReceiptResponse = z.infer<typeof scanReceiptResponseSchema>
 export type PushSubscribe = z.infer<typeof pushSubscribeSchema>
 export type LineLink = z.infer<typeof lineLinkSchema>
 
