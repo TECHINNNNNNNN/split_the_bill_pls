@@ -1,7 +1,11 @@
-// ─── Voice-to-Bill: parse spoken transcript into structured bill items ───
-// Uses the same Qwen/OpenAI fallback pattern as scan-receipt.ts
+// ─── Voice-to-Bill: audio → Whisper transcription → LLM structured parsing ───
+// Pattern from: https://github.com/TECHINNNNNNNN/syntaxvoice
 
+import { experimental_transcribe as transcribe } from "ai"
+import { openai } from "@ai-sdk/openai"
 import type { ScanReceiptResult, ScannedItem } from "./scan-receipt"
+
+const TRANSCRIPTION_MODEL = process.env.TRANSCRIPTION_MODEL || "whisper-1"
 
 const VOICE_PROMPT = `You extract structured data from a spoken description of a restaurant order or meal. The input is a transcript that may be in Thai, English, or mixed. Return ONLY valid JSON.
 
@@ -41,6 +45,23 @@ If the transcript contains no recognizable food items or prices, return:
 { "items": [], "taxPct": null, "serviceChargePct": null, "discountAmount": null }
 
 Return ONLY the JSON. No markdown fences, no explanation.`
+
+// ─── Step 1: Whisper transcription (audio buffer → text) ───
+
+async function transcribeAudio(audioBuffer: Uint8Array): Promise<string> {
+  const result = await transcribe({
+    model: openai.transcription(TRANSCRIPTION_MODEL),
+    audio: audioBuffer,
+  })
+
+  if (!result.text?.trim()) {
+    throw new Error("Whisper returned empty transcript")
+  }
+
+  return result.text.trim()
+}
+
+// ─── Step 2: LLM structured parsing (text → items JSON) ───
 
 async function callTextModel(
   baseUrl: string,
@@ -130,12 +151,11 @@ async function callTextModel(
   }
 }
 
-export async function parseVoiceTranscript(transcript: string): Promise<ScanReceiptResult> {
+async function parseTranscript(transcript: string): Promise<ScanReceiptResult> {
   const qwenKey = process.env.QWEN_API_KEY
   const qwenBaseUrl = process.env.QWEN_BASE_URL || "https://dashscope-intl.aliyuncs.com/compatible-mode/v1"
   const qwenModel = process.env.QWEN_TEXT_MODEL || "qwen-max"
 
-  // Try Qwen first with 30s timeout
   if (qwenKey) {
     try {
       return await callTextModel(qwenBaseUrl, qwenKey, qwenModel, transcript, 30_000)
@@ -144,7 +164,6 @@ export async function parseVoiceTranscript(transcript: string): Promise<ScanRece
     }
   }
 
-  // Fallback to OpenAI with 25s timeout
   const openAiKey = process.env.OPENAI_API_KEY
   if (!openAiKey) {
     throw new Error(
@@ -155,4 +174,16 @@ export async function parseVoiceTranscript(transcript: string): Promise<ScanRece
   }
 
   return await callTextModel("https://api.openai.com/v1", openAiKey, "gpt-4o-mini", transcript, 25_000)
+}
+
+// ─── Exported: full pipeline (audio → transcript → structured items) ───
+
+export async function parseVoiceAudio(
+  audioBuffer: Uint8Array,
+): Promise<ScanReceiptResult & { transcript: string }> {
+  const transcript = await transcribeAudio(audioBuffer)
+  console.log("[parse-voice] Whisper transcript:", transcript)
+
+  const result = await parseTranscript(transcript)
+  return { ...result, transcript }
 }

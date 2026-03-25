@@ -15,7 +15,6 @@ import {
   finalizeRoomSchema,
   claimRoomPaymentSchema,
   scanReceiptSchema,
-  parseVoiceSchema,
   pushSubscribeSchema,
   lineLinkSchema,
 } from "@pladuk/shared/schemas"
@@ -26,7 +25,7 @@ import { verifyLineIdToken, sendLineMessage, buildClaimNotifyFlex, buildNudgeFle
 import { computeReminderSchedule, type ReminderScheduleInfo } from "../lib/reminder-scheduler.js"
 import { verifySlip } from "../lib/verify-slip.js"
 import { scanReceipt } from "../lib/scan-receipt.js"
-import { parseVoiceTranscript } from "../lib/parse-voice.js"
+import { parseVoiceAudio } from "../lib/parse-voice.js"
 import { optionalAuth } from "../lib/middleware.js"
 import { requireAuth } from "../lib/middleware.js"
 
@@ -732,13 +731,23 @@ const app = new Hono()
   })
 
   // ─── POST /rooms/parse-voice ────────────────
-  // Accepts a voice transcript, calls AI to extract
-  // line items + VAT/service charge — same output as scan-receipt.
-  .post("/parse-voice", zValidator("json", parseVoiceSchema), async (c) => {
-    const { transcript } = c.req.valid("json")
+  // Accepts an audio file (FormData), transcribes via Whisper,
+  // then parses into structured items — same output as scan-receipt.
+  .post("/parse-voice", async (c) => {
+    const body = await c.req.parseBody()
+    const audio = body["audio"]
+
+    if (!(audio instanceof File)) {
+      return c.json({ error: "Missing audio file" }, 400)
+    }
+
+    const buffer = new Uint8Array(await audio.arrayBuffer())
+    if (buffer.length === 0) {
+      return c.json({ error: "Empty audio file" }, 400)
+    }
 
     try {
-      const result = await parseVoiceTranscript(transcript)
+      const result = await parseVoiceAudio(buffer)
       return c.json(result)
     } catch (err) {
       console.error("[parse-voice]", err)
