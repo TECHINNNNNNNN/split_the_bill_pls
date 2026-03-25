@@ -10,6 +10,7 @@ import { settlementQueries } from "@/lib/queries/settlements";
 import { useClaimSettlement } from "@/lib/mutations/settlements";
 import { useSlipScanner } from "@/lib/hooks/use-slip-scanner";
 import type { SlipScanOutput } from "@/lib/hooks/use-slip-scanner";
+import { useWakeLock } from "@/lib/hooks/use-wake-lock";
 
 export default function SettlePage({
   params,
