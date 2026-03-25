@@ -12,7 +12,7 @@ import { CreateGroupDialog } from "@/components/groups/create-group-dialog";
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import toast from "react-hot-toast";
+import { toast } from "sonner";
 
 function roomHref(code: string, status: string) {
   switch (status) {

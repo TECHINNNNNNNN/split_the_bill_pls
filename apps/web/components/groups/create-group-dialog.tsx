@@ -2,7 +2,7 @@
 
 import { useState, useRef, useCallback } from "react";
 import { useCreateGroup } from "@/lib/mutations/groups";
-import toast from "react-hot-toast";
+import { toast } from "sonner";
 
 interface CreateGroupDialogProps {
   open: boolean;

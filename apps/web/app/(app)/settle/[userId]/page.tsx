@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { useQuery } from "@tanstack/react-query";
 import { QRCodeSVG } from "qrcode.react";
 import { anyId } from "promptparse/generate";
-import toast from "react-hot-toast";
+import { toast } from "sonner";
 import { settlementQueries } from "@/lib/queries/settlements";
 import { useClaimSettlement } from "@/lib/mutations/settlements";
 import { useSlipScanner } from "@/lib/hooks/use-slip-scanner";

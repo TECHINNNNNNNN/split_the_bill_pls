@@ -3,7 +3,7 @@
 import { use, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useQuery } from "@tanstack/react-query";
-import toast from "react-hot-toast";
+import { toast } from "sonner";
 import imageCompression from "browser-image-compression";
 import { calculateSplit } from "@pladuk/shared/utils";
 import { roomQueries } from "@/lib/queries/rooms";

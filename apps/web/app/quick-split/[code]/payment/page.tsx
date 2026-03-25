@@ -3,7 +3,7 @@
 import { use, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useQuery } from "@tanstack/react-query";
-import toast from "react-hot-toast";
+import { toast } from "sonner";
 import { useSession } from "@/lib/auth-client";
 import { roomQueries } from "@/lib/queries/rooms";
 import { useSetPaymentMethod, useAdvanceRoomStatus } from "@/lib/mutations/rooms";

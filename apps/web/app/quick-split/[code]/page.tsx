@@ -4,7 +4,7 @@ import { use, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useQuery } from "@tanstack/react-query";
 import { QRCodeSVG } from "qrcode.react";
-import toast from "react-hot-toast";
+import { toast } from "sonner";
 import { roomQueries } from "@/lib/queries/rooms";
 import { useAdvanceRoomStatus, useAddPlaceholderMember, useRemoveMember } from "@/lib/mutations/rooms";
 import { useRoomSocket } from "@/lib/hooks/use-room-socket";

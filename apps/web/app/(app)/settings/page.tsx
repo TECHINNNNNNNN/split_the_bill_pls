@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useSession, updateUser, signOut } from "@/lib/auth-client";
 import { useRouter } from "next/navigation";
-import toast from "react-hot-toast";
+import { toast } from "sonner";
 
 export default function SettingsPage() {
   const { data: session, refetch } = useSession();

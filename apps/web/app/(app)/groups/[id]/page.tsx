@@ -7,7 +7,7 @@ import { useSession } from "@/lib/auth-client";
 import { groupQueries } from "@/lib/queries/groups";
 import { useDeleteGroupMember, useDeleteGroup, useStartGroupSplit } from "@/lib/mutations/groups";
 import { useGroupSocket } from "@/lib/hooks/use-group-socket";
-import toast from "react-hot-toast";
+import { toast } from "sonner";
 
 export default function GroupDetailPage() {
   const { id } = useParams<{ id: string }>();

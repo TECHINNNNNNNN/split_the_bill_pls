@@ -4,7 +4,7 @@ import { useParams, useRouter } from "next/navigation";
 import { useQuery } from "@tanstack/react-query";
 import { groupQueries } from "@/lib/queries/groups";
 import { useJoinGroup } from "@/lib/mutations/groups";
-import toast from "react-hot-toast";
+import { toast } from "sonner";
 
 export default function JoinGroupPage() {
   const { code } = useParams<{ code: string }>();

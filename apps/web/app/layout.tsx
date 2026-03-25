@@ -1,8 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { IBM_Plex_Sans_Thai, Prompt } from "next/font/google";
-import { Toaster } from "react-hot-toast";
+import { Toaster } from "sonner";
 import { Providers } from "./providers";
-import { ToastCleanup } from "./toast-cleanup";
 import "./globals.css";
 
 const body = IBM_Plex_Sans_Thai({
@@ -41,11 +40,11 @@ export default function RootLayout({
     <html lang="th" className={`${body.variable} ${heading.variable}`}>
       <body className="font-body antialiased">
         <Providers>{children}</Providers>
-        <ToastCleanup />
         <Toaster
           position="top-center"
+          richColors
+          duration={3000}
           toastOptions={{
-            duration: 3000,
             style: {
               background: "#1e293b",
               color: "#f8fafc",
@@ -54,24 +53,8 @@ export default function RootLayout({
               fontSize: "14px",
               fontWeight: 500,
               boxShadow: "0 8px 30px rgba(0,0,0,0.2)",
-              cursor: "pointer",
-            },
-            success: {
-              iconTheme: {
-                primary: "#22c55e",
-                secondary: "#f8fafc",
-              },
-              duration: 3000,
-            },
-            error: {
-              iconTheme: {
-                primary: "#ef4444",
-                secondary: "#f8fafc",
-              },
-              duration: 4000,
             },
           }}
-          containerStyle={{ pointerEvents: "auto" }}
         />
       </body>
     </html>

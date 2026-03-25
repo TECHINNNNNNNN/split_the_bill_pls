@@ -5,7 +5,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { QRCodeSVG } from "qrcode.react";
 import { anyId } from "promptparse/generate";
-import toast from "react-hot-toast";
+import { toast } from "sonner";
 import { roomQueries } from "@/lib/queries/rooms";
 import { useClaimPayment, useConfirmPayment, useRejectPayment, useUnconfirmPayment, useNudgeMember, useNudgeAll } from "@/lib/mutations/rooms";
 import { useRoomSocket } from "@/lib/hooks/use-room-socket";

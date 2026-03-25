@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import toast from "react-hot-toast";
+import { toast } from "sonner";
 import { useCreateRoom } from "@/lib/mutations/rooms";
 
 export default function QuickSplitPage() {
