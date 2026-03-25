@@ -7,8 +7,9 @@ import toast from "react-hot-toast";
 import imageCompression from "browser-image-compression";
 import { calculateSplit } from "@pladuk/shared/utils";
 import { roomQueries } from "@/lib/queries/rooms";
-import { useFinalizeRoom, useScanReceipt } from "@/lib/mutations/rooms";
+import { useFinalizeRoom, useScanReceipt, useParseVoice } from "@/lib/mutations/rooms";
 import { useBillCollab } from "@/lib/hooks/use-bill-collab";
+import { useVoiceInput } from "@/lib/hooks/use-voice-input";
 import { usePresence } from "@/lib/hooks/use-presence";
 import { SectionCard } from "@/components/bill/section-card";
 import { BreakdownModal } from "@/components/bill/breakdown-modal";
@@ -132,6 +133,56 @@ export default function BillDetailsPage({
       toast.success(`Added ${result.items.length} items from receipt`, { id: toastId });
     } catch {
       toast.error("Failed to scan receipt — try again or add items manually", { id: toastId });
+    }
+  };
+
+  // Voice-to-Bill
+  const parseVoice = useParseVoice();
+  const voice = useVoiceInput();
+  const [voiceSectionId, setVoiceSectionId] = useState<string | null>(null);
+
+  const handleVoiceResult = async (audioBlob: Blob, sectionId?: string) => {
+    const toastId = toast.loading("Processing voice input...");
+    try {
+      const result = await parseVoice.mutateAsync(audioBlob);
+
+      const hasItems = result.items.length > 0;
+
+      // Calculate flat discount from percentage using section's existing + new items
+      let discountAmount = result.discountAmount;
+      if (discountAmount == null && result.discountPct != null && result.discountPct > 0) {
+        const section = sections.find((s) => s.id === sectionId) ?? sections[0];
+        const existingSubtotal = section?.items.reduce((sum, i) => sum + i.quantity * i.unitPrice, 0) ?? 0;
+        const newSubtotal = result.items.reduce((sum, i) => sum + i.quantity * i.unitPrice, 0);
+        const totalSubtotal = existingSubtotal + newSubtotal;
+        if (totalSubtotal > 0) {
+          discountAmount = Math.round(totalSubtotal * result.discountPct / 100 * 100) / 100;
+        }
+      }
+
+      const hasExtras = result.vatRate != null || result.serviceChargeRate != null || discountAmount != null;
+
+      if (!hasItems && !hasExtras) {
+        toast.error("Couldn't find any items or extras — try again", { id: toastId });
+        return;
+      }
+
+      for (const item of result.items) {
+        addItem(item.name, item.unitPrice, sectionId, item.quantity);
+      }
+
+      if (result.vatRate != null) updateExtras({ vatRate: result.vatRate }, sectionId);
+      if (result.serviceChargeRate != null) updateExtras({ serviceChargeRate: result.serviceChargeRate }, sectionId);
+      if (discountAmount != null) updateExtras({ discountAmount }, sectionId);
+
+      const parts: string[] = [];
+      if (hasItems) parts.push(`${result.items.length} items`);
+      if (result.vatRate != null) parts.push(`VAT ${(result.vatRate * 100).toFixed(0)}%`);
+      if (result.serviceChargeRate != null) parts.push(`SC ${(result.serviceChargeRate * 100).toFixed(0)}%`);
+      if (discountAmount != null) parts.push(`discount ฿${discountAmount}`);
+      toast.success(`Added ${parts.join(", ")} from voice`, { id: toastId });
+    } catch {
+      toast.error("Failed to process voice — try again", { id: toastId });
     }
   };
 
@@ -366,7 +417,43 @@ export default function BillDetailsPage({
             </button>
           </>
         )}
+        {!isLocked && !isMultiSection && voice.isSupported && (
+          <button
+            type="button"
+            onClick={async () => {
+              if (voice.isRecording) {
+                const blob = await voice.stop();
+                handleVoiceResult(blob, sections[0]?.id);
+              } else {
+                voice.start();
+              }
+            }}
+            disabled={parseVoice.isPending}
+            className={`flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-sm font-medium transition-colors disabled:opacity-40 ${
+              voice.isRecording
+                ? "border-red-300 bg-red-50 text-red-600"
+                : "border-gray-300 text-gray-600 hover:bg-gray-50"
+            }`}
+          >
+            <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11a7 7 0 01-14 0m7 7v4m-4 0h8M12 1a3 3 0 00-3 3v7a3 3 0 006 0V4a3 3 0 00-3-3z" />
+            </svg>
+            {parseVoice.isPending
+              ? "Processing..."
+              : voice.isRecording
+                ? `Stop (${voice.duration}s)`
+                : "Voice"}
+          </button>
+        )}
       </div>
+
+      {/* Voice recording indicator */}
+      {voice.isRecording && (
+        <div className="mt-3 flex items-center justify-center gap-2 text-sm text-red-500">
+          <span className="inline-block h-2 w-2 animate-pulse rounded-full bg-red-500" />
+          Recording... Speak your order, then tap Stop
+        </div>
+      )}
 
       {/* Shake to split — mobile only */}
       {!isLocked && shakeSupported && totalItems > 0 && (
@@ -415,6 +502,13 @@ export default function BillDetailsPage({
             onUpdateSectionName={(name) => updateSection(section.id, name)}
             onScanReceipt={(file) => handleScanReceipt(file, section.id)}
             scanPending={scanReceipt.isPending}
+            onVoiceResult={(blob) => handleVoiceResult(blob, section.id)}
+            voicePending={parseVoice.isPending}
+            voiceSupported={voice.isSupported}
+            voiceRecording={voice.isRecording && voiceSectionId === section.id}
+            voiceDuration={voice.duration}
+            onVoiceStart={() => { setVoiceSectionId(section.id); voice.start(); }}
+            onVoiceStop={voice.stop}
           />
         ))}
 

@@ -25,6 +25,7 @@ import { verifyLineIdToken, sendLineMessage, buildClaimNotifyFlex, buildNudgeFle
 import { computeReminderSchedule, type ReminderScheduleInfo } from "../lib/reminder-scheduler.js"
 import { verifySlip } from "../lib/verify-slip.js"
 import { scanReceipt } from "../lib/scan-receipt.js"
+import { parseVoiceAudio } from "../lib/parse-voice.js"
 import { optionalAuth } from "../lib/middleware.js"
 import { requireAuth } from "../lib/middleware.js"
 
@@ -725,6 +726,32 @@ const app = new Hono()
     } catch (err) {
       console.error("[scan-receipt]", err)
       const message = err instanceof Error ? err.message : "OCR failed"
+      return c.json({ error: message }, 500)
+    }
+  })
+
+  // ─── POST /rooms/parse-voice ────────────────
+  // Accepts an audio file (FormData), transcribes via Whisper,
+  // then parses into structured items — same output as scan-receipt.
+  .post("/parse-voice", async (c) => {
+    const body = await c.req.parseBody()
+    const audio = body["audio"]
+
+    if (!(audio instanceof File)) {
+      return c.json({ error: "Missing audio file" }, 400)
+    }
+
+    const buffer = new Uint8Array(await audio.arrayBuffer())
+    if (buffer.length === 0) {
+      return c.json({ error: "Empty audio file" }, 400)
+    }
+
+    try {
+      const result = await parseVoiceAudio(buffer)
+      return c.json(result)
+    } catch (err) {
+      console.error("[parse-voice]", err)
+      const message = err instanceof Error ? err.message : "Voice parsing failed"
       return c.json({ error: message }, 500)
     }
   })

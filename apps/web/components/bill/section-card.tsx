@@ -21,6 +21,13 @@ export function SectionCard({
   onUpdateSectionName,
   onScanReceipt,
   scanPending,
+  onVoiceResult,
+  voicePending,
+  voiceSupported,
+  voiceRecording,
+  voiceDuration,
+  onVoiceStart,
+  onVoiceStop,
 }: {
   section: CollabSection;
   isMultiSection: boolean;
@@ -38,6 +45,13 @@ export function SectionCard({
   onUpdateSectionName: (name: string) => void;
   onScanReceipt: (file: File) => void;
   scanPending: boolean;
+  onVoiceResult: (audioBlob: Blob) => void;
+  voicePending: boolean;
+  voiceSupported: boolean;
+  voiceRecording: boolean;
+  voiceDuration: number;
+  onVoiceStart: () => void;
+  onVoiceStop: () => Promise<Blob>;
 }) {
   // Per-section form state
   const [showForm, setShowForm] = useState(false);
@@ -156,6 +170,30 @@ export function SectionCard({
                   </svg>
                   Scan
                 </button>
+                {voiceSupported && (
+                  <button
+                    type="button"
+                    onClick={async () => {
+                      if (voiceRecording) {
+                        const blob = await onVoiceStop();
+                        onVoiceResult(blob);
+                      } else {
+                        onVoiceStart();
+                      }
+                    }}
+                    disabled={voicePending}
+                    className={`flex items-center gap-1 rounded-full border px-2.5 py-1 text-xs font-medium transition-colors disabled:opacity-40 ${
+                      voiceRecording
+                        ? "border-red-300 bg-red-50 text-red-600"
+                        : "border-gray-300 text-gray-600 hover:bg-gray-50"
+                    }`}
+                  >
+                    <svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11a7 7 0 01-14 0m7 7v4m-4 0h8M12 1a3 3 0 00-3 3v7a3 3 0 006 0V4a3 3 0 00-3-3z" />
+                    </svg>
+                    {voicePending ? "..." : voiceRecording ? `${voiceDuration}s` : "Voice"}
+                  </button>
+                )}
               </>
             )}
             {!isLocked && (

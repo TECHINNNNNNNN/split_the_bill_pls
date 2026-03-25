@@ -299,3 +299,27 @@ export function useScanReceipt() {
     },
   });
 }
+
+export function useParseVoice() {
+  return useMutation({
+    mutationFn: async (audioBlob: Blob) => {
+      const formData = new FormData();
+      formData.append("audio", audioBlob, "audio.webm");
+
+      const res = await fetch(
+        `${process.env.NEXT_PUBLIC_API_URL}/api/rooms/parse-voice`,
+        { method: "POST", credentials: "include", body: formData },
+      );
+      const data = await res.json();
+      if (!res.ok) throw new Error((data as { error?: string }).error || "Voice parsing failed");
+      return data as {
+        items: Array<{ name: string; quantity: number; unitPrice: number }>;
+        vatRate: number | null;
+        serviceChargeRate: number | null;
+        discountAmount: number | null;
+        discountPct: number | null;
+        transcript: string;
+      };
+    },
+  });
+}
