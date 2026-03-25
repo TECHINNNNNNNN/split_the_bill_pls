@@ -13,6 +13,7 @@ import { useSlipScanner } from "@/lib/hooks/use-slip-scanner";
 import type { SlipScanOutput } from "@/lib/hooks/use-slip-scanner";
 import { usePushNotifications } from "@/lib/hooks/use-push-notifications";
 import { useLiff } from "@/lib/hooks/use-liff";
+import { useWakeLock } from "@/lib/hooks/use-wake-lock";
 import { buildTrackingFlexMessage } from "@/lib/liff-messages";
 import { api } from "@/lib/api-client";
 import { ScanProgress } from "@/components/tracking/scan-progress";
