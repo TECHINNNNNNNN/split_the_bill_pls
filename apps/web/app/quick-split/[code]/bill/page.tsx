@@ -7,8 +7,9 @@ import toast from "react-hot-toast";
 import imageCompression from "browser-image-compression";
 import { calculateSplit } from "@pladuk/shared/utils";
 import { roomQueries } from "@/lib/queries/rooms";
-import { useFinalizeRoom, useScanReceipt } from "@/lib/mutations/rooms";
+import { useFinalizeRoom, useScanReceipt, useParseVoice } from "@/lib/mutations/rooms";
 import { useBillCollab } from "@/lib/hooks/use-bill-collab";
+import { useVoiceInput } from "@/lib/hooks/use-voice-input";
 import { usePresence } from "@/lib/hooks/use-presence";
 import { SectionCard } from "@/components/bill/section-card";
 import { BreakdownModal } from "@/components/bill/breakdown-modal";
@@ -132,6 +133,34 @@ export default function BillDetailsPage({
       toast.success(`Added ${result.items.length} items from receipt`, { id: toastId });
     } catch {
       toast.error("Failed to scan receipt — try again or add items manually", { id: toastId });
+    }
+  };
+
+  // Voice-to-Bill
+  const parseVoice = useParseVoice();
+  const voice = useVoiceInput();
+
+  const handleVoiceResult = async (audioBlob: Blob, sectionId?: string) => {
+    const toastId = toast.loading("Processing voice input...");
+    try {
+      const result = await parseVoice.mutateAsync(audioBlob);
+
+      if (result.items.length === 0) {
+        toast.error("Couldn't find any items — try again", { id: toastId });
+        return;
+      }
+
+      for (const item of result.items) {
+        addItem(item.name, item.unitPrice, sectionId, item.quantity);
+      }
+
+      if (result.vatRate != null) updateExtras({ vatRate: result.vatRate }, sectionId);
+      if (result.serviceChargeRate != null) updateExtras({ serviceChargeRate: result.serviceChargeRate }, sectionId);
+      if (result.discountAmount != null) updateExtras({ discountAmount: result.discountAmount }, sectionId);
+
+      toast.success(`Added ${result.items.length} items from voice`, { id: toastId });
+    } catch {
+      toast.error("Failed to process voice — try again", { id: toastId });
     }
   };
 
