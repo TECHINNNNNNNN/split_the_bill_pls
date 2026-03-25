@@ -23,5 +23,16 @@ export function ToastCleanup() {
     return () => document.removeEventListener("visibilitychange", handleVisibility);
   }, []);
 
+  // Tap any toast to dismiss it (fallback for stuck toasts on iOS)
+  useEffect(() => {
+    const handleTap = (e: MouseEvent | TouchEvent) => {
+      const target = e.target as HTMLElement;
+      const toastEl = target.closest("[data-sonner-toast], [role='status']");
+      if (toastEl) toast.dismiss();
+    };
+    document.addEventListener("click", handleTap);
+    return () => document.removeEventListener("click", handleTap);
+  }, []);
+
   return null;
 }
