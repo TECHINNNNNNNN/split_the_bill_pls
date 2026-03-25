@@ -9,6 +9,7 @@ import { roomQueries } from "@/lib/queries/rooms";
 import { useAdvanceRoomStatus, useAddPlaceholderMember, useRemoveMember } from "@/lib/mutations/rooms";
 import { useRoomSocket } from "@/lib/hooks/use-room-socket";
 import { useLiff } from "@/lib/hooks/use-liff";
+import { useWakeLock } from "@/lib/hooks/use-wake-lock";
 import { buildInviteFlexMessage } from "@/lib/liff-messages";
 
 // ─── Main component ───
@@ -53,6 +54,9 @@ export default function RoomLobbyPage({
 
   // LINE LIFF sharing
   const liff = useLiff();
+
+  // Keep screen awake while invite QR is showing
+  useWakeLock(isHost && !!room);
 
   const handleAddPlaceholder = () => {
     if (!placeholderName.trim()) return;
