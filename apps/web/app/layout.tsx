@@ -53,6 +53,9 @@ export default function RootLayout({
               fontSize: "14px",
               fontWeight: 500,
               boxShadow: "0 8px 30px rgba(0,0,0,0.2)",
+              width: "fit-content",
+              maxWidth: "90vw",
+              textAlign: "center",
             },
           }}
         />
