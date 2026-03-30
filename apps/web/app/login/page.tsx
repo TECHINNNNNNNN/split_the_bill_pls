@@ -71,7 +71,7 @@ export default function LoginPage() {
 
       {/* Subtitle + tagline */}
       <p
-        className="mt-5 text-sm tracking-[0.18em] italic transition-all duration-700 md:text-base"
+        className="mt-5 font-serif text-sm tracking-[0.18em] italic transition-all duration-700 md:text-base"
         style={{
           color: "#C4956A",
           opacity: animDone ? 1 : 0,
