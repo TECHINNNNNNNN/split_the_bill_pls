@@ -26,6 +26,12 @@ const script = localFont({
   weight: "400",
 });
 
+const caveat = localFont({
+  src: "./fonts/Caveat-VariableFont_wght.ttf",
+  variable: "--font-caveat",
+  display: "swap",
+});
+
 export const metadata: Metadata = {
   title: "PlaDuk — หารบิลง่ายๆ",
   description: "Split bills with friends. No app download needed.",
@@ -45,7 +51,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="th" className={`${body.variable} ${heading.variable} ${script.variable}`}>
+    <html lang="th" className={`${body.variable} ${heading.variable} ${script.variable} ${caveat.variable}`}>
       <body className="font-body antialiased">
         <Providers>{children}</Providers>
         <Toaster
