@@ -32,6 +32,13 @@ const caveat = localFont({
   display: "swap",
 });
 
+const instrumentSerif = localFont({
+  src: "./fonts/InstrumentSerif-Italic.ttf",
+  variable: "--font-serif",
+  display: "swap",
+  weight: "400",
+});
+
 export const metadata: Metadata = {
   title: "PlaDuk — หารบิลง่ายๆ",
   description: "Split bills with friends. No app download needed.",
