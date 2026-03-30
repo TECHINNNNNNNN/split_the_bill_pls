@@ -11,6 +11,7 @@ import { useRoomSocket } from "@/lib/hooks/use-room-socket";
 import { useLiff } from "@/lib/hooks/use-liff";
 import { useWakeLock } from "@/lib/hooks/use-wake-lock";
 import { buildInviteFlexMessage } from "@/lib/liff-messages";
+import { Skeleton } from "@/components/skeleton";
 
 // ─── Main component ───
 
@@ -133,8 +134,25 @@ export default function RoomLobbyPage({
 
   if (isLoading) {
     return (
-      <div className="flex min-h-svh items-center justify-center">
-        <p className="text-brand-300">Loading room...</p>
+      <div className="flex min-h-svh flex-col items-center px-6 py-8 md:py-16">
+        <div className="flex w-full max-w-sm flex-col items-center gap-6">
+          {/* Count skeleton */}
+          <div className="flex flex-col items-center gap-2">
+            <Skeleton className="h-10 w-20" />
+            <Skeleton className="h-4 w-28" />
+          </div>
+          {/* QR skeleton */}
+          <Skeleton className="h-[230px] w-[230px] rounded-2xl" />
+          <Skeleton className="h-4 w-48" />
+          {/* Member grid skeleton */}
+          <div className="grid w-full grid-cols-3 gap-2">
+            {Array.from({ length: 3 }).map((_, i) => (
+              <Skeleton key={i} className="h-10 rounded-xl" />
+            ))}
+          </div>
+          {/* Button skeleton */}
+          <Skeleton className="h-12 w-48 rounded-full" />
+        </div>
       </div>
     );
   }
