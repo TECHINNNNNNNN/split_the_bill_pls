@@ -58,7 +58,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="th" className={`${body.variable} ${heading.variable} ${script.variable} ${caveat.variable}`}>
+    <html lang="th" className={`${body.variable} ${heading.variable} ${script.variable} ${caveat.variable} ${instrumentSerif.variable}`}>
       <body className="font-body antialiased">
         <Providers>{children}</Providers>
         <Toaster
