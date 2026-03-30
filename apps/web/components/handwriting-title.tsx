@@ -8,7 +8,7 @@ interface HandwritingTitleProps {
 
 const WORD = "Pladuk";
 const FONT_SIZE = 96;
-const FONT = `500 ${FONT_SIZE}px var(--font-caveat), cursive`;
+const FONT = `500 ${FONT_SIZE}px '__Caveat_Fallback', cursive`;
 const INK = "#2C2416";
 const INK_LIGHT = "#4A3C2A";
 const ACCENT = "#C4956A";
