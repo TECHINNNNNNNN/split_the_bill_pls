@@ -61,7 +61,9 @@ export default function RootLayout({
   return (
     <html lang="th" className={`${body.variable} ${heading.variable} ${script.variable} ${caveat.variable} ${instrumentSerif.variable}`}>
       <body className="font-body antialiased">
-        <Providers>{children}</Providers>
+        <ViewTransitions>
+          <Providers>{children}</Providers>
+        </ViewTransitions>
         <Toaster
           position="top-center"
           richColors
