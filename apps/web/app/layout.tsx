@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import { IBM_Plex_Sans_Thai, Prompt } from "next/font/google";
 import localFont from "next/font/local";
 import { Toaster } from "sonner";
+import { ViewTransitions } from "next-view-transitions";
 import { Providers } from "./providers";
 import "./globals.css";
 
