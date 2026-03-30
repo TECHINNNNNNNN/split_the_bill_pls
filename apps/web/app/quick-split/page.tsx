@@ -34,7 +34,7 @@ export default function QuickSplitPage() {
         <div className="flex w-full flex-col items-center gap-3">
           <label
             htmlFor="name"
-            className="text-sm font-medium md:text-base"
+            className="text-sm font-medium font-caveat md:text-2xl"
           >
             Your name
           </label>
@@ -52,7 +52,7 @@ export default function QuickSplitPage() {
         <div className="flex w-full flex-col items-center gap-3">
           <label
             htmlFor="bill-name"
-            className="text-sm font-medium md:text-base"
+            className="text-sm font-medium font-caveat md:text-2xl"
           >
             Bill name <span className="font-normal text-brand-300">(optional)</span>
           </label>
