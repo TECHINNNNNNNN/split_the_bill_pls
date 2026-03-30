@@ -4,11 +4,13 @@ import Link from "next/link";
 import { signIn, useSession } from "@/lib/auth-client";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
+import { HandwritingTitle } from "@/components/handwriting-title";
 
 export default function LoginPage() {
   const { data: session, isPending } = useSession();
   const router = useRouter();
   const [loading, setLoading] = useState(false);
+  const [animDone, setAnimDone] = useState(false);
 
   useEffect(() => {
     if (!isPending && session) {
@@ -27,26 +29,81 @@ export default function LoginPage() {
   if (isPending || session) {
     return (
       <div className="flex min-h-svh items-center justify-center">
-        <p className="text-gray-400">Loading...</p>
+        <p className="text-brand-400">Loading...</p>
       </div>
     );
   }
 
   return (
-    <div className="flex min-h-svh flex-col items-center justify-center px-6">
-      <div className="flex flex-col items-center gap-3 text-center">
-        <h1 className="font-heading text-5xl font-bold tracking-tight md:text-6xl lg:text-7xl">
-          Pladuk
-        </h1>
-        <p className="text-base text-gray-500 md:text-lg">
-          Split bills, not friendship.
-        </p>
-      </div>
+    <div className="relative flex min-h-svh flex-col items-center justify-center overflow-hidden px-6">
+      {/* Corner ornaments */}
+      <svg
+        className="fixed left-6 top-6 h-16 w-16 transition-opacity duration-1000"
+        style={{ opacity: animDone ? 1 : 0 }}
+        viewBox="0 0 65 65"
+        fill="none"
+      >
+        <path d="M 0 32 L 0 0 L 32 0" stroke="#E8D5BF" strokeWidth="1.2" />
+        <circle cx="3" cy="3" r="1.5" fill="#E8D5BF" />
+      </svg>
+      <svg
+        className="fixed bottom-6 right-6 h-16 w-16 rotate-180 transition-opacity duration-1000"
+        style={{ opacity: animDone ? 1 : 0 }}
+        viewBox="0 0 65 65"
+        fill="none"
+      >
+        <path d="M 0 32 L 0 0 L 32 0" stroke="#E8D5BF" strokeWidth="1.2" />
+        <circle cx="3" cy="3" r="1.5" fill="#E8D5BF" />
+      </svg>
 
-      <div className="mt-10 flex flex-col items-center gap-4">
+      {/* Decorative line */}
+      <div
+        className="mb-8 h-[1.5px] w-14 transition-all duration-700"
+        style={{
+          backgroundColor: "#C4956A",
+          opacity: animDone ? 1 : 0,
+          transform: animDone ? "scaleX(1)" : "scaleX(0)",
+        }}
+      />
+
+      {/* Handwriting animation */}
+      <HandwritingTitle onComplete={() => setAnimDone(true)} />
+
+      {/* Subtitle + tagline */}
+      <p
+        className="mt-5 text-sm tracking-[0.18em] italic transition-all duration-700 md:text-base"
+        style={{
+          color: "#C4956A",
+          opacity: animDone ? 1 : 0,
+          transform: animDone ? "translateY(0)" : "translateY(10px)",
+        }}
+      >
+        split bills, not friendships
+      </p>
+      <p
+        className="mt-2 font-caveat text-base font-medium transition-all duration-700 md:text-lg"
+        style={{
+          color: "#4A3C2A",
+          opacity: animDone ? 1 : 0,
+          transform: animDone ? "translateY(0)" : "translateY(8px)",
+          transitionDelay: "0.2s",
+        }}
+      >
+        ~ PlaDukKhlongToei ~
+      </p>
+
+      {/* Action buttons */}
+      <div
+        className="mt-12 flex flex-col items-center gap-4 transition-all duration-700"
+        style={{
+          opacity: animDone ? 1 : 0,
+          transform: animDone ? "translateY(0)" : "translateY(12px)",
+          transitionDelay: "0.4s",
+        }}
+      >
         <Link
           href="/quick-split"
-          className="rounded-full border border-gray-300 px-8 py-2.5 text-sm font-medium text-gray-800 transition-colors hover:bg-gray-50 active:bg-gray-100 md:px-10 md:py-3 md:text-base"
+          className="rounded-full bg-brand-700 px-10 py-3 text-sm font-medium text-cream-light transition-all hover:bg-brand-800 active:scale-[0.98] md:text-base"
         >
           Quick Split
         </Link>
@@ -54,7 +111,8 @@ export default function LoginPage() {
         <button
           onClick={handleGoogleSignIn}
           disabled={loading}
-          className="flex items-center gap-2 text-sm text-gray-500 transition-colors hover:text-gray-800 md:text-base"
+          className="flex items-center gap-2 text-sm transition-colors hover:text-brand-800 md:text-base"
+          style={{ color: "#C4956A" }}
         >
           <GoogleIcon />
           {loading ? "Redirecting..." : "log in"}
