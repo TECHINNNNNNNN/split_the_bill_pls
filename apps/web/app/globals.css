@@ -1,8 +1,43 @@
 @import "tailwindcss";
 
+/* ─── Font tokens (resolved at runtime via next/font CSS vars) ─── */
 @theme inline {
   --font-body: var(--font-body);
   --font-heading: var(--font-heading);
+  --font-script: var(--font-script);
+}
+
+/* ─── Brand palette: warm cream / chocolate brown / café aesthetic ─── */
+@theme {
+  /* Primary — chocolate brown (buttons, toggles, active states) */
+  --color-brand-50:  #faf6f1;
+  --color-brand-100: #f0e6d8;
+  --color-brand-200: #e0ccb0;
+  --color-brand-300: #c9a97e;
+  --color-brand-400: #b08a56;
+  --color-brand-500: #8b6914;
+  --color-brand-600: #6d5220;
+  --color-brand-700: #5c3d2e;
+  --color-brand-800: #3d2810;
+  --color-brand-900: #241808;
+  --color-brand-950: #120c04;
+
+  /* Surface — warm cream tones */
+  --color-cream:      #f5f0eb;
+  --color-cream-light: #faf7f3;
+  --color-cream-dark:  #ede8e3;
+
+  /* Semantic — warmed versions of status colors */
+  --color-success: #4a9e6e;
+  --color-error:   #c75450;
+  --color-warning: #c49a3c;
+  --color-info:    #5a8fbf;
+}
+
+/* ─── Base styles ─── */
+body {
+  background-color: var(--color-cream);
+  color: var(--color-brand-800);
 }
 
 /* Pointer cursor on all interactive elements */

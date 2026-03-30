@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import { IBM_Plex_Sans_Thai, Prompt } from "next/font/google";
+import localFont from "next/font/local";
 import { Toaster } from "sonner";
 import { Providers } from "./providers";
 import "./globals.css";
@@ -18,6 +19,13 @@ const heading = Prompt({
   display: "swap",
 });
 
+const script = localFont({
+  src: "./fonts/Licorice-Regular.ttf",
+  variable: "--font-script",
+  display: "swap",
+  weight: "400",
+});
+
 export const metadata: Metadata = {
   title: "PlaDuk — หารบิลง่ายๆ",
   description: "Split bills with friends. No app download needed.",
@@ -28,7 +36,7 @@ export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
   maximumScale: 1,
-  themeColor: "#0f172a",
+  themeColor: "#5c3d2e",
 };
 
 export default function RootLayout({
@@ -37,7 +45,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="th" className={`${body.variable} ${heading.variable}`}>
+    <html lang="th" className={`${body.variable} ${heading.variable} ${script.variable}`}>
       <body className="font-body antialiased">
         <Providers>{children}</Providers>
         <Toaster
@@ -46,13 +54,13 @@ export default function RootLayout({
           duration={3000}
           toastOptions={{
             style: {
-              background: "#1e293b",
-              color: "#f8fafc",
+              background: "#3d2810",
+              color: "#faf7f3",
               borderRadius: "12px",
               padding: "12px 16px",
               fontSize: "14px",
               fontWeight: 500,
-              boxShadow: "0 8px 30px rgba(0,0,0,0.2)",
+              boxShadow: "0 8px 30px rgba(61,40,16,0.25)",
               width: "fit-content",
               maxWidth: "90vw",
               textAlign: "center",
