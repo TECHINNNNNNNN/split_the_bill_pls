@@ -74,6 +74,17 @@ export function SectionCard({
 
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  // Check if batch was recent (avoid calling performance.now() during render)
+  const isBatchRecent = useRef(false);
+  const lastBatchTimestamp = useRef(0);
+  if (batchAddTimestamp !== lastBatchTimestamp.current) {
+    lastBatchTimestamp.current = batchAddTimestamp;
+    isBatchRecent.current = batchAddTimestamp > 0;
+    if (batchAddTimestamp > 0) {
+      setTimeout(() => { isBatchRecent.current = false; }, 3000);
+    }
+  }
+
   const { extras, items } = section;
   const subtotal = items.reduce((sum, item) => sum + item.quantity * item.unitPrice, 0);
 
@@ -230,9 +241,8 @@ export function SectionCard({
         )}
 
         {items.map((item, index) => {
-          // Determine if this item was added in a recent batch (within 3 seconds)
-          const isBatchItem = batchAddTimestamp > 0
-            && (performance.now() - batchAddTimestamp) < 3000
+          // Determine if this item was added in a recent batch
+          const isBatchItem = isBatchRecent.current
             && index >= items.length - batchAddCount;
           const staggerIndex = isBatchItem ? index - (items.length - batchAddCount) : -1;
 
