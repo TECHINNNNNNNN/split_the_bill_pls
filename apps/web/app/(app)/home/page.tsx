@@ -89,7 +89,7 @@ export default function HomePage() {
       {/* ─── Quick Split CTA ─── */}
       <Link
         href="/quick-split"
-        className="animate-section group relative mb-8 flex items-center justify-between overflow-hidden rounded-2xl bg-brand-700 p-5 shadow-md transition-all hover:bg-brand-800 active:scale-[0.99]"
+        className="gradient-border animate-section group relative mb-8 flex items-center justify-between overflow-hidden rounded-2xl bg-brand-700 p-5 shadow-md transition-all hover:bg-brand-800 active:scale-[0.99]"
         style={{ animationDelay: "100ms" }}
       >
         {/* Background catfish watermark — subtle, decorative */}
