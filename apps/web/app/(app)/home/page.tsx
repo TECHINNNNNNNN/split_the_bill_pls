@@ -24,18 +24,11 @@ function roomHref(code: string, status: string) {
   }
 }
 
-const STATUS_LABEL: Record<string, string> = {
-  waiting: "Waiting",
-  splitting: "Splitting",
-  payment: "Payment",
-  settled: "Settled",
-};
-
-const STATUS_COLOR: Record<string, string> = {
-  waiting: "bg-amber-100 text-amber-700",
-  splitting: "bg-blue-100 text-blue-700",
-  payment: "bg-orange-100 text-orange-700",
-  settled: "bg-green-100 text-green-700",
+const STATUS_DOT: Record<string, string> = {
+  waiting: "bg-amber-400",
+  splitting: "bg-blue-400",
+  payment: "bg-orange-400",
+  settled: "bg-green-400",
 };
 
 export default function HomePage() {
@@ -54,9 +47,12 @@ export default function HomePage() {
   const acceptInvite = useAcceptInvite();
   const declineInvite = useDeclineInvite();
 
+  const balances = balancesData?.balances ?? [];
+  const pending = pendingSettlements?.pending ?? [];
+
   return (
     <div>
-      {/* Header — greeting + avatar */}
+      {/* ─── Header ─── */}
       <div className="mb-8 flex items-center justify-between">
         <div>
           <p className="font-serif text-sm italic text-brand-400">Welcome back,</p>
@@ -83,7 +79,7 @@ export default function HomePage() {
         </Link>
       </div>
 
-      {/* Quick Split CTA — the hero */}
+      {/* ─── Quick Split CTA ─── */}
       <Link
         href="/quick-split"
         className="mb-8 flex items-center justify-between rounded-2xl bg-brand-700 p-5 shadow-md transition-all hover:bg-brand-800 active:scale-[0.99]"
@@ -97,86 +93,103 @@ export default function HomePage() {
         </div>
       </Link>
 
-      {/* Pending Settlements */}
-      {pendingSettlements?.pending && pendingSettlements.pending.length > 0 && (
+      {/* ─── Pending invites (urgent, top) ─── */}
+      {!invitesLoading && invites && invites.length > 0 && (
+        <div className="mb-6 space-y-2">
+          {invites.map((invite) => (
+            <div
+              key={invite.id}
+              className="flex items-center justify-between rounded-2xl border border-brand-200 bg-cream-light p-4 shadow-sm"
+            >
+              <div>
+                <p className="text-sm font-medium">
+                  {invite.room.name || `${invite.room.hostName}'s split`}
+                </p>
+                <p className="text-xs text-brand-300">
+                  Invited as {invite.displayName}
+                </p>
+              </div>
+              <div className="flex gap-2">
+                <button
+                  onClick={() => {
+                    acceptInvite.mutate(invite.id, {
+                      onSuccess: (data) => {
+                        toast.success("Joined!");
+                        router.push(`/quick-split/${data.inviteCode}`);
+                      },
+                      onError: () => toast.error("Failed to accept"),
+                    });
+                  }}
+                  disabled={acceptInvite.isPending}
+                  className="rounded-xl bg-brand-700 px-3 py-1.5 text-xs font-medium text-cream-light transition-all hover:bg-brand-800 active:scale-[0.97] disabled:opacity-40"
+                >
+                  Join
+                </button>
+                <button
+                  onClick={() => {
+                    declineInvite.mutate(invite.id, {
+                      onSuccess: () => toast.success("Declined"),
+                      onError: () => toast.error("Failed to decline"),
+                    });
+                  }}
+                  disabled={declineInvite.isPending}
+                  className="rounded-xl border border-brand-200 px-3 py-1.5 text-xs text-brand-400 transition-all hover:bg-cream active:scale-[0.97] disabled:opacity-40"
+                >
+                  Skip
+                </button>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* ─── Balances + Pending settlements (compact card) ─── */}
+      {(balances.length > 0 || pending.length > 0) && (
         <section className="mb-8">
-          <h2 className="font-caveat text-xl font-semibold mb-3">Pending Settlements</h2>
-          <div className="space-y-2">
-            {pendingSettlements.pending.map((s) => {
+          <h2 className="font-caveat text-xl font-semibold mb-3">Balances</h2>
+          <div className="rounded-2xl border border-brand-200 bg-cream-light shadow-sm overflow-hidden">
+            {/* Pending settlements first */}
+            {pending.map((s) => {
               const payerName = (s as { payer?: { name?: string } }).payer?.name ?? "Someone";
-              const payerImage = (s as { payer?: { image?: string | null } }).payer?.image;
               return (
                 <Link
                   key={s.id}
                   href={`/settle/detail/${s.id}`}
-                  className="flex items-center justify-between rounded-2xl border border-brand-200 bg-cream-light p-4 shadow-sm transition-all hover:shadow-md active:scale-[0.99]"
+                  className="flex items-center justify-between border-b border-brand-100 px-4 py-3 transition-colors hover:bg-cream last:border-b-0"
                 >
-                  <div className="flex items-center gap-3">
-                    {payerImage ? (
-                      // eslint-disable-next-line @next/next/no-img-element
-                      <img src={payerImage} alt={payerName} className="h-9 w-9 rounded-full border border-brand-200 object-cover" />
-                    ) : (
-                      <div className="flex h-9 w-9 items-center justify-center rounded-full bg-brand-100 font-caveat text-sm font-bold text-brand-600">
-                        {payerName.charAt(0).toUpperCase()}
-                      </div>
-                    )}
-                    <div>
-                      <p className="text-sm font-medium">{payerName} claims they&apos;ve paid</p>
-                      <p className="text-xs text-brand-300">Tap to review and confirm</p>
-                    </div>
+                  <div className="flex items-center gap-2">
+                    <span className="h-2 w-2 rounded-full bg-amber-400" />
+                    <span className="text-sm">{payerName} claims paid</span>
                   </div>
-                  <span className="font-caveat text-lg font-semibold text-warning">
+                  <span className="font-caveat text-base font-semibold text-warning">
                     ฿{parseFloat(s.netAmount).toFixed(2)}
                   </span>
                 </Link>
               );
             })}
-          </div>
-        </section>
-      )}
 
-      {/* Balances */}
-      {balancesData?.balances && balancesData.balances.length > 0 && (
-        <section className="mb-8">
-          <h2 className="font-caveat text-xl font-semibold mb-3">Your Balances</h2>
-          <div className="space-y-2">
-            {balancesData.balances.map((balance) => {
+            {/* Balance rows */}
+            {balances.map((balance) => {
               const isPositive = balance.netAmount > 0;
               return (
                 <div
                   key={balance.otherUserId}
-                  className="flex items-center justify-between rounded-2xl border border-brand-200 bg-cream-light p-4 shadow-sm"
+                  className="flex items-center justify-between border-b border-brand-100 px-4 py-3 last:border-b-0"
                 >
-                  <div className="flex items-center gap-3">
-                    {balance.otherUserImage ? (
-                      // eslint-disable-next-line @next/next/no-img-element
-                      <img
-                        src={balance.otherUserImage}
-                        alt={balance.otherUserName}
-                        className="h-9 w-9 rounded-full border border-brand-200 object-cover"
-                      />
-                    ) : (
-                      <div className="flex h-9 w-9 items-center justify-center rounded-full bg-brand-100 font-caveat text-sm font-bold text-brand-600">
-                        {balance.otherUserName.charAt(0).toUpperCase()}
-                      </div>
-                    )}
-                    <div>
-                      <p className="text-sm font-medium">{balance.otherUserName}</p>
-                      <p className="text-xs text-brand-300">
-                        {balance.roomCount} room{balance.roomCount > 1 ? "s" : ""}
-                      </p>
-                    </div>
+                  <div className="flex items-center gap-2">
+                    <span className={`h-2 w-2 rounded-full ${isPositive ? "bg-red-400" : "bg-green-400"}`} />
+                    <span className="text-sm">{balance.otherUserName}</span>
                   </div>
                   <div className="flex items-center gap-3">
-                    <p className={`text-sm font-semibold ${isPositive ? "text-error" : "text-success"}`}>
-                      {isPositive ? `You owe ฿${balance.netAmount.toFixed(2)}` : `Owes you ฿${Math.abs(balance.netAmount).toFixed(2)}`}
-                    </p>
+                    <span className={`text-sm font-medium ${isPositive ? "text-error" : "text-success"}`}>
+                      {isPositive ? `-฿${balance.netAmount.toFixed(2)}` : `+฿${Math.abs(balance.netAmount).toFixed(2)}`}
+                    </span>
                     {isPositive && (
                       <Link
                         href={`/settle/${balance.otherUserId}`}
-                        className="rounded-full bg-brand-700 px-3 py-1.5 text-xs font-medium text-cream-light transition-all hover:bg-brand-800 active:scale-[0.97]"
+                        className="rounded-full bg-brand-700 px-3 py-1 text-xs font-medium text-cream-light transition-all hover:bg-brand-800 active:scale-[0.97]"
                       >
-                        Settle
+                        Pay
                       </Link>
                     )}
                   </div>
@@ -187,98 +200,51 @@ export default function HomePage() {
         </section>
       )}
 
-      {/* Pending Invites */}
-      {!invitesLoading && invites && invites.length > 0 && (
-        <section className="mb-8">
-          <h2 className="font-caveat text-xl font-semibold mb-3">Pending Invites</h2>
-          <div className="space-y-2">
-            {invites.map((invite) => (
-              <div
-                key={invite.id}
-                className="flex items-center justify-between rounded-2xl border border-brand-200 bg-cream-light p-4 shadow-sm"
-              >
-                <div>
-                  <p className="text-sm font-medium">
-                    {invite.room.name || `${invite.room.hostName}'s split`}
-                  </p>
-                  <p className="text-xs text-brand-300">
-                    You&apos;re invited as {invite.displayName}
-                  </p>
-                </div>
-                <div className="flex gap-2">
-                  <button
-                    onClick={() => {
-                      acceptInvite.mutate(invite.id, {
-                        onSuccess: (data) => {
-                          toast.success("Joined!");
-                          router.push(`/quick-split/${data.inviteCode}`);
-                        },
-                        onError: () => toast.error("Failed to accept"),
-                      });
-                    }}
-                    disabled={acceptInvite.isPending}
-                    className="rounded-xl bg-brand-700 px-3 py-1.5 text-xs font-medium text-cream-light transition-all hover:bg-brand-800 active:scale-[0.97] disabled:opacity-40"
-                  >
-                    Join
-                  </button>
-                  <button
-                    onClick={() => {
-                      declineInvite.mutate(invite.id, {
-                        onSuccess: () => toast.success("Declined"),
-                        onError: () => toast.error("Failed to decline"),
-                      });
-                    }}
-                    disabled={declineInvite.isPending}
-                    className="rounded-xl border border-brand-200 px-3 py-1.5 text-xs text-brand-400 transition-all hover:bg-cream active:scale-[0.97] disabled:opacity-40"
-                  >
-                    Decline
-                  </button>
-                </div>
-              </div>
-            ))}
-          </div>
-        </section>
-      )}
-
-      {/* Recent Splits */}
+      {/* ─── Recent splits (horizontal scroll) ─── */}
       <section className="mb-8">
-        <h2 className="font-caveat text-xl font-semibold mb-3">Recent Splits</h2>
+        <h2 className="font-caveat text-xl font-semibold mb-3">Recent</h2>
         {roomsLoading ? (
-          <div className="space-y-2">
-            <Skeleton className="h-16 rounded-2xl" />
-            <Skeleton className="h-16 rounded-2xl" />
+          <div className="flex gap-3">
+            <Skeleton className="h-28 w-36 shrink-0 rounded-2xl" />
+            <Skeleton className="h-28 w-36 shrink-0 rounded-2xl" />
+            <Skeleton className="h-28 w-36 shrink-0 rounded-2xl" />
           </div>
         ) : !myRooms?.length ? (
           <p className="font-serif text-sm italic text-brand-300">No splits yet. Start one above!</p>
         ) : (
-          <div className="space-y-2">
-            {myRooms.map((room) => (
+          <div className="scrollbar-hidden -mx-4 flex gap-3 overflow-x-auto px-4 pb-2">
+            {myRooms.slice(0, 8).map((room) => (
               <Link
                 key={room.id}
                 href={roomHref(room.inviteCode, room.status)}
-                className="flex items-center justify-between rounded-2xl border border-brand-200 bg-cream-light p-4 shadow-sm transition-all hover:shadow-md active:scale-[0.99]"
+                className="flex w-36 shrink-0 flex-col justify-between rounded-2xl border border-brand-200 bg-cream-light p-4 shadow-sm transition-all hover:shadow-md active:scale-[0.97]"
               >
                 <div>
-                  <p className="font-medium">{room.name || `${room.hostName}'s split`}</p>
-                  <p className="text-xs text-brand-300">
+                  <p className="text-sm font-medium leading-tight line-clamp-2">
+                    {room.name || `${room.hostName}'s split`}
+                  </p>
+                  <p className="mt-1 text-xs text-brand-300">
                     {room.members.length} member{room.members.length !== 1 && "s"}
                   </p>
                 </div>
-                <span
-                  className={`rounded-full px-2.5 py-0.5 text-xs font-medium ${STATUS_COLOR[room.status] ?? "bg-brand-50 text-brand-500"}`}
-                >
-                  {STATUS_LABEL[room.status] ?? room.status}
-                </span>
+                <div className="mt-3 flex items-center gap-1.5">
+                  <span className={`h-1.5 w-1.5 rounded-full ${STATUS_DOT[room.status] ?? "bg-brand-300"}`} />
+                  <span className="text-[10px] text-brand-400">
+                    {room.status === "waiting" ? "Waiting" : room.status === "splitting" ? "Splitting" : room.status === "payment" ? "Payment" : "Done"}
+                  </span>
+                </div>
               </Link>
             ))}
           </div>
         )}
       </section>
 
-      {/* Groups */}
+      {/* ─── Groups (compact) ─── */}
       <section>
         <div className="mb-3 flex items-center justify-between">
-          <h2 className="font-caveat text-xl font-semibold">Your Groups</h2>
+          <h2 className="font-caveat text-xl font-semibold">
+            Groups {groups?.length ? <span className="text-brand-300">({groups.length})</span> : null}
+          </h2>
           <div className="flex gap-2">
             <button
               onClick={() => setShowJoinGroup(!showJoinGroup)}
@@ -295,7 +261,6 @@ export default function HomePage() {
           </div>
         </div>
 
-        {/* Join group by code */}
         {showJoinGroup && (
           <form
             onSubmit={(e) => {
@@ -332,31 +297,26 @@ export default function HomePage() {
         )}
 
         {groupsLoading ? (
-          <div className="space-y-2">
-            <Skeleton className="h-16 rounded-2xl" />
-          </div>
+          <Skeleton className="h-14 rounded-2xl" />
         ) : !groups?.length ? (
-          <div className="rounded-2xl border-2 border-dashed border-brand-200 py-8 text-center">
-            <p className="font-caveat text-base text-brand-300">No groups yet</p>
-            <button
-              onClick={() => setShowCreateGroup(true)}
-              className="mt-3 rounded-xl bg-brand-700 px-6 py-2 text-sm font-medium text-cream-light transition-all hover:bg-brand-800 active:scale-[0.97]"
-            >
-              Create your first group
-            </button>
-          </div>
+          <button
+            onClick={() => setShowCreateGroup(true)}
+            className="w-full rounded-2xl border-2 border-dashed border-brand-200 py-6 text-center transition-all hover:bg-cream-light active:scale-[0.99]"
+          >
+            <p className="font-caveat text-base text-brand-300">Create your first group</p>
+          </button>
         ) : (
-          <div className="space-y-2">
-            {groups.map((group) => (
+          <div className="rounded-2xl border border-brand-200 bg-cream-light shadow-sm overflow-hidden">
+            {groups.map((group, i) => (
               <Link
                 key={group.id}
                 href={`/groups/${group.id}`}
-                className="block rounded-2xl border border-brand-200 bg-cream-light p-4 shadow-sm transition-all hover:shadow-md active:scale-[0.99]"
+                className={`flex items-center justify-between px-4 py-3 transition-colors hover:bg-cream ${i < groups.length - 1 ? "border-b border-brand-100" : ""}`}
               >
-                <h3 className="font-medium">{group.name}</h3>
-                <p className="text-xs text-brand-300">
-                  {group.members.length} member{group.members.length !== 1 && "s"}
-                </p>
+                <span className="text-sm font-medium">{group.name}</span>
+                <span className="text-xs text-brand-300">
+                  {group.members.length} member{group.members.length !== 1 && "s"} →
+                </span>
               </Link>
             ))}
           </div>
