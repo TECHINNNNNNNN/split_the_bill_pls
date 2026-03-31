@@ -5,7 +5,6 @@ export const alt = "PlaDuk — Bill Split";
 export const size = { width: 1200, height: 630 };
 export const contentType = "image/png";
 
-// Load font for Thai text rendering
 async function loadFont() {
   const res = await fetch(
     "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Thai:wght@400;600;700&display=swap"
@@ -25,7 +24,6 @@ export default async function Image({
   const { code } = await params;
   const fontData = await loadFont();
 
-  // Fetch room data
   let roomName = "Bill Split";
   let hostName = "Someone";
   let memberCount = 0;
@@ -56,12 +54,10 @@ export default async function Image({
     settled: "All settled!",
   };
 
-  const statusColors: Record<string, string> = {
-    waiting: "#fbbf24",
-    splitting: "#60a5fa",
-    payment: "#34d399",
-    settled: "#22c55e",
-  };
+  const memberDotColors = [
+    "#8B6914", "#B08A56", "#6D8B5E", "#C49A3C",
+    "#9B7A6E", "#6A8BA0", "#C47A5A", "#A06B7A",
+  ];
 
   return new ImageResponse(
     (
@@ -73,11 +69,39 @@ export default async function Image({
           flexDirection: "column",
           justifyContent: "space-between",
           padding: "60px 70px",
-          background: "linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #0f172a 100%)",
+          background: "#f5f0eb",
           fontFamily: '"IBM Plex Sans Thai", sans-serif',
+          position: "relative",
         }}
       >
-        {/* Top: branding */}
+        {/* Subtle grain-like texture overlay */}
+        <div
+          style={{
+            position: "absolute",
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            opacity: 0.04,
+            backgroundImage: "radial-gradient(circle at 25% 45%, #C4956A 0%, transparent 55%), radial-gradient(circle at 75% 25%, #C4956A 0%, transparent 50%)",
+          }}
+        />
+
+        {/* Corner ornaments */}
+        <div style={{ position: "absolute", top: 40, left: 40, display: "flex" }}>
+          <svg width="40" height="40" viewBox="0 0 65 65" fill="none">
+            <path d="M 0 32 L 0 0 L 32 0" stroke="#E8D5BF" strokeWidth="2" />
+            <circle cx="3" cy="3" r="2" fill="#E8D5BF" />
+          </svg>
+        </div>
+        <div style={{ position: "absolute", bottom: 40, right: 40, display: "flex", transform: "rotate(180deg)" }}>
+          <svg width="40" height="40" viewBox="0 0 65 65" fill="none">
+            <path d="M 0 32 L 0 0 L 32 0" stroke="#E8D5BF" strokeWidth="2" />
+            <circle cx="3" cy="3" r="2" fill="#E8D5BF" />
+          </svg>
+        </div>
+
+        {/* Top: branding + status */}
         <div
           style={{
             display: "flex",
@@ -88,24 +112,25 @@ export default async function Image({
           <div
             style={{
               display: "flex",
-              alignItems: "center",
+              alignItems: "baseline",
               gap: "12px",
             }}
           >
             <div
               style={{
-                fontSize: "28px",
+                fontSize: "32px",
                 fontWeight: 700,
-                color: "#f8fafc",
+                color: "#3d2810",
                 letterSpacing: "-0.5px",
               }}
             >
-              PlaDuk
+              Pladuk
             </div>
             <div
               style={{
                 fontSize: "16px",
-                color: "#64748b",
+                color: "#C4956A",
+                fontStyle: "italic",
               }}
             >
               หารบิลง่ายๆ
@@ -116,9 +141,9 @@ export default async function Image({
               display: "flex",
               alignItems: "center",
               gap: "8px",
-              backgroundColor: statusColors[status] || "#64748b",
-              color: "#0f172a",
-              padding: "8px 20px",
+              backgroundColor: "#5c3d2e",
+              color: "#faf7f3",
+              padding: "10px 24px",
               borderRadius: "99px",
               fontSize: "16px",
               fontWeight: 600,
@@ -140,7 +165,7 @@ export default async function Image({
             style={{
               fontSize: "56px",
               fontWeight: 700,
-              color: "#f8fafc",
+              color: "#3d2810",
               lineHeight: 1.2,
               letterSpacing: "-1px",
             }}
@@ -149,15 +174,15 @@ export default async function Image({
           </div>
           <div
             style={{
-              fontSize: "24px",
-              color: "#94a3b8",
+              fontSize: "22px",
+              color: "#8B6914",
               display: "flex",
               alignItems: "center",
               gap: "16px",
             }}
           >
             <span>Hosted by {hostName}</span>
-            <span style={{ color: "#475569" }}>•</span>
+            <span style={{ color: "#C4956A" }}>·</span>
             <span>
               {memberCount}/{expectedMembers} joined
             </span>
@@ -172,7 +197,6 @@ export default async function Image({
             justifyContent: "space-between",
           }}
         >
-          {/* Member dots */}
           <div
             style={{
               display: "flex",
@@ -186,8 +210,8 @@ export default async function Image({
                   width: "40px",
                   height: "40px",
                   borderRadius: "50%",
-                  backgroundColor: ["#E74C3C", "#3498DB", "#2ECC71", "#F39C12", "#9B59B6", "#1ABC9C", "#E67E22", "#E91E63"][i % 8],
-                  border: "3px solid #1e293b",
+                  backgroundColor: memberDotColors[i % 8],
+                  border: "3px solid #f5f0eb",
                 }}
               />
             ))}
@@ -197,14 +221,14 @@ export default async function Image({
                   width: "40px",
                   height: "40px",
                   borderRadius: "50%",
-                  backgroundColor: "#475569",
-                  border: "3px solid #1e293b",
+                  backgroundColor: "#C4956A",
+                  border: "3px solid #f5f0eb",
                   display: "flex",
                   alignItems: "center",
                   justifyContent: "center",
                   fontSize: "14px",
                   fontWeight: 600,
-                  color: "#f8fafc",
+                  color: "#faf7f3",
                 }}
               >
                 +{memberCount - 8}
@@ -212,14 +236,14 @@ export default async function Image({
             )}
           </div>
 
-          {/* CTA */}
           <div
             style={{
               display: "flex",
               alignItems: "center",
               gap: "8px",
-              color: "#64748b",
+              color: "#C4956A",
               fontSize: "18px",
+              fontStyle: "italic",
             }}
           >
             Tap to join →
