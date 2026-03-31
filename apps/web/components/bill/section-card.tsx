@@ -29,6 +29,7 @@ export function SectionCard({
   voiceDuration,
   onVoiceStart,
   onVoiceStop,
+  voiceAnalyser,
 }: {
   section: CollabSection;
   isMultiSection: boolean;
@@ -53,6 +54,7 @@ export function SectionCard({
   voiceDuration: number;
   onVoiceStart: () => void;
   onVoiceStop: () => Promise<Blob>;
+  voiceAnalyser: React.RefObject<AnalyserNode | null>;
 }) {
   const [showForm, setShowForm] = useState(false);
   const [itemName, setItemName] = useState("");
@@ -208,6 +210,11 @@ export function SectionCard({
             )}
           </div>
         </div>
+      )}
+
+      {/* Voice waveform — shown when this section is recording */}
+      {voiceRecording && (
+        <VoiceWaveform analyser={voiceAnalyser} duration={voiceDuration} />
       )}
 
       {/* Items list */}

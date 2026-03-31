@@ -17,7 +17,6 @@ import { LiveCursors } from "@/components/bill/live-cursors";
 import { PresenceAvatars } from "@/components/bill/presence-avatars";
 import { useShake } from "@/lib/hooks/use-shake";
 import type { SectionBreakdown } from "@/components/bill/breakdown-modal";
-import { VoiceWaveform } from "@/components/voice-waveform";
 
 // ─── Main Page ───
 
@@ -503,6 +502,7 @@ export default function BillDetailsPage({
             voiceDuration={voice.duration}
             onVoiceStart={() => { setVoiceSectionId(section.id); voice.start(); }}
             onVoiceStop={voice.stop}
+            voiceAnalyser={voice.analyser}
           />
         ))}
 
