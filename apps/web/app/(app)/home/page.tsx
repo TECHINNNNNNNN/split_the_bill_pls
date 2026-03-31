@@ -10,9 +10,10 @@ import { settlementQueries } from "@/lib/queries/settlements";
 import { useUserSocket } from "@/lib/hooks/use-user-socket";
 import { CreateGroupDialog } from "@/components/groups/create-group-dialog";
 import Image from "next/image";
-import Link from "next/link";
+import { Link } from "next-view-transitions";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
+import { Skeleton } from "@/components/skeleton";
 
 function roomHref(code: string, status: string) {
   switch (status) {
@@ -31,7 +32,7 @@ const STATUS_LABEL: Record<string, string> = {
 };
 
 const STATUS_COLOR: Record<string, string> = {
-  waiting: "bg-yellow-100 text-yellow-700",
+  waiting: "bg-amber-100 text-amber-700",
   splitting: "bg-blue-100 text-blue-700",
   payment: "bg-orange-100 text-orange-700",
   settled: "bg-green-100 text-green-700",
@@ -41,7 +42,6 @@ export default function HomePage() {
   const { data: session } = useSession();
   const router = useRouter();
 
-  // Real-time: receive invite notifications without page refresh
   useUserSocket(session?.user.id);
   const { data: groups, isLoading: groupsLoading } = useQuery(groupQueries.all());
   const { data: myRooms, isLoading: roomsLoading } = useQuery(roomQueries.my());
@@ -56,49 +56,51 @@ export default function HomePage() {
 
   return (
     <div>
-      {/* Header */}
-      <div className="mb-6 flex items-center justify-between">
+      {/* Header — greeting + avatar */}
+      <div className="mb-8 flex items-center justify-between">
         <div>
-          <h1 className="font-heading text-2xl font-bold">
+          <p className="font-serif text-sm italic text-brand-400">Welcome back,</p>
+          <h1 className="font-caveat text-3xl font-bold">
             {session?.user.name?.split(" ")[0]}
           </h1>
-          <p className="text-sm text-gray-500">{session?.user.email}</p>
         </div>
         <Link href="/settings">
           {session?.user.image ? (
             <Image
               src={session.user.image}
               alt="avatar"
-              width={36}
-              height={36}
+              width={40}
+              height={40}
               referrerPolicy="no-referrer"
-              className="rounded-full"
+              className="rounded-full border-2 border-brand-200 transition-shadow hover:shadow-md"
               unoptimized
             />
           ) : (
-            <div className="flex h-9 w-9 items-center justify-center rounded-full bg-gray-200 text-sm font-bold text-gray-500">
+            <div className="flex h-10 w-10 items-center justify-center rounded-full border-2 border-brand-200 bg-brand-50 font-caveat text-base font-bold text-brand-600">
               {session?.user.name?.charAt(0).toUpperCase()}
             </div>
           )}
         </Link>
       </div>
 
-      {/* Quick Split CTA */}
+      {/* Quick Split CTA — the hero */}
       <Link
         href="/quick-split"
-        className="mb-6 flex items-center justify-between rounded-xl bg-gray-900 p-4 text-white transition-colors hover:bg-gray-800"
+        className="mb-8 flex items-center justify-between rounded-2xl bg-brand-700 p-5 shadow-md transition-all hover:bg-brand-800 active:scale-[0.99]"
       >
         <div>
-          <p className="font-heading font-semibold">Quick Split</p>
-          <p className="text-sm text-gray-400">No account needed for friends</p>
+          <p className="font-caveat text-xl font-semibold text-cream-light">Quick Split</p>
+          <p className="mt-0.5 text-sm text-brand-200">No account needed for friends</p>
         </div>
-        <span className="text-2xl">+</span>
+        <div className="flex h-10 w-10 items-center justify-center rounded-full bg-cream-light/20 text-xl text-cream-light">
+          +
+        </div>
       </Link>
 
-      {/* Pending Settlements (creditor needs to confirm) */}
+      {/* Pending Settlements */}
       {pendingSettlements?.pending && pendingSettlements.pending.length > 0 && (
-        <section className="mb-6">
-          <h2 className="font-heading mb-3 text-lg font-semibold">Pending Settlements</h2>
+        <section className="mb-8">
+          <h2 className="font-caveat text-xl font-semibold mb-3">Pending Settlements</h2>
           <div className="space-y-2">
             {pendingSettlements.pending.map((s) => {
               const payerName = (s as { payer?: { name?: string } }).payer?.name ?? "Someone";
@@ -107,23 +109,23 @@ export default function HomePage() {
                 <Link
                   key={s.id}
                   href={`/settle/detail/${s.id}`}
-                  className="flex items-center justify-between rounded-xl border border-yellow-200 bg-yellow-50 p-3 transition-colors hover:bg-yellow-100"
+                  className="flex items-center justify-between rounded-2xl border border-brand-200 bg-cream-light p-4 shadow-sm transition-all hover:shadow-md active:scale-[0.99]"
                 >
                   <div className="flex items-center gap-3">
                     {payerImage ? (
                       // eslint-disable-next-line @next/next/no-img-element
-                      <img src={payerImage} alt={payerName} className="h-8 w-8 rounded-full object-cover" />
+                      <img src={payerImage} alt={payerName} className="h-9 w-9 rounded-full border border-brand-200 object-cover" />
                     ) : (
-                      <div className="flex h-8 w-8 items-center justify-center rounded-full bg-yellow-200 text-sm font-bold text-yellow-700">
+                      <div className="flex h-9 w-9 items-center justify-center rounded-full bg-brand-100 font-caveat text-sm font-bold text-brand-600">
                         {payerName.charAt(0).toUpperCase()}
                       </div>
                     )}
                     <div>
-                      <p className="text-sm font-medium text-gray-800">{payerName} claims they&apos;ve paid</p>
-                      <p className="text-xs text-gray-500">Tap to review and confirm</p>
+                      <p className="text-sm font-medium">{payerName} claims they&apos;ve paid</p>
+                      <p className="text-xs text-brand-300">Tap to review and confirm</p>
                     </div>
                   </div>
-                  <span className="text-sm font-semibold text-yellow-700">
+                  <span className="font-caveat text-lg font-semibold text-warning">
                     ฿{parseFloat(s.netAmount).toFixed(2)}
                   </span>
                 </Link>
@@ -135,15 +137,15 @@ export default function HomePage() {
 
       {/* Balances */}
       {balancesData?.balances && balancesData.balances.length > 0 && (
-        <section className="mb-6">
-          <h2 className="font-heading mb-3 text-lg font-semibold">Your Balances</h2>
+        <section className="mb-8">
+          <h2 className="font-caveat text-xl font-semibold mb-3">Your Balances</h2>
           <div className="space-y-2">
             {balancesData.balances.map((balance) => {
               const isPositive = balance.netAmount > 0;
               return (
                 <div
                   key={balance.otherUserId}
-                  className="flex items-center justify-between rounded-xl border border-gray-200 p-3"
+                  className="flex items-center justify-between rounded-2xl border border-brand-200 bg-cream-light p-4 shadow-sm"
                 >
                   <div className="flex items-center gap-3">
                     {balance.otherUserImage ? (
@@ -151,30 +153,28 @@ export default function HomePage() {
                       <img
                         src={balance.otherUserImage}
                         alt={balance.otherUserName}
-                        className="h-8 w-8 rounded-full object-cover"
+                        className="h-9 w-9 rounded-full border border-brand-200 object-cover"
                       />
                     ) : (
-                      <div className="flex h-8 w-8 items-center justify-center rounded-full bg-gray-200 text-sm font-bold text-gray-500">
+                      <div className="flex h-9 w-9 items-center justify-center rounded-full bg-brand-100 font-caveat text-sm font-bold text-brand-600">
                         {balance.otherUserName.charAt(0).toUpperCase()}
                       </div>
                     )}
                     <div>
-                      <p className="text-sm font-medium text-gray-800">{balance.otherUserName}</p>
-                      <p className="text-xs text-gray-400">
+                      <p className="text-sm font-medium">{balance.otherUserName}</p>
+                      <p className="text-xs text-brand-300">
                         {balance.roomCount} room{balance.roomCount > 1 ? "s" : ""}
                       </p>
                     </div>
                   </div>
                   <div className="flex items-center gap-3">
-                    <div className="text-right">
-                      <p className={`text-sm font-semibold ${isPositive ? "text-red-500" : "text-green-600"}`}>
-                        {isPositive ? `You owe ฿${balance.netAmount.toFixed(2)}` : `Owes you ฿${Math.abs(balance.netAmount).toFixed(2)}`}
-                      </p>
-                    </div>
+                    <p className={`text-sm font-semibold ${isPositive ? "text-error" : "text-success"}`}>
+                      {isPositive ? `You owe ฿${balance.netAmount.toFixed(2)}` : `Owes you ฿${Math.abs(balance.netAmount).toFixed(2)}`}
+                    </p>
                     {isPositive && (
                       <Link
                         href={`/settle/${balance.otherUserId}`}
-                        className="rounded-full bg-gray-800 px-3 py-1.5 text-xs font-medium text-white transition-colors hover:bg-gray-700"
+                        className="rounded-full bg-brand-700 px-3 py-1.5 text-xs font-medium text-cream-light transition-all hover:bg-brand-800 active:scale-[0.97]"
                       >
                         Settle
                       </Link>
@@ -189,19 +189,19 @@ export default function HomePage() {
 
       {/* Pending Invites */}
       {!invitesLoading && invites && invites.length > 0 && (
-        <section className="mb-6">
-          <h2 className="font-heading mb-3 text-lg font-semibold">Pending Invites</h2>
+        <section className="mb-8">
+          <h2 className="font-caveat text-xl font-semibold mb-3">Pending Invites</h2>
           <div className="space-y-2">
             {invites.map((invite) => (
               <div
                 key={invite.id}
-                className="flex items-center justify-between rounded-xl border border-blue-100 bg-blue-50 p-3"
+                className="flex items-center justify-between rounded-2xl border border-brand-200 bg-cream-light p-4 shadow-sm"
               >
                 <div>
                   <p className="text-sm font-medium">
                     {invite.room.name || `${invite.room.hostName}'s split`}
                   </p>
-                  <p className="text-xs text-gray-500">
+                  <p className="text-xs text-brand-300">
                     You&apos;re invited as {invite.displayName}
                   </p>
                 </div>
@@ -217,7 +217,7 @@ export default function HomePage() {
                       });
                     }}
                     disabled={acceptInvite.isPending}
-                    className="rounded-lg bg-gray-900 px-3 py-1.5 text-xs font-medium text-white transition-colors hover:bg-gray-800 disabled:opacity-40"
+                    className="rounded-xl bg-brand-700 px-3 py-1.5 text-xs font-medium text-cream-light transition-all hover:bg-brand-800 active:scale-[0.97] disabled:opacity-40"
                   >
                     Join
                   </button>
@@ -229,7 +229,7 @@ export default function HomePage() {
                       });
                     }}
                     disabled={declineInvite.isPending}
-                    className="rounded-lg border border-gray-200 px-3 py-1.5 text-xs text-gray-500 transition-colors hover:bg-gray-100 disabled:opacity-40"
+                    className="rounded-xl border border-brand-200 px-3 py-1.5 text-xs text-brand-400 transition-all hover:bg-cream active:scale-[0.97] disabled:opacity-40"
                   >
                     Decline
                   </button>
@@ -241,28 +241,31 @@ export default function HomePage() {
       )}
 
       {/* Recent Splits */}
-      <section className="mb-6">
-        <h2 className="font-heading mb-3 text-lg font-semibold">Recent Splits</h2>
+      <section className="mb-8">
+        <h2 className="font-caveat text-xl font-semibold mb-3">Recent Splits</h2>
         {roomsLoading ? (
-          <p className="text-sm text-gray-400">Loading...</p>
+          <div className="space-y-2">
+            <Skeleton className="h-16 rounded-2xl" />
+            <Skeleton className="h-16 rounded-2xl" />
+          </div>
         ) : !myRooms?.length ? (
-          <p className="text-sm text-gray-400">No splits yet. Start one above!</p>
+          <p className="font-serif text-sm italic text-brand-300">No splits yet. Start one above!</p>
         ) : (
           <div className="space-y-2">
             {myRooms.map((room) => (
               <Link
                 key={room.id}
                 href={roomHref(room.inviteCode, room.status)}
-                className="flex items-center justify-between rounded-xl border border-gray-100 bg-white p-3 shadow-sm transition-shadow hover:shadow-md"
+                className="flex items-center justify-between rounded-2xl border border-brand-200 bg-cream-light p-4 shadow-sm transition-all hover:shadow-md active:scale-[0.99]"
               >
                 <div>
                   <p className="font-medium">{room.name || `${room.hostName}'s split`}</p>
-                  <p className="text-xs text-gray-500">
+                  <p className="text-xs text-brand-300">
                     {room.members.length} member{room.members.length !== 1 && "s"}
                   </p>
                 </div>
                 <span
-                  className={`rounded-full px-2 py-0.5 text-xs font-medium ${STATUS_COLOR[room.status] ?? "bg-gray-100 text-gray-600"}`}
+                  className={`rounded-full px-2.5 py-0.5 text-xs font-medium ${STATUS_COLOR[room.status] ?? "bg-brand-50 text-brand-500"}`}
                 >
                   {STATUS_LABEL[room.status] ?? room.status}
                 </span>
@@ -275,17 +278,17 @@ export default function HomePage() {
       {/* Groups */}
       <section>
         <div className="mb-3 flex items-center justify-between">
-          <h2 className="font-heading text-lg font-semibold">Your Groups</h2>
+          <h2 className="font-caveat text-xl font-semibold">Your Groups</h2>
           <div className="flex gap-2">
             <button
               onClick={() => setShowJoinGroup(!showJoinGroup)}
-              className="rounded-lg border border-gray-200 px-3 py-1.5 text-sm text-gray-600 transition-colors hover:bg-gray-50"
+              className="rounded-xl border border-brand-200 px-3 py-1.5 text-sm text-brand-500 transition-all hover:bg-cream-light active:scale-[0.97]"
             >
               Join
             </button>
             <button
               onClick={() => setShowCreateGroup(true)}
-              className="rounded-lg bg-gray-900 px-3 py-1.5 text-sm font-medium text-white transition-colors hover:bg-gray-800"
+              className="rounded-xl bg-brand-700 px-3 py-1.5 text-sm font-medium text-cream-light transition-all hover:bg-brand-800 active:scale-[0.97]"
             >
               + New
             </button>
@@ -309,19 +312,19 @@ export default function HomePage() {
               value={groupCode}
               onChange={(e) => setGroupCode(e.target.value)}
               autoFocus
-              className="flex-1 rounded-xl border border-gray-200 px-4 py-2.5 text-sm outline-none transition-colors focus:border-gray-400"
+              className="flex-1 rounded-xl border border-brand-200 bg-cream-light px-4 py-2.5 text-sm placeholder:text-brand-300 focus:border-brand-400 focus:outline-none"
             />
             <button
               type="submit"
               disabled={!groupCode.trim()}
-              className="rounded-xl bg-gray-900 px-4 py-2.5 text-sm font-medium text-white transition-colors hover:bg-gray-800 disabled:opacity-40"
+              className="rounded-xl bg-brand-700 px-4 py-2.5 text-sm font-medium text-cream-light transition-all hover:bg-brand-800 active:scale-[0.97] disabled:opacity-40"
             >
               Go
             </button>
             <button
               type="button"
               onClick={() => { setShowJoinGroup(false); setGroupCode(""); }}
-              className="rounded-xl border border-gray-200 px-3 py-2.5 text-sm text-gray-500 transition-colors hover:bg-gray-50"
+              className="rounded-xl border border-brand-200 px-3 py-2.5 text-sm text-brand-400 transition-all hover:bg-cream-light active:scale-[0.97]"
             >
               Cancel
             </button>
@@ -329,13 +332,15 @@ export default function HomePage() {
         )}
 
         {groupsLoading ? (
-          <p className="text-sm text-gray-400">Loading...</p>
+          <div className="space-y-2">
+            <Skeleton className="h-16 rounded-2xl" />
+          </div>
         ) : !groups?.length ? (
-          <div className="rounded-xl border-2 border-dashed border-gray-200 py-8 text-center">
-            <p className="text-gray-400">No groups yet</p>
+          <div className="rounded-2xl border-2 border-dashed border-brand-200 py-8 text-center">
+            <p className="font-caveat text-base text-brand-300">No groups yet</p>
             <button
               onClick={() => setShowCreateGroup(true)}
-              className="mt-3 rounded-xl bg-gray-900 px-6 py-2 text-sm font-medium text-white transition-colors hover:bg-gray-800"
+              className="mt-3 rounded-xl bg-brand-700 px-6 py-2 text-sm font-medium text-cream-light transition-all hover:bg-brand-800 active:scale-[0.97]"
             >
               Create your first group
             </button>
@@ -346,10 +351,10 @@ export default function HomePage() {
               <Link
                 key={group.id}
                 href={`/groups/${group.id}`}
-                className="block rounded-xl border border-gray-100 bg-white p-4 shadow-sm transition-shadow hover:shadow-md"
+                className="block rounded-2xl border border-brand-200 bg-cream-light p-4 shadow-sm transition-all hover:shadow-md active:scale-[0.99]"
               >
-                <h3 className="font-semibold">{group.name}</h3>
-                <p className="text-sm text-gray-500">
+                <h3 className="font-medium">{group.name}</h3>
+                <p className="text-xs text-brand-300">
                   {group.members.length} member{group.members.length !== 1 && "s"}
                 </p>
               </Link>
