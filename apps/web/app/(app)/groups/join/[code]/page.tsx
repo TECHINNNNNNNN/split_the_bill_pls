@@ -5,6 +5,7 @@ import { useQuery } from "@tanstack/react-query";
 import { groupQueries } from "@/lib/queries/groups";
 import { useJoinGroup } from "@/lib/mutations/groups";
 import { toast } from "sonner";
+import { Skeleton } from "@/components/skeleton";
 
 export default function JoinGroupPage() {
   const { code } = useParams<{ code: string }>();
@@ -13,19 +14,26 @@ export default function JoinGroupPage() {
   const joinGroup = useJoinGroup();
 
   if (isLoading) {
-    return <p className="text-gray-400">Loading...</p>;
+    return (
+      <div className="flex flex-col items-center pt-16">
+        <Skeleton className="h-4 w-40" />
+        <Skeleton className="mt-3 h-8 w-48" />
+        <Skeleton className="mt-2 h-4 w-24" />
+        <Skeleton className="mt-8 h-12 w-full max-w-xs rounded-full" />
+      </div>
+    );
   }
 
   if (error || !preview) {
     return (
-      <div className="text-center">
-        <p className="text-red-500">Group not found</p>
-        <p className="mt-1 text-sm text-gray-400">
+      <div className="flex flex-col items-center pt-16 text-center">
+        <p className="font-caveat text-2xl text-error">Group not found</p>
+        <p className="mt-2 font-serif text-sm italic text-brand-300">
           The invite code may be invalid or expired.
         </p>
         <button
           onClick={() => router.push("/home")}
-          className="mt-4 text-sm text-gray-500 underline"
+          className="mt-6 rounded-full bg-brand-700 px-8 py-2.5 text-sm font-medium text-cream-light transition-all hover:bg-brand-800 active:scale-[0.98]"
         >
           Back to home
         </button>
@@ -35,14 +43,14 @@ export default function JoinGroupPage() {
 
   if (preview.alreadyMember) {
     return (
-      <div className="text-center">
-        <h1 className="font-heading mb-2 text-xl font-bold">{preview.name}</h1>
-        <p className="mb-4 text-sm text-gray-500">
+      <div className="flex flex-col items-center pt-16 text-center">
+        <h1 className="font-caveat text-3xl font-bold">{preview.name}</h1>
+        <p className="mt-2 font-serif text-sm italic text-brand-400">
           You&apos;re already a member of this group.
         </p>
         <button
           onClick={() => router.push(`/groups/${preview.id}`)}
-          className="rounded-xl bg-gray-900 px-6 py-2.5 text-sm font-medium text-white transition-colors hover:bg-gray-800"
+          className="mt-6 rounded-full bg-brand-700 px-8 py-2.5 text-sm font-medium text-cream-light transition-all hover:bg-brand-800 active:scale-[0.98]"
         >
           Go to Group
         </button>
@@ -63,24 +71,24 @@ export default function JoinGroupPage() {
   };
 
   return (
-    <div className="text-center">
-      <p className="mb-2 text-sm text-gray-400">You&apos;ve been invited to join</p>
-      <h1 className="font-heading mb-1 text-2xl font-bold">{preview.name}</h1>
-      <p className="mb-6 text-sm text-gray-500">
+    <div className="flex flex-col items-center pt-16 text-center">
+      <p className="font-serif text-sm italic text-brand-400">You&apos;ve been invited to join</p>
+      <h1 className="mt-2 font-caveat text-3xl font-bold">{preview.name}</h1>
+      <p className="mt-1 text-sm text-brand-300">
         {preview.memberCount} member{preview.memberCount !== 1 && "s"}
       </p>
 
       <button
         onClick={handleJoin}
         disabled={joinGroup.isPending}
-        className="w-full rounded-xl bg-gray-900 py-3 font-medium text-white transition-colors hover:bg-gray-800 disabled:opacity-40"
+        className="mt-8 w-full max-w-xs rounded-full bg-brand-700 py-3 font-medium text-cream-light transition-all hover:bg-brand-800 active:scale-[0.98] disabled:opacity-40"
       >
         {joinGroup.isPending ? "Joining..." : "Join Group"}
       </button>
 
       <button
         onClick={() => router.push("/home")}
-        className="mt-3 text-sm text-gray-400 hover:text-gray-600"
+        className="mt-3 text-sm text-brand-400 hover:text-brand-600"
       >
         Cancel
       </button>
