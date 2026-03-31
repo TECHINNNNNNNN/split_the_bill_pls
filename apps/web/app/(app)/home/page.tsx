@@ -60,7 +60,7 @@ export default function HomePage() {
             {session?.user.name?.split(" ")[0]}
           </h1>
         </div>
-        <Link href="/settings">
+        <Link href="/settings" className="group relative">
           {session?.user.image ? (
             <Image
               src={session.user.image}
@@ -68,14 +68,21 @@ export default function HomePage() {
               width={40}
               height={40}
               referrerPolicy="no-referrer"
-              className="rounded-full border-2 border-brand-200 transition-shadow hover:shadow-md"
+              className="rounded-full border-2 border-brand-200 transition-shadow group-hover:shadow-md"
               unoptimized
             />
           ) : (
-            <div className="flex h-10 w-10 items-center justify-center rounded-full border-2 border-brand-200 bg-brand-50 font-caveat text-base font-bold text-brand-600">
+            <div className="flex h-10 w-10 items-center justify-center rounded-full border-2 border-brand-200 bg-brand-50 font-caveat text-base font-bold text-brand-600 transition-shadow group-hover:shadow-md">
               {session?.user.name?.charAt(0).toUpperCase()}
             </div>
           )}
+          {/* Settings gear badge */}
+          <div className="absolute -bottom-0.5 -right-0.5 flex h-5 w-5 items-center justify-center rounded-full border-2 border-cream bg-brand-700 transition-transform group-hover:scale-110">
+            <svg className="h-2.5 w-2.5 text-cream-light" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+              <circle cx="12" cy="12" r="3" />
+              <path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42" />
+            </svg>
+          </div>
         </Link>
       </div>
 
