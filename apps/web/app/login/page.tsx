@@ -5,6 +5,7 @@ import { signIn, useSession } from "@/lib/auth-client";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { HandwritingTitle } from "@/components/handwriting-title";
+import { Skeleton } from "@/components/skeleton";
 
 export default function LoginPage() {
   const { data: session, isPending } = useSession();
@@ -29,7 +30,7 @@ export default function LoginPage() {
   if (isPending || session) {
     return (
       <div className="flex min-h-svh items-center justify-center">
-        <p className="text-brand-400">Loading...</p>
+        <Skeleton className="h-8 w-32" />
       </div>
     );
   }
