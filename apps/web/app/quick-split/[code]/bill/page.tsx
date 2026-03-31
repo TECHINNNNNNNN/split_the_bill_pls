@@ -17,6 +17,7 @@ import { LiveCursors } from "@/components/bill/live-cursors";
 import { PresenceAvatars } from "@/components/bill/presence-avatars";
 import { useShake } from "@/lib/hooks/use-shake";
 import type { SectionBreakdown } from "@/components/bill/breakdown-modal";
+import { VoiceWaveform } from "@/components/voice-waveform";
 
 // ─── Main Page ───
 
@@ -448,12 +449,9 @@ export default function BillDetailsPage({
         </div>
       </div>
 
-      {/* Voice recording indicator */}
+      {/* Voice waveform visualizer */}
       {voice.isRecording && (
-        <div className="mt-3 flex items-center justify-center gap-2 text-sm text-error">
-          <span className="inline-block h-2 w-2 animate-pulse rounded-full bg-error" />
-          Recording... Speak your order, then tap Stop
-        </div>
+        <VoiceWaveform analyser={voice.analyser} duration={voice.duration} />
       )}
 
       {/* Shake to split — mobile only */}

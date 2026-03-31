@@ -26,6 +26,8 @@ export function useVoiceInput() {
   const startTimeRef = useRef<number>(0)
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null)
   const resolveBlobRef = useRef<((blob: Blob) => void) | null>(null)
+  const analyserRef = useRef<AnalyserNode | null>(null)
+  const audioCtxRef = useRef<AudioContext | null>(null)
 
   const isSupported = typeof navigator !== "undefined"
     && typeof MediaRecorder !== "undefined"
@@ -39,6 +41,16 @@ export function useVoiceInput() {
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true })
       streamRef.current = stream
+
+      // Set up Web Audio API analyser for waveform visualization
+      const audioCtx = new AudioContext()
+      audioCtxRef.current = audioCtx
+      const source = audioCtx.createMediaStreamSource(stream)
+      const analyser = audioCtx.createAnalyser()
+      analyser.fftSize = 64
+      analyser.smoothingTimeConstant = 0.8
+      source.connect(analyser)
+      analyserRef.current = analyser
 
       const options = getAudioOptions()
       const mediaRecorder = new MediaRecorder(stream, options)
@@ -79,6 +91,9 @@ export function useVoiceInput() {
       mediaRecorderRef.current?.stop()
       streamRef.current?.getTracks().forEach((t) => t.stop())
       streamRef.current = null
+      analyserRef.current = null
+      audioCtxRef.current?.close()
+      audioCtxRef.current = null
       setIsRecording(false)
     })
   }, [])
@@ -91,6 +106,9 @@ export function useVoiceInput() {
     mediaRecorderRef.current = null
     audioChunksRef.current = []
     resolveBlobRef.current = null
+    analyserRef.current = null
+    audioCtxRef.current?.close()
+    audioCtxRef.current = null
     setIsRecording(false)
     setDuration(0)
     setError(null)
@@ -102,6 +120,7 @@ export function useVoiceInput() {
       if (timerRef.current) clearInterval(timerRef.current)
       mediaRecorderRef.current?.stop()
       streamRef.current?.getTracks().forEach((t) => t.stop())
+      audioCtxRef.current?.close()
     }
   }, [])
 
@@ -113,5 +132,6 @@ export function useVoiceInput() {
     start,
     stop,
     reset,
+    analyser: analyserRef,
   }
 }
