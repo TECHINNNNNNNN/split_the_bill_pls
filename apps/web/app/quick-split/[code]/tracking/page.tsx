@@ -487,16 +487,16 @@ function PaymentTrackingContent({
               status === "confirmed"
                 ? "border-green-200 bg-green-50"
                 : status === "claimed"
-                  ? "border-amber-200 bg-amber-50"
+                  ? "border-amber-300 bg-amber-50"
                   : status === "rejected"
-                    ? "border-red-200 bg-red-50"
+                    ? "border-red-300 bg-red-50"
                     : "border-brand-700 bg-brand-700"
             }`}>
               <div className="flex items-center justify-between">
                 <div>
                   <span className={`font-caveat text-lg font-medium ${
                     status === "confirmed" ? "text-green-800"
-                      : status === "claimed" ? "text-amber-800"
+                      : status === "claimed" ? "text-amber-900"
                         : status === "rejected" ? "text-red-800"
                           : "text-cream-light"
                   }`}>
@@ -509,12 +509,12 @@ function PaymentTrackingContent({
                     <p className="mt-0.5 font-serif text-xs italic text-green-600">Thank you for paying!</p>
                   )}
                   {status === "claimed" && (
-                    <p className="mt-0.5 font-serif text-xs italic text-amber-600">Your claim has been submitted</p>
+                    <p className="mt-0.5 font-serif text-sm italic text-amber-700">Your claim has been submitted</p>
                   )}
                 </div>
                 <Baht value={myAmount} className={`text-xl font-bold ${
                   status === "confirmed" ? "text-green-800"
-                    : status === "claimed" ? "text-amber-800"
+                    : status === "claimed" ? "text-amber-900"
                       : status === "rejected" ? "text-red-800"
                         : "text-cream-light"
                 }`} />
@@ -584,7 +584,7 @@ function PaymentTrackingContent({
                 <>
                   {/* Rejected hint */}
                   {status === "rejected" && (
-                    <p className="mt-2 text-sm text-red-300">
+                    <p className="mt-2 text-sm text-red-700">
                       {myPayment.slipVerifiedAmount
                         ? `Amount mismatch (slip: ฿${parseFloat(myPayment.slipVerifiedAmount).toFixed(2)}, owed: ฿${myAmount.toFixed(2)}). Upload the correct slip.`
                         : "Host rejected your claim. Upload a new slip or try again."}
@@ -598,7 +598,7 @@ function PaymentTrackingContent({
                       resetSlip();
                       fileInputRef.current?.click();
                     }}
-                    className="mt-3 flex w-full items-center justify-center gap-2 rounded-xl bg-cream-light px-4 py-2 text-sm font-medium text-brand-800 transition-colors hover:bg-brand-50"
+                    className="mt-3 flex w-full items-center justify-center gap-2 rounded-xl bg-brand-700 px-4 py-2.5 text-sm font-medium text-cream-light shadow-sm transition-all hover:bg-brand-800 active:scale-[0.98]"
                   >
                     <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
@@ -625,7 +625,7 @@ function PaymentTrackingContent({
 
               {/* ── Claimed / just submitted: waiting for host ── */}
               {(status === "claimed" || slipFlow.step === "done") && slipFlow.step !== "scanning" && slipFlow.step !== "preview" && slipFlow.step !== "submitting" && (
-                <p className="mt-2 text-sm text-yellow-200">
+                <p className="mt-2 font-serif text-sm italic text-amber-700">
                   Waiting for host to confirm...
                 </p>
               )}
@@ -1058,7 +1058,7 @@ function PaymentTrackingContent({
                       disabled={confirmPayment.isPending && confirmPayment.variables === payment.id}
                       className={`flex-1 rounded-xl px-3 py-2 text-xs font-medium transition-all active:scale-[0.97] disabled:opacity-40 ${
                         status === "rejected"
-                          ? "bg-amber-100 text-amber-800 hover:bg-amber-200"
+                          ? "bg-amber-100 text-amber-900 hover:bg-amber-200"
                           : "bg-green-100 text-green-800 hover:bg-green-200"
                       }`}
                     >
