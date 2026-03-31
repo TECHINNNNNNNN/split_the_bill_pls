@@ -23,8 +23,9 @@ export function CreateGroupDialog({ open, onClose }: CreateGroupDialogProps) {
   }, []);
 
   useEffect(() => {
-    if (open) requestAnimationFrame(() => setVisible(true));
-    else setVisible(false);
+    if (open) {
+      requestAnimationFrame(() => setVisible(true));
+    }
   }, [open]);
 
   if (!open) return null;

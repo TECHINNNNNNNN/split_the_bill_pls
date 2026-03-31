@@ -94,8 +94,6 @@ export default function BillDetailsPage({
   // Breakdown modal state
   const [showBreakdown, setShowBreakdown] = useState(false);
 
-  // Track batch adds for waterfall animation
-  const [batchAdd, setBatchAdd] = useState({ timestamp: 0, count: 0 });
 
   // Finalize mutation
   const finalizeRoom = useFinalizeRoom(roomId);
@@ -126,8 +124,7 @@ export default function BillDetailsPage({
         return;
       }
 
-      // Bulk-add items to the target section (with waterfall animation)
-      setBatchAdd({ timestamp: performance.now(), count: result.items.length });
+      // Bulk-add items to the target section
       for (const item of result.items) {
         addItem(item.name, item.unitPrice, sectionId, item.quantity);
       }
@@ -174,10 +171,6 @@ export default function BillDetailsPage({
         return;
       }
 
-      // Batch add with waterfall animation
-      if (result.items.length > 0) {
-        setBatchAdd({ timestamp: performance.now(), count: result.items.length });
-      }
       for (const item of result.items) {
         addItem(item.name, item.unitPrice, sectionId, item.quantity);
       }
@@ -522,8 +515,6 @@ export default function BillDetailsPage({
             onVoiceStart={() => { setVoiceSectionId(section.id); voice.start(); }}
             onVoiceStop={voice.stop}
             voiceAnalyser={voice.analyser}
-            batchAddTimestamp={batchAdd.timestamp}
-            batchAddCount={batchAdd.count}
           />
         ))}
 
