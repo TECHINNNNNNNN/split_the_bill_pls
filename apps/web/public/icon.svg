@@ -1,0 +1,43 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <!-- Warm cream background -->
+  <circle cx="256" cy="256" r="256" fill="#f5f0eb"/>
+
+  <!-- Everything drawn in one ink color — like a pen sketch -->
+  <g fill="none" stroke="#3d2810" stroke-linecap="round" stroke-linejoin="round">
+
+    <!-- Catfish body — one elegant stroke, slightly chubby -->
+    <ellipse cx="240" cy="280" rx="110" ry="65" stroke-width="6" fill="#3d2810" opacity="0.06"/>
+    <ellipse cx="240" cy="280" rx="110" ry="65" stroke-width="6"/>
+
+    <!-- Tail — flowing, calligraphic -->
+    <path d="M344 240 C385 195, 415 230, 400 275 C415 320, 385 355, 344 315" stroke-width="6"/>
+
+    <!-- Dorsal fin — delicate curve -->
+    <path d="M195 216 C210 175, 245 178, 255 210" stroke-width="5"/>
+
+    <!-- Little belly fin -->
+    <path d="M235 344 C245 365, 265 362, 260 342" stroke-width="4"/>
+
+    <!-- Whiskers — the soul of the catfish, elegant curves -->
+    <path d="M135 258 C100 238, 72 242, 48 228" stroke-width="5"/>
+    <path d="M132 275 C90 272, 60 278, 35 270" stroke-width="5"/>
+    <path d="M135 292 C105 308, 78 300, 55 312" stroke-width="4"/>
+
+    <!-- Eye — simple, expressive -->
+    <circle cx="182" cy="262" r="14" stroke-width="5" fill="#3d2810"/>
+    <!-- Eye sparkle -->
+    <circle cx="176" cy="256" r="5" fill="#f5f0eb" stroke="none"/>
+
+    <!-- Gentle smile -->
+    <path d="M155 298 C165 310, 185 312, 195 302" stroke-width="4.5"/>
+
+    <!-- Single blush mark — minimal girly touch -->
+    <circle cx="160" cy="305" r="10" fill="#C4956A" opacity="0.25" stroke="none"/>
+    <circle cx="205" cy="300" r="8" fill="#C4956A" opacity="0.2" stroke="none"/>
+
+    <!-- Tiny heart — one small detail, not overdone -->
+    <path d="M300 195 C300 189, 306 184, 311 189 C316 184, 322 189, 322 195 C322 203, 311 211, 311 211 C311 211, 300 203, 300 195 Z"
+      stroke-width="3.5" fill="none"/>
+
+  </g>
+</svg>
