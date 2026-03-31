@@ -178,8 +178,8 @@ function PaymentTrackingContent({
   const allPaid = confirmedCount === payments.length && payments.length > 0;
   const hasClaimed = payments.some((p) => p.status === "claimed");
 
-  // Dynamic favicon — catfish → bell → checkmark
-  useDynamicFavicon(allPaid ? "✅" : hasClaimed ? "🔔" : "🐟");
+  // Dynamic favicon — catfish with blush → bell badge → checkmark badge
+  useDynamicFavicon(allPaid ? "allPaid" : hasClaimed ? "claimed" : "default");
 
   // Fire confetti once when all payments are confirmed
   const hasFiredConfetti = useRef(false);
