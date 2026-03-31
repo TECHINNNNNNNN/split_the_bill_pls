@@ -1060,7 +1060,7 @@ function PaymentTrackingContent({
                           (nudgeMember.isPending && nudgeMember.variables === payment.memberId) ||
                           (nudgeCooldowns[payment.memberId] ?? 0) > now
                         }
-                        className="rounded-xl border border-brand-200 bg-brand-50 px-3 py-2 text-xs font-medium text-brand-600 transition-all hover:bg-brand-100 active:scale-[0.97] disabled:opacity-40"
+                        className="rounded-xl bg-brand-700 px-4 py-2 text-xs font-medium text-cream-light transition-all hover:bg-brand-800 active:scale-[0.97] disabled:opacity-40"
                       >
                         {(nudgeCooldowns[payment.memberId] ?? 0) > now
                           ? `${Math.floor(((nudgeCooldowns[payment.memberId] ?? 0) - now) / 60000)}:${String(Math.floor((((nudgeCooldowns[payment.memberId] ?? 0) - now) % 60000) / 1000)).padStart(2, "0")}`
