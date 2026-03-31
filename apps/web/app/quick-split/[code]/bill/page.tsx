@@ -174,8 +174,7 @@ export default function BillDetailsPage({
 
       // Batch add with waterfall animation
       if (result.items.length > 0) {
-        batchAddTimestamp.current = Date.now();
-        batchAddCount.current = result.items.length;
+        setBatchAdd({ timestamp: performance.now(), count: result.items.length });
       }
       for (const item of result.items) {
         addItem(item.name, item.unitPrice, sectionId, item.quantity);
@@ -518,8 +517,8 @@ export default function BillDetailsPage({
             onVoiceStart={() => { setVoiceSectionId(section.id); voice.start(); }}
             onVoiceStop={voice.stop}
             voiceAnalyser={voice.analyser}
-            batchAddTimestamp={batchAddTimestamp.current}
-            batchAddCount={batchAddCount.current}
+            batchAddTimestamp={batchAdd.timestamp}
+            batchAddCount={batchAdd.count}
           />
         ))}
 

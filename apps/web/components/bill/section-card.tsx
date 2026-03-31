@@ -30,6 +30,8 @@ export function SectionCard({
   onVoiceStart,
   onVoiceStop,
   voiceAnalyser,
+  batchAddTimestamp,
+  batchAddCount,
 }: {
   section: CollabSection;
   isMultiSection: boolean;
@@ -55,6 +57,8 @@ export function SectionCard({
   onVoiceStart: () => void;
   onVoiceStop: () => Promise<Blob>;
   voiceAnalyser: React.RefObject<AnalyserNode | null>;
+  batchAddTimestamp: number;
+  batchAddCount: number;
 }) {
   const [showForm, setShowForm] = useState(false);
   const [itemName, setItemName] = useState("");
@@ -225,20 +229,29 @@ export function SectionCard({
           </p>
         )}
 
-        {items.map((item) => (
-          <ItemCard
-            key={item.id}
-            item={item}
-            isLocked={isLocked}
-            isHost={isHost}
-            currentMemberId={currentMemberId}
-            members={members}
-            onDelete={() => onDeleteItem(item.id)}
-            onUpdate={(updates) => onUpdateItem(item.id, updates)}
-            onToggleMember={(memberId) => onToggleMember(item.id, memberId)}
-            onSelectAll={() => onSelectAll(item.id)}
-          />
-        ))}
+        {items.map((item, index) => {
+          // Determine if this item was added in a recent batch (within 3 seconds)
+          const isBatchItem = batchAddTimestamp > 0
+            && (performance.now() - batchAddTimestamp) < 3000
+            && index >= items.length - batchAddCount;
+          const staggerIndex = isBatchItem ? index - (items.length - batchAddCount) : -1;
+
+          return (
+            <ItemCard
+              key={item.id}
+              item={item}
+              isLocked={isLocked}
+              isHost={isHost}
+              currentMemberId={currentMemberId}
+              members={members}
+              onDelete={() => onDeleteItem(item.id)}
+              onUpdate={(updates) => onUpdateItem(item.id, updates)}
+              onToggleMember={(memberId) => onToggleMember(item.id, memberId)}
+              onSelectAll={() => onSelectAll(item.id)}
+              waterfallIndex={staggerIndex}
+            />
+          );
+        })}
 
         {/* Add item form / button */}
         {isLocked ? null : showForm ? (

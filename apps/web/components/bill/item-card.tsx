@@ -13,6 +13,7 @@ export function ItemCard({
   onUpdate,
   onToggleMember,
   onSelectAll,
+  waterfallIndex = -1,
 }: {
   item: CollabItem;
   isLocked: boolean;
@@ -23,6 +24,7 @@ export function ItemCard({
   onUpdate: (updates: { name?: string; quantity?: number; unitPrice?: number }) => void;
   onToggleMember: (memberId: string) => void;
   onSelectAll: () => void;
+  waterfallIndex?: number;
 }) {
   const canEdit = !isLocked;
   const canDelete = canEdit && (item.addedBy === currentMemberId || isHost);
@@ -55,7 +57,10 @@ export function ItemCard({
   };
 
   return (
-    <div className="animate-item-enter rounded-xl border border-brand-200 bg-cream-light p-3 transition-shadow hover:shadow-sm">
+    <div
+      className={`rounded-xl border border-brand-200 bg-cream-light p-3 transition-shadow hover:shadow-sm ${waterfallIndex >= 0 ? "animate-item-waterfall" : "animate-item-fade"}`}
+      style={waterfallIndex >= 0 ? { animationDelay: `${waterfallIndex * 120}ms` } : undefined}
+    >
       {/* Edit mode */}
       {editing ? (
         <div>
