@@ -72,6 +72,12 @@ body::after {
   to { opacity: 1; transform: translateY(0); }
 }
 
+
+/* ─── Sonner toaster: shrink container to fit toast content ─── */
+[data-sonner-toaster][data-x-position='center'] {
+  --width: fit-content !important;
+}
+
 /* Pointer cursor on all interactive elements */
 a,
 button,
