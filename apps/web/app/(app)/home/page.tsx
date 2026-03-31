@@ -53,7 +53,7 @@ export default function HomePage() {
   return (
     <div>
       {/* ─── Header ─── */}
-      <div className="mb-8 flex items-center justify-between">
+      <div className="animate-section mb-8 flex items-center justify-between">
         <div>
           <p className="font-serif text-sm italic text-brand-400">Welcome back,</p>
           <h1 className="font-caveat text-3xl font-bold">
@@ -89,7 +89,8 @@ export default function HomePage() {
       {/* ─── Quick Split CTA ─── */}
       <Link
         href="/quick-split"
-        className="group relative mb-8 flex items-center justify-between overflow-hidden rounded-2xl bg-brand-700 p-5 shadow-md transition-all hover:bg-brand-800 active:scale-[0.99]"
+        className="animate-section group relative mb-8 flex items-center justify-between overflow-hidden rounded-2xl bg-brand-700 p-5 shadow-md transition-all hover:bg-brand-800 active:scale-[0.99]"
+        style={{ animationDelay: "100ms" }}
       >
         {/* Background catfish watermark — subtle, decorative */}
         <svg
@@ -147,7 +148,7 @@ export default function HomePage() {
 
       {/* ─── Pending invites (urgent, top) ─── */}
       {!invitesLoading && invites && invites.length > 0 && (
-        <div className="mb-6 space-y-2">
+        <div className="animate-section mb-6 space-y-2" style={{ animationDelay: "200ms" }}>
           {invites.map((invite) => (
             <div
               key={invite.id}
@@ -197,7 +198,7 @@ export default function HomePage() {
 
       {/* ─── Balances + Pending settlements (compact card) ─── */}
       {(balances.length > 0 || pending.length > 0) && (
-        <section className="mb-8">
+        <section className="animate-section mb-8" style={{ animationDelay: "200ms" }}>
           <h2 className="font-caveat text-xl font-semibold mb-3">Balances</h2>
           <div className="rounded-2xl border border-brand-200 bg-cream-light shadow-sm overflow-hidden">
             {/* Pending settlements first */}
@@ -253,7 +254,7 @@ export default function HomePage() {
       )}
 
       {/* ─── Recent splits (horizontal scroll) ─── */}
-      <section className="mb-8">
+      <section className="animate-section mb-8" style={{ animationDelay: "300ms" }}>
         <h2 className="font-caveat text-xl font-semibold mb-3">Recent</h2>
         {roomsLoading ? (
           <div className="flex gap-3">
@@ -292,7 +293,7 @@ export default function HomePage() {
       </section>
 
       {/* ─── Groups (compact) ─── */}
-      <section>
+      <section className="animate-section" style={{ animationDelay: "400ms" }}>
         <div className="mb-3 flex items-center justify-between">
           <h2 className="font-caveat text-xl font-semibold">
             Groups {groups?.length ? <span className="text-brand-300">({groups.length})</span> : null}
