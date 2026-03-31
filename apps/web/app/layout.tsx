@@ -80,6 +80,9 @@ export default function RootLayout({
               width: "fit-content",
               maxWidth: "90vw",
               textAlign: "center",
+              display: "flex",
+              alignItems: "center",
+              gap: "8px",
             },
           }}
         />
