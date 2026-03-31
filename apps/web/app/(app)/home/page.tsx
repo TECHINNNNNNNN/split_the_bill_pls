@@ -14,6 +14,7 @@ import { Link } from "next-view-transitions";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { Skeleton } from "@/components/skeleton";
+import { Magnetic } from "@/components/magnetic";
 
 function roomHref(code: string, status: string) {
   switch (status) {
@@ -87,12 +88,13 @@ export default function HomePage() {
       </div>
 
       {/* ─── Quick Split CTA ─── */}
+      <Magnetic strength={0.1} className="animate-section mb-8 -mx-2 px-2 -my-2 py-2" style={{ animationDelay: "100ms" }}>
       <Link
         href="/quick-split"
-        className="gradient-border animate-section group relative mb-8 flex items-center justify-between overflow-hidden rounded-2xl bg-brand-700 p-5 shadow-md transition-all hover:bg-brand-800 active:scale-[0.99]"
-        style={{ animationDelay: "100ms" }}
+        className="gradient-border group relative flex items-center justify-between rounded-2xl bg-brand-700 p-5 shadow-md transition-all hover:bg-brand-800 active:scale-[0.99]"
       >
-        {/* Background catfish watermark — subtle, decorative */}
+        {/* Clip container for watermark */}
+        <div className="pointer-events-none absolute inset-0 overflow-hidden rounded-2xl">
         <svg
           className="absolute -right-4 -bottom-3 h-28 w-28 text-cream-light/6 transition-transform duration-500 group-hover:scale-110 group-hover:text-cream-light/10"
           viewBox="0 0 100 100"
@@ -113,6 +115,7 @@ export default function HomePage() {
           {/* Eye */}
           <circle cx="26" cy="46" r="3" fill="none" />
         </svg>
+        </div>
 
         <div className="relative z-10">
           <p className="font-caveat text-2xl font-semibold text-cream-light">Quick Split</p>
@@ -145,6 +148,7 @@ export default function HomePage() {
           </svg>
         </div>
       </Link>
+      </Magnetic>
 
       {/* ─── Pending invites (urgent, top) ─── */}
       {!invitesLoading && invites && invites.length > 0 && (

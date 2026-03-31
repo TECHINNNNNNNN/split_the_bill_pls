@@ -145,6 +145,7 @@ body::after {
 
 .gradient-border {
   position: relative;
+  isolation: isolate;
 }
 
 .gradient-border::before {
