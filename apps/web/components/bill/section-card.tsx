@@ -30,8 +30,6 @@ export function SectionCard({
   onVoiceStart,
   onVoiceStop,
   voiceAnalyser,
-  batchAddTimestamp,
-  batchAddCount,
 }: {
   section: CollabSection;
   isMultiSection: boolean;
@@ -57,8 +55,6 @@ export function SectionCard({
   onVoiceStart: () => void;
   onVoiceStop: () => Promise<Blob>;
   voiceAnalyser: React.RefObject<AnalyserNode | null>;
-  batchAddTimestamp: number;
-  batchAddCount: number;
 }) {
   const [showForm, setShowForm] = useState(false);
   const [itemName, setItemName] = useState("");
@@ -74,16 +70,6 @@ export function SectionCard({
 
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // Check if batch was recent (avoid calling performance.now() during render)
-  const isBatchRecent = useRef(false);
-  const lastBatchTimestamp = useRef(0);
-  if (batchAddTimestamp !== lastBatchTimestamp.current) {
-    lastBatchTimestamp.current = batchAddTimestamp;
-    isBatchRecent.current = batchAddTimestamp > 0;
-    if (batchAddTimestamp > 0) {
-      setTimeout(() => { isBatchRecent.current = false; }, 3000);
-    }
-  }
 
   const { extras, items } = section;
   const subtotal = items.reduce((sum, item) => sum + item.quantity * item.unitPrice, 0);
@@ -240,12 +226,7 @@ export function SectionCard({
           </p>
         )}
 
-        {items.map((item, index) => {
-          // Determine if this item was added in a recent batch
-          const isBatchItem = isBatchRecent.current
-            && index >= items.length - batchAddCount;
-          const staggerIndex = isBatchItem ? index - (items.length - batchAddCount) : -1;
-
+        {items.map((item) => {
           return (
             <ItemCard
               key={item.id}
@@ -258,7 +239,7 @@ export function SectionCard({
               onUpdate={(updates) => onUpdateItem(item.id, updates)}
               onToggleMember={(memberId) => onToggleMember(item.id, memberId)}
               onSelectAll={() => onSelectAll(item.id)}
-              waterfallIndex={staggerIndex}
+              waterfallIndex={-1}
             />
           );
         })}
