@@ -24,6 +24,7 @@ import html2canvas from "html2canvas";
 import { statusConfig, bankNames } from "@/components/tracking/constants";
 import { fireAllPaidConfetti } from "@/lib/confetti";
 import { Skeleton } from "@/components/skeleton";
+import { useDynamicFavicon } from "@/lib/hooks/use-dynamic-favicon";
 import type { PaymentStatus } from "@/components/tracking/constants";
 
 // ─── Main component ───
@@ -175,6 +176,10 @@ function PaymentTrackingContent({
   const confirmedTotal = confirmedPayments.reduce((sum, p) => sum + parseFloat(p.amount), 0);
   const confirmedCount = confirmedPayments.length;
   const allPaid = confirmedCount === payments.length && payments.length > 0;
+  const hasClaimed = payments.some((p) => p.status === "claimed");
+
+  // Dynamic favicon — catfish → bell → checkmark
+  useDynamicFavicon(allPaid ? "✅" : hasClaimed ? "🔔" : "🐟");
 
   // Fire confetti once when all payments are confirmed
   const hasFiredConfetti = useRef(false);
