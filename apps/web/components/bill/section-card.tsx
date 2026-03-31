@@ -53,13 +53,11 @@ export function SectionCard({
   onVoiceStart: () => void;
   onVoiceStop: () => Promise<Blob>;
 }) {
-  // Per-section form state
   const [showForm, setShowForm] = useState(false);
   const [itemName, setItemName] = useState("");
   const [itemQty, setItemQty] = useState("1");
   const [itemAmount, setItemAmount] = useState("");
 
-  // Per-section extras draft state
   const [vatDraft, setVatDraft] = useState<string | null>(null);
   const [scDraft, setScDraft] = useState<string | null>(null);
   const [discountDraft, setDiscountDraft] = useState<string | null>(null);
@@ -86,7 +84,6 @@ export function SectionCard({
       : "0"
   );
 
-  // Thai ++ calculation
   const discount = extras.discountAmount ?? 0;
   const discountedSubtotal = Math.max(0, subtotal - discount);
   const scRate = extras.serviceChargeRate ?? 0;
@@ -107,7 +104,7 @@ export function SectionCard({
   };
 
   return (
-    <div className={isMultiSection ? "rounded-xl border border-gray-200 bg-white p-4 shadow-sm" : ""}>
+    <div className={isMultiSection ? "rounded-2xl border border-brand-200 bg-cream-light p-4 shadow-sm" : ""}>
       {/* Section header (multi-section only) */}
       {isMultiSection && (
         <div className="mb-3 flex items-center justify-between">
@@ -127,18 +124,18 @@ export function SectionCard({
                 }
               }}
               placeholder="Section name"
-              className="flex-1 rounded border border-gray-300 px-2 py-1 text-sm font-semibold text-gray-800 focus:border-gray-500 focus:outline-none"
+              className="flex-1 rounded-xl border border-brand-200 bg-cream px-2 py-1 text-sm font-semibold placeholder:text-brand-300 focus:border-brand-400 focus:outline-none"
               autoFocus
             />
           ) : (
             <button
               type="button"
               onClick={() => { if (!isLocked) { setNameDraft(section.name); setEditingName(true); } }}
-              className="font-heading text-base font-semibold text-gray-800 transition-colors hover:text-gray-500"
+              className="font-caveat text-lg font-semibold transition-colors hover:text-brand-500"
             >
               {section.name || "Untitled Section"}
               {!isLocked && (
-                <svg className="ml-1 inline h-3.5 w-3.5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg className="ml-1 inline h-3.5 w-3.5 text-brand-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
                 </svg>
               )}
@@ -151,7 +148,7 @@ export function SectionCard({
                   ref={fileInputRef}
                   type="file"
                   accept="image/*"
-                      className="hidden"
+                  className="hidden"
                   onChange={(e) => {
                     const file = e.target.files?.[0];
                     if (file) onScanReceipt(file);
@@ -162,7 +159,7 @@ export function SectionCard({
                   type="button"
                   onClick={() => fileInputRef.current?.click()}
                   disabled={scanPending}
-                  className="flex items-center gap-1 rounded-full border border-gray-300 px-2.5 py-1 text-xs font-medium text-gray-600 transition-colors hover:bg-gray-50 disabled:opacity-40"
+                  className="flex items-center gap-1 rounded-full border border-brand-200 px-2.5 py-1 text-xs font-medium text-brand-500 transition-colors hover:bg-cream disabled:opacity-40"
                 >
                   <svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
@@ -185,7 +182,7 @@ export function SectionCard({
                     className={`flex items-center gap-1 rounded-full border px-2.5 py-1 text-xs font-medium transition-colors disabled:opacity-40 ${
                       voiceRecording
                         ? "border-red-300 bg-red-50 text-red-600"
-                        : "border-gray-300 text-gray-600 hover:bg-gray-50"
+                        : "border-brand-200 text-brand-500 hover:bg-cream"
                     }`}
                   >
                     <svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -200,7 +197,7 @@ export function SectionCard({
               <button
                 type="button"
                 onClick={onDeleteSection}
-                className="text-gray-400 transition-colors hover:text-red-500"
+                className="text-brand-300 transition-colors hover:text-error"
                 title="Remove section"
               >
                 <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -215,7 +212,7 @@ export function SectionCard({
       {/* Items list */}
       <div className="flex flex-col gap-3">
         {items.length === 0 && (
-          <p className="text-center text-sm text-gray-400">
+          <p className="text-center font-caveat text-base text-brand-300">
             {isMultiSection ? "No items yet. Add items or scan a receipt." : "No items yet. Tap \"Add Item\" to start!"}
           </p>
         )}
@@ -237,14 +234,14 @@ export function SectionCard({
 
         {/* Add item form / button */}
         {isLocked ? null : showForm ? (
-          <div className="rounded-lg border border-gray-200 p-3">
+          <div className="rounded-xl border border-brand-200 bg-cream p-3">
             <div className="space-y-2">
               <input
                 type="text"
                 value={itemName}
                 onChange={(e) => setItemName(e.target.value)}
                 placeholder="Item name"
-                className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-gray-500 focus:outline-none"
+                className="w-full rounded-xl border border-brand-200 bg-cream-light px-3 py-2 text-sm placeholder:text-brand-300 focus:border-brand-400 focus:outline-none"
                 onKeyDown={(e) => { if (e.key === "Enter") handleAddItem(); }}
               />
               <div className="flex gap-2">
@@ -253,7 +250,7 @@ export function SectionCard({
                   value={itemQty}
                   onChange={(e) => setItemQty(e.target.value)}
                   placeholder="Qty"
-                  className="w-20 rounded-lg border border-gray-300 px-2 py-2 text-center text-sm focus:border-gray-500 focus:outline-none"
+                  className="w-20 rounded-xl border border-brand-200 bg-cream-light px-2 py-2 text-center text-sm placeholder:text-brand-300 focus:border-brand-400 focus:outline-none"
                   min="1"
                   step="1"
                   onKeyDown={(e) => { if (e.key === "Enter") handleAddItem(); }}
@@ -263,7 +260,7 @@ export function SectionCard({
                   value={itemAmount}
                   onChange={(e) => setItemAmount(e.target.value)}
                   placeholder="Unit price"
-                  className="flex-1 rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-gray-500 focus:outline-none"
+                  className="flex-1 rounded-xl border border-brand-200 bg-cream-light px-3 py-2 text-sm placeholder:text-brand-300 focus:border-brand-400 focus:outline-none"
                   min="0"
                   step="0.01"
                   onKeyDown={(e) => { if (e.key === "Enter") handleAddItem(); }}
@@ -275,14 +272,14 @@ export function SectionCard({
                 type="button"
                 onClick={handleAddItem}
                 disabled={!itemName.trim() || !itemAmount}
-                className="rounded-lg bg-gray-800 px-4 py-1.5 text-sm font-medium text-white disabled:opacity-40"
+                className="rounded-xl bg-brand-700 px-4 py-1.5 text-sm font-medium text-cream-light disabled:opacity-40"
               >
                 Add Item
               </button>
               <button
                 type="button"
                 onClick={() => { setShowForm(false); setItemName(""); setItemQty("1"); setItemAmount(""); }}
-                className="text-sm text-gray-500 hover:text-gray-800"
+                className="text-sm text-brand-400 hover:text-brand-600"
               >
                 Cancel
               </button>
@@ -292,7 +289,7 @@ export function SectionCard({
           <button
             type="button"
             onClick={() => setShowForm(true)}
-            className="self-center rounded-full border border-gray-300 px-6 py-2 text-sm font-medium text-gray-800 transition-colors hover:bg-gray-50"
+            className="self-center rounded-full border border-brand-200 px-6 py-2 text-sm font-medium transition-all hover:bg-cream-light active:scale-[0.98]"
           >
             Add Item
           </button>
@@ -301,7 +298,7 @@ export function SectionCard({
 
       {/* Extras toggles */}
       {!isLocked && (
-        <div className={`${isMultiSection ? "mt-4 border-t border-gray-100 pt-3" : "mt-6 border-t border-gray-200 pt-4"} space-y-3`}>
+        <div className={`${isMultiSection ? "mt-4 border-t border-brand-100 pt-3" : "mt-6 border-t border-brand-200 pt-4"} space-y-3`}>
           {/* Service Charge */}
           <div className="flex items-center justify-between">
             <label className="flex items-center gap-2">
@@ -311,9 +308,9 @@ export function SectionCard({
                 onChange={() => onUpdateExtras({
                   serviceChargeRate: hasServiceCharge ? null : (parseFloat(serviceChargePct) || 10) / 100,
                 })}
-                className="h-4 w-4 rounded border-gray-300 accent-gray-800"
+                className="h-4 w-4 rounded border-brand-300 accent-brand-700"
               />
-              <span className="text-sm text-gray-700">Service Charge</span>
+              <span className="text-sm">Service Charge</span>
             </label>
             {hasServiceCharge && (
               <div className="flex items-center gap-1">
@@ -323,10 +320,10 @@ export function SectionCard({
                   onFocus={() => setScDraft(serviceChargePct)}
                   onChange={(e) => setScDraft(e.target.value)}
                   onBlur={() => { onUpdateExtras({ serviceChargeRate: (parseFloat(serviceChargePct) || 0) / 100 }); setScDraft(null); }}
-                  className="w-16 rounded border border-gray-300 px-2 py-1 text-right text-sm focus:border-gray-500 focus:outline-none"
+                  className="w-16 rounded-lg border border-brand-200 bg-cream-light px-2 py-1 text-right text-sm focus:border-brand-400 focus:outline-none"
                   min="0" max="100" step="0.01"
                 />
-                <span className="text-sm text-gray-500">%</span>
+                <span className="text-sm text-brand-400">%</span>
               </div>
             )}
           </div>
@@ -340,9 +337,9 @@ export function SectionCard({
                 onChange={() => onUpdateExtras({
                   vatRate: hasVat ? null : (parseFloat(vatPct) || 7) / 100,
                 })}
-                className="h-4 w-4 rounded border-gray-300 accent-gray-800"
+                className="h-4 w-4 rounded border-brand-300 accent-brand-700"
               />
-              <span className="text-sm text-gray-700">VAT</span>
+              <span className="text-sm">VAT</span>
             </label>
             {hasVat && (
               <div className="flex items-center gap-1">
@@ -352,10 +349,10 @@ export function SectionCard({
                   onFocus={() => setVatDraft(vatPct)}
                   onChange={(e) => setVatDraft(e.target.value)}
                   onBlur={() => { onUpdateExtras({ vatRate: (parseFloat(vatPct) || 0) / 100 }); setVatDraft(null); }}
-                  className="w-16 rounded border border-gray-300 px-2 py-1 text-right text-sm focus:border-gray-500 focus:outline-none"
+                  className="w-16 rounded-lg border border-brand-200 bg-cream-light px-2 py-1 text-right text-sm focus:border-brand-400 focus:outline-none"
                   min="0" max="100" step="0.01"
                 />
-                <span className="text-sm text-gray-500">%</span>
+                <span className="text-sm text-brand-400">%</span>
               </div>
             )}
           </div>
@@ -367,16 +364,16 @@ export function SectionCard({
                 type="checkbox"
                 checked={hasDiscount}
                 onChange={() => onUpdateExtras({ discountAmount: hasDiscount ? null : 0 })}
-                className="h-4 w-4 rounded border-gray-300 accent-gray-800"
+                className="h-4 w-4 rounded border-brand-300 accent-brand-700"
               />
-              <span className="text-sm text-gray-700">Discount</span>
+              <span className="text-sm">Discount</span>
             </label>
             {hasDiscount && (
               <div className="flex items-center gap-1">
                 <button
                   type="button"
                   onClick={() => { setDiscountDraft(null); setDiscountMode(discountMode === "flat" ? "pct" : "flat"); }}
-                  className="rounded border border-gray-300 px-1.5 py-0.5 text-xs font-medium text-gray-500 hover:bg-gray-50"
+                  className="rounded-lg border border-brand-200 px-1.5 py-0.5 text-xs font-medium text-brand-500 hover:bg-cream-light"
                 >
                   {discountMode === "flat" ? "฿" : "%"}
                 </button>
@@ -391,7 +388,7 @@ export function SectionCard({
                     onUpdateExtras({ discountAmount: flat });
                     setDiscountDraft(null);
                   }}
-                  className="w-20 rounded border border-gray-300 px-2 py-1 text-right text-sm focus:border-gray-500 focus:outline-none"
+                  className="w-20 rounded-lg border border-brand-200 bg-cream-light px-2 py-1 text-right text-sm focus:border-brand-400 focus:outline-none"
                   min="0"
                   step={discountMode === "pct" ? "1" : "0.01"}
                 />
@@ -401,34 +398,34 @@ export function SectionCard({
         </div>
       )}
 
-      {/* Section subtotal (always shown for multi-section, integrated in grand total for single) */}
+      {/* Section subtotal (multi-section only) */}
       {isMultiSection && (
-        <div className="mt-3 rounded-lg border border-gray-100 bg-gray-50 px-3 py-2">
-          <div className="flex items-center justify-between text-sm text-gray-600">
+        <div className="mt-3 rounded-xl border border-brand-100 bg-cream px-3 py-2">
+          <div className="flex items-center justify-between text-sm text-brand-500">
             <span>Subtotal</span>
             <span>฿{subtotal.toFixed(2)}</span>
           </div>
           {discount > 0 && (
-            <div className="mt-0.5 flex items-center justify-between text-xs text-green-600">
+            <div className="mt-0.5 flex items-center justify-between text-xs text-success">
               <span>Discount</span>
               <span>-฿{discount.toFixed(2)}</span>
             </div>
           )}
           {hasServiceCharge && (
-            <div className="mt-0.5 flex items-center justify-between text-xs text-gray-500">
+            <div className="mt-0.5 flex items-center justify-between text-xs text-brand-400">
               <span>SC {serviceChargePct}%</span>
               <span>฿{serviceChargeAmount.toFixed(2)}</span>
             </div>
           )}
           {hasVat && (
-            <div className="mt-0.5 flex items-center justify-between text-xs text-gray-500">
+            <div className="mt-0.5 flex items-center justify-between text-xs text-brand-400">
               <span>VAT {vatPct}%</span>
               <span>฿{vatAmount.toFixed(2)}</span>
             </div>
           )}
-          <div className="mt-1 flex items-center justify-between border-t border-gray-200 pt-1">
-            <span className="text-sm font-medium text-gray-800">Section Total</span>
-            <span className="text-sm font-semibold text-gray-800">฿{sectionTotal.toFixed(2)}</span>
+          <div className="mt-1 flex items-center justify-between border-t border-brand-200 pt-1">
+            <span className="text-sm font-medium">Section Total</span>
+            <span className="text-sm font-semibold">฿{sectionTotal.toFixed(2)}</span>
           </div>
         </div>
       )}

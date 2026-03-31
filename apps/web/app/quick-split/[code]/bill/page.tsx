@@ -351,7 +351,7 @@ export default function BillDetailsPage({
   if (!room) {
     return (
       <div className="flex min-h-svh items-center justify-center">
-        <p className="text-gray-400">Loading...</p>
+        <p className="text-brand-300">Loading...</p>
       </div>
     );
   }
@@ -377,13 +377,13 @@ export default function BillDetailsPage({
         <button
           type="button"
           onClick={() => router.back()}
-          className="text-sm text-gray-500 hover:text-gray-800"
+          className="text-sm text-brand-400 hover:text-brand-700"
         >
           Back
         </button>
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <h1 className="font-heading text-2xl font-bold text-gray-800 md:text-3xl">
+            <h1 className="font-caveat text-3xl font-bold md:text-4xl">
               Bill Details
             </h1>
             <PresenceAvatars onlineUsers={onlineUsers} members={members} currentMemberId={currentMemberId} />
@@ -405,7 +405,7 @@ export default function BillDetailsPage({
                 type="button"
                 onClick={() => singleSectionFileRef.current?.click()}
                 disabled={scanReceipt.isPending}
-                className="flex items-center gap-1.5 rounded-full border border-gray-300 p-2.5 text-sm font-medium text-gray-600 transition-colors hover:bg-gray-50 disabled:opacity-40 md:px-3 md:py-1.5"
+                className="flex items-center gap-1.5 rounded-full border border-brand-200 p-2.5 text-sm font-medium text-brand-500 transition-colors hover:bg-cream-light disabled:opacity-40 md:px-3 md:py-1.5"
               >
                 <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
@@ -428,7 +428,7 @@ export default function BillDetailsPage({
                   className={`flex items-center gap-1.5 rounded-full border p-2.5 text-sm font-medium transition-colors disabled:opacity-40 md:px-3 md:py-1.5 ${
                     voice.isRecording
                       ? "border-red-300 bg-red-50 text-red-600"
-                      : "border-gray-300 text-gray-600 hover:bg-gray-50"
+                      : "border-brand-200 text-brand-500 hover:bg-cream-light"
                   }`}
                 >
                   <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -450,8 +450,8 @@ export default function BillDetailsPage({
 
       {/* Voice recording indicator */}
       {voice.isRecording && (
-        <div className="mt-3 flex items-center justify-center gap-2 text-sm text-red-500">
-          <span className="inline-block h-2 w-2 animate-pulse rounded-full bg-red-500" />
+        <div className="mt-3 flex items-center justify-center gap-2 text-sm text-error">
+          <span className="inline-block h-2 w-2 animate-pulse rounded-full bg-error" />
           Recording... Speak your order, then tap Stop
         </div>
       )}
@@ -459,7 +459,7 @@ export default function BillDetailsPage({
       {/* Shake to split — mobile only */}
       {!isLocked && shakeSupported && totalItems > 0 && (
         shakeEnabled ? (
-          <p className="mt-4 text-center text-xs text-gray-400">
+          <p className="mt-4 text-center font-caveat text-sm text-brand-400">
             📱 Shake your phone to split equally!
           </p>
         ) : (
@@ -474,7 +474,7 @@ export default function BillDetailsPage({
                 toast.error("Motion access denied — enable in browser settings");
               }
             }}
-            className="mt-4 flex items-center justify-center gap-2 self-center rounded-full border border-dashed border-gray-300 px-5 py-2 text-sm font-medium text-gray-500 transition-colors hover:border-gray-400 hover:bg-gray-50 hover:text-gray-700"
+            className="mt-4 flex items-center justify-center gap-2 self-center rounded-full border border-dashed border-brand-200 px-5 py-2 text-sm font-medium text-brand-400 transition-colors hover:border-brand-400 hover:bg-cream-light hover:text-brand-600"
           >
             <span className="text-base">📱</span>
             Enable shake to split
@@ -518,7 +518,7 @@ export default function BillDetailsPage({
           <button
             type="button"
             onClick={() => addSection("")}
-            className="self-center rounded-full border border-dashed border-gray-300 px-6 py-2 text-sm font-medium text-gray-500 transition-colors hover:border-gray-400 hover:bg-gray-50 hover:text-gray-700"
+            className="self-center rounded-full border border-dashed border-brand-200 px-6 py-2 font-caveat text-base text-brand-400 transition-colors hover:border-brand-400 hover:bg-cream-light hover:text-brand-600"
           >
             + Add Restaurant / Section
           </button>
@@ -526,11 +526,11 @@ export default function BillDetailsPage({
       </div>
 
       {/* Grand total + Finalize */}
-      <div className="mt-8 border-t border-gray-200 pt-4">
+      <div className="mt-8 border-t border-brand-200 pt-4">
         {/* Single-section breakdown (same as old UI) */}
         {!isMultiSection && singleExtras && (
-          <div className="rounded-lg border border-gray-200 px-4 py-3">
-            <div className="flex items-center justify-between text-sm text-gray-600">
+          <div className="rounded-xl border border-brand-200 bg-cream-light px-4 py-3">
+            <div className="flex items-center justify-between text-sm text-brand-500">
               <span>Subtotal</span>
               <span>฿{singleSubtotal.toFixed(2)}</span>
             </div>
@@ -541,23 +541,23 @@ export default function BillDetailsPage({
               </div>
             )}
             {singleExtras.serviceChargeRate != null && (
-              <div className="mt-1 flex items-center justify-between text-sm text-gray-500">
+              <div className="mt-1 flex items-center justify-between text-sm text-brand-400">
                 <span>Service Charge {parseFloat((singleScRate * 100).toFixed(2))}%</span>
                 <span>฿{singleServiceCharge.toFixed(2)}</span>
               </div>
             )}
             {singleExtras.vatRate != null && (
-              <div className="mt-1 flex items-center justify-between text-sm text-gray-500">
+              <div className="mt-1 flex items-center justify-between text-sm text-brand-400">
                 <span>VAT {parseFloat((singleVRate * 100).toFixed(2))}%</span>
                 <span>฿{singleVat.toFixed(2)}</span>
               </div>
             )}
             {(singleExtras.vatRate != null || singleExtras.serviceChargeRate != null || singleExtras.discountAmount != null) && (
-              <div className="mt-2 border-t border-gray-100 pt-2" />
+              <div className="mt-2 border-t border-brand-100 pt-2" />
             )}
             <div className="flex items-center justify-between">
-              <span className="text-lg font-medium text-gray-800">Total</span>
-              <span className="text-lg font-semibold text-gray-800">
+              <span className="text-lg font-medium">Total</span>
+              <span className="text-lg font-semibold">
                 ฿{grandTotal.toFixed(2)}
               </span>
             </div>
@@ -566,14 +566,14 @@ export default function BillDetailsPage({
 
         {/* Multi-section grand total */}
         {isMultiSection && (
-          <div className="rounded-lg border border-gray-200 px-4 py-3">
+          <div className="rounded-xl border border-brand-200 bg-cream-light px-4 py-3">
             <div className="flex items-center justify-between">
-              <span className="text-lg font-medium text-gray-800">Grand Total</span>
-              <span className="text-lg font-semibold text-gray-800">
+              <span className="text-lg font-medium">Grand Total</span>
+              <span className="text-lg font-semibold">
                 ฿{grandTotal.toFixed(2)}
               </span>
             </div>
-            <p className="mt-1 text-xs text-gray-400">
+            <p className="mt-1 text-xs text-brand-300">
               {sections.length} sections, {totalItems} items
             </p>
           </div>
@@ -581,7 +581,7 @@ export default function BillDetailsPage({
 
         {/* Live split preview per member */}
         {liveSplits.length > 0 && liveSplits.some((s) => s.total > 0) && (
-          <div className="mt-3 rounded-lg border border-gray-200 px-4 py-3">
+          <div className="mt-3 rounded-xl border border-brand-200 bg-cream-light px-4 py-3">
             <div className="mb-2 flex items-center justify-between">
               <p className="text-xs font-medium uppercase tracking-wide text-gray-400">
                 Each person pays
@@ -589,7 +589,7 @@ export default function BillDetailsPage({
               <button
                 type="button"
                 onClick={() => setShowBreakdown(true)}
-                className="flex items-center gap-1 rounded-full border border-gray-200 px-2.5 py-1 text-xs font-medium text-gray-400 transition-colors hover:border-gray-300 hover:bg-gray-50 hover:text-gray-600"
+                className="flex items-center gap-1 rounded-full border border-brand-200 px-2.5 py-1 text-xs font-medium text-brand-400 transition-colors hover:border-brand-300 hover:bg-cream-light hover:text-brand-600"
               >
                 <svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
@@ -600,12 +600,12 @@ export default function BillDetailsPage({
             <div className="flex flex-col gap-1.5">
               {liveSplits.map((split) => (
                 <div key={split.memberId} className="flex items-center justify-between">
-                  <span className={`text-sm ${split.memberId === currentMemberId ? "font-semibold text-gray-800" : "text-gray-600"}`}>
+                  <span className={`text-sm ${split.memberId === currentMemberId ? "font-semibold" : "text-gray-600"}`}>
                     {split.displayName}
-                    {split.isHost && <span className="ml-1 text-xs text-gray-400">(host)</span>}
-                    {split.memberId === currentMemberId && <span className="ml-1 text-xs text-gray-400">(you)</span>}
+                    {split.isHost && <span className="ml-1 text-xs text-brand-300">(host)</span>}
+                    {split.memberId === currentMemberId && <span className="ml-1 text-xs text-brand-300">(you)</span>}
                   </span>
-                  <span className={`text-sm tabular-nums ${split.memberId === currentMemberId ? "font-semibold text-gray-800" : "text-gray-600"}`}>
+                  <span className={`text-sm tabular-nums ${split.memberId === currentMemberId ? "font-semibold" : "text-gray-600"}`}>
                     {split.total > 0 ? `฿${split.total.toFixed(2)}` : "—"}
                   </span>
                 </div>
@@ -620,13 +620,13 @@ export default function BillDetailsPage({
               type="button"
               onClick={handleFinalize}
               disabled={totalItems === 0 || finalizeRoom.isPending}
-              className="rounded-full border border-gray-300 px-8 py-2.5 text-sm font-medium text-gray-800 transition-colors hover:bg-gray-50 active:bg-gray-100 disabled:opacity-40 md:px-10 md:py-3 md:text-base"
+              className="rounded-full bg-brand-700 px-8 py-2.5 text-sm font-medium text-cream-light transition-all hover:bg-brand-800 active:scale-[0.98] disabled:opacity-40 md:px-10 md:py-3 md:text-base"
             >
               {finalizeRoom.isPending ? "Calculating..." : "Finish and Set Payment"}
             </button>
           </div>
         ) : (
-          <p className="mt-4 text-center text-sm text-gray-400">
+          <p className="mt-4 text-center font-caveat text-base text-brand-400">
             {isLocked
               ? "Host is setting up payment method..."
               : "Waiting for host to finalize..."}
