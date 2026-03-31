@@ -14,7 +14,6 @@ const MAX_VISIBLE = 3;
 export function PresenceAvatars({ onlineUsers, members, currentMemberId }: PresenceAvatarsProps) {
   if (onlineUsers.length === 0) return null;
 
-  // Show current user first, then others
   const sorted = [...onlineUsers].sort((a, b) => {
     if (a.memberId === currentMemberId) return -1;
     if (b.memberId === currentMemberId) return 1;
@@ -39,16 +38,16 @@ export function PresenceAvatars({ onlineUsers, members, currentMemberId }: Prese
             key={user.memberId}
             src={image}
             alt={user.displayName}
-            className={`h-5 w-5 rounded-full border-2 border-white object-cover transition-all ${
-              isYou ? "ring-1 ring-gray-800" : ""
+            className={`h-6 w-6 rounded-full border-2 border-cream object-cover transition-all ${
+              isYou ? "ring-1 ring-brand-700" : ""
             }`}
             title={isYou ? `${user.displayName} (you)` : user.displayName}
           />
         ) : (
           <div
             key={user.memberId}
-            className={`flex h-5 w-5 items-center justify-center rounded-full border-2 border-white text-[8px] font-bold text-white transition-all ${
-              isYou ? "ring-1 ring-gray-800" : ""
+            className={`flex h-6 w-6 items-center justify-center rounded-full border-2 border-cream text-[9px] font-bold text-cream-light transition-all ${
+              isYou ? "ring-1 ring-brand-700" : ""
             }`}
             style={{ backgroundColor: color }}
             title={isYou ? `${user.displayName} (you)` : user.displayName}
@@ -59,7 +58,7 @@ export function PresenceAvatars({ onlineUsers, members, currentMemberId }: Prese
       })}
       {overflowCount > 0 && (
         <div
-          className="flex h-5 items-center justify-center rounded-full border-2 border-white bg-gray-400 px-1 text-[8px] font-bold text-white"
+          className="flex h-6 items-center justify-center rounded-full border-2 border-cream bg-brand-300 px-1.5 text-[9px] font-bold text-cream-light"
           title={sorted.slice(MAX_VISIBLE).map((u) => u.displayName).join(", ")}
         >
           +{overflowCount}

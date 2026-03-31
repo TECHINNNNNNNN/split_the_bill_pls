@@ -22,12 +22,12 @@ export function ScanProgress({ status }: { status: string }) {
               </svg>
             )}
             {isActive && (
-              <svg className="h-3.5 w-3.5 animate-spin text-white" fill="none" viewBox="0 0 24 24">
+              <svg className="h-3.5 w-3.5 animate-spin text-cream-light" fill="none" viewBox="0 0 24 24">
                 <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
                 <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
               </svg>
             )}
-            <span className={isDone ? "text-green-300" : isActive ? "text-white" : "text-gray-500"}>
+            <span className={isDone ? "text-green-300" : isActive ? "text-cream-light" : "text-brand-300"}>
               {step.label}
               {isDone && " — done"}
               {isActive && "..."}

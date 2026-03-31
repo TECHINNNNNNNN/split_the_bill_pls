@@ -2,7 +2,7 @@ export type PaymentStatus = "unpaid" | "claimed" | "confirmed" | "rejected";
 
 // Status badge colors and labels
 export const statusConfig: Record<PaymentStatus, { label: string; classes: string }> = {
-  unpaid: { label: "Unpaid", classes: "border-gray-300 text-gray-500" },
+  unpaid: { label: "Unpaid", classes: "border-brand-200 text-brand-400" },
   claimed: { label: "Claimed", classes: "border-yellow-300 bg-yellow-50 text-yellow-700" },
   confirmed: { label: "Confirmed", classes: "border-green-200 bg-green-50 text-green-700" },
   rejected: { label: "Rejected", classes: "border-red-200 bg-red-50 text-red-600" },

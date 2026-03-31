@@ -7,6 +7,7 @@ import { toast } from "sonner";
 import { useSession } from "@/lib/auth-client";
 import { roomQueries } from "@/lib/queries/rooms";
 import { useSetPaymentMethod, useAdvanceRoomStatus } from "@/lib/mutations/rooms";
+import { Skeleton } from "@/components/skeleton";
 
 type PaymentTab = "promptpay" | "bank" | "other";
 
@@ -38,7 +39,6 @@ export default function PaymentMethodPage({
   const [activeTab, setActiveTab] = useState<PaymentTab>("promptpay");
   const [promptpayId, setPromptpayId] = useState("");
 
-  // Use profile PromptPay ID as default if user hasn't typed anything yet
   const displayPromptpayId = promptpayId || userPromptpayId;
 
   const total = payments.reduce((sum, p) => sum + parseFloat(p.amount), 0);
@@ -60,7 +60,6 @@ export default function PaymentMethodPage({
         }
       );
     } else {
-      // For bank/other, advance status then navigate
       advanceStatus.mutate("payment", {
         onSuccess: () => {
           router.push(`/quick-split/${code}/tracking`);
@@ -74,8 +73,17 @@ export default function PaymentMethodPage({
 
   if (!room) {
     return (
-      <div className="flex min-h-svh items-center justify-center">
-        <p className="text-gray-400">Loading...</p>
+      <div className="flex min-h-svh flex-col px-6 py-6 md:mx-auto md:max-w-lg md:py-12">
+        <Skeleton className="h-4 w-12" />
+        <Skeleton className="mt-3 h-8 w-48" />
+        <Skeleton className="mt-2 h-4 w-40" />
+        <div className="mt-6 grid grid-cols-3 gap-2">
+          <Skeleton className="h-12 rounded-xl" />
+          <Skeleton className="h-12 rounded-xl" />
+          <Skeleton className="h-12 rounded-xl" />
+        </div>
+        <Skeleton className="mt-6 h-32 rounded-2xl" />
+        <Skeleton className="mt-6 h-40 rounded-2xl" />
       </div>
     );
   }
@@ -86,14 +94,14 @@ export default function PaymentMethodPage({
       <button
         type="button"
         onClick={() => router.back()}
-        className="self-start text-sm text-gray-500 hover:text-gray-800"
+        className="self-start text-sm text-brand-400 hover:text-brand-700"
       >
         Back
       </button>
-      <h1 className="mt-2 font-heading text-2xl font-bold text-gray-800 md:text-3xl">
+      <h1 className="mt-2 font-caveat text-3xl font-bold md:text-4xl">
         Payment Method
       </h1>
-      <p className="mt-1 text-sm text-gray-500">
+      <p className="mt-1 font-serif text-sm italic text-brand-400">
         How should people pay you?
       </p>
 
@@ -104,10 +112,10 @@ export default function PaymentMethodPage({
             key={tab}
             type="button"
             onClick={() => setActiveTab(tab)}
-            className={`rounded-lg border px-4 py-3 text-sm font-medium capitalize transition-colors ${
+            className={`rounded-xl border px-4 py-3 text-sm font-medium capitalize transition-all active:scale-[0.97] ${
               activeTab === tab
-                ? "border-gray-800 bg-gray-800 text-white"
-                : "border-gray-200 text-gray-600 hover:bg-gray-50"
+                ? "border-brand-700 bg-brand-700 text-cream-light"
+                : "border-brand-200 text-brand-500 hover:bg-cream-light"
             }`}
           >
             {tab === "promptpay" ? "PromptPay" : tab === "bank" ? "Bank" : "Other"}
@@ -117,47 +125,47 @@ export default function PaymentMethodPage({
 
       {/* PromptPay form */}
       {activeTab === "promptpay" && (
-        <div className="mt-6 rounded-lg border border-gray-200 p-4">
-          <p className="text-sm font-medium text-gray-800">PromptPay Number</p>
+        <div className="mt-6 rounded-2xl border border-brand-200 bg-cream-light p-4">
+          <p className="font-caveat text-lg font-medium">PromptPay Number</p>
           <input
             type="tel"
             value={displayPromptpayId}
             onChange={(e) => setPromptpayId(e.target.value)}
             placeholder="e.g. 09x-xxx-xxxx"
-            className="mt-2 w-full rounded-lg border border-gray-300 px-4 py-2.5 text-sm focus:border-gray-500 focus:outline-none"
+            className="mt-2 w-full rounded-xl border border-brand-200 bg-cream px-4 py-3 text-sm placeholder:text-brand-300 focus:border-brand-400 focus:outline-none"
           />
         </div>
       )}
 
       {activeTab === "bank" && (
-        <div className="mt-6 rounded-lg border border-gray-200 p-4">
-          <p className="text-sm text-gray-500">
+        <div className="mt-6 rounded-2xl border border-brand-200 bg-cream-light p-4">
+          <p className="font-caveat text-base text-brand-400">
             Bank transfer details coming soon. For now, share your bank info with your friends directly.
           </p>
         </div>
       )}
 
       {activeTab === "other" && (
-        <div className="mt-6 rounded-lg border border-gray-200 p-4">
-          <p className="text-sm text-gray-500">
+        <div className="mt-6 rounded-2xl border border-brand-200 bg-cream-light p-4">
+          <p className="font-caveat text-base text-brand-400">
             You can collect payment however you prefer — cash, transfer, etc.
           </p>
         </div>
       )}
 
       {/* Bill Summary */}
-      <div className="mt-6 rounded-lg border border-gray-200 p-4">
-        <p className="text-sm font-medium text-gray-800">Bill Summary</p>
+      <div className="mt-6 rounded-2xl border border-brand-200 bg-cream-light p-4">
+        <p className="font-caveat text-lg font-medium">Bill Summary</p>
         <div className="mt-2 space-y-1">
           {payments.map((p) => (
             <div key={p.id} className="flex justify-between text-sm">
-              <span className="text-gray-600">{p.member?.displayName}</span>
-              <span className="text-gray-800">฿{parseFloat(p.amount).toFixed(2)}</span>
+              <span className="text-brand-500">{p.member?.displayName}</span>
+              <span className="tabular-nums">฿{parseFloat(p.amount).toFixed(2)}</span>
             </div>
           ))}
-          <div className="mt-2 flex justify-between border-t border-gray-100 pt-2 font-medium">
-            <span className="text-gray-800">Total</span>
-            <span className="text-gray-800">฿{total.toFixed(2)}</span>
+          <div className="mt-2 flex justify-between border-t border-brand-100 pt-2 font-medium">
+            <span>Total</span>
+            <span className="tabular-nums">฿{total.toFixed(2)}</span>
           </div>
         </div>
       </div>
@@ -171,7 +179,7 @@ export default function PaymentMethodPage({
             (activeTab === "promptpay" && !displayPromptpayId.trim()) ||
             setPaymentMethod.isPending
           }
-          className="rounded-full border border-gray-300 px-8 py-2.5 text-sm font-medium text-gray-800 transition-colors hover:bg-gray-50 active:bg-gray-100 disabled:opacity-40 md:px-10 md:py-3 md:text-base"
+          className="rounded-full bg-brand-700 px-10 py-3 text-sm font-medium text-cream-light transition-all hover:bg-brand-800 active:scale-[0.98] disabled:opacity-40 md:text-base"
         >
           {setPaymentMethod.isPending ? "Saving..." : "Continue"}
         </button>

@@ -18,7 +18,6 @@ export function LiveCursors({ cursors, members, containerRef }: LiveCursorsProps
     scrollHeight: number;
   } | null>(null);
 
-  // Track container dimensions for converting percentages to pixels
   useEffect(() => {
     const container = containerRef.current;
     if (!container) return;
@@ -68,13 +67,13 @@ export function LiveCursors({ cursors, members, containerRef }: LiveCursorsProps
               <path
                 d="M0.928711 0.524902L15.0713 11.9048L7.67861 12.2267L5.32742 21.4751L0.928711 0.524902Z"
                 fill={color}
-                stroke="white"
+                stroke="#faf7f3"
                 strokeWidth="1"
               />
             </svg>
             {/* Name pill */}
             <div
-              className="ml-3 mt-0.5 whitespace-nowrap rounded-full px-2 py-0.5 text-[10px] font-medium text-white shadow-sm"
+              className="ml-3 mt-0.5 whitespace-nowrap rounded-full px-2 py-0.5 text-[10px] font-medium text-cream-light shadow-sm"
               style={{ backgroundColor: color }}
             >
               {cursor.displayName}
