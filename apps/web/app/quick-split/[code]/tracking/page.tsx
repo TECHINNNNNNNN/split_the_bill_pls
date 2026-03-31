@@ -483,22 +483,41 @@ function PaymentTrackingContent({
             )}
 
             {/* Status card for the member */}
-            <div className={`mt-4 rounded-xl border p-4 ${
+            <div className={`mt-4 rounded-2xl border p-5 shadow-sm ${
               status === "confirmed"
-                ? "border-green-300 bg-green-50"
-                : "border-brand-700 bg-brand-700"
+                ? "border-green-200 bg-green-50"
+                : status === "claimed"
+                  ? "border-amber-200 bg-amber-50"
+                  : status === "rejected"
+                    ? "border-red-200 bg-red-50"
+                    : "border-brand-700 bg-brand-700"
             }`}>
               <div className="flex items-center justify-between">
-                <span className={`font-medium ${
-                  status === "confirmed" ? "text-green-800" : "text-cream-light"
-                }`}>
-                  {status === "confirmed" ? "Payment confirmed" : "You owe"}
-                </span>
-                <span className={`text-xl font-bold ${
-                  status === "confirmed" ? "text-green-800" : "text-cream-light"
-                }`}>
-                  ฿{myAmount.toFixed(2)}
-                </span>
+                <div>
+                  <span className={`font-caveat text-lg font-medium ${
+                    status === "confirmed" ? "text-green-800"
+                      : status === "claimed" ? "text-amber-800"
+                        : status === "rejected" ? "text-red-800"
+                          : "text-cream-light"
+                  }`}>
+                    {status === "confirmed" ? "Payment confirmed"
+                      : status === "claimed" ? "Waiting for host to confirm..."
+                        : status === "rejected" ? "Payment rejected"
+                          : "You owe"}
+                  </span>
+                  {status === "confirmed" && (
+                    <p className="mt-0.5 font-serif text-xs italic text-green-600">Thank you for paying!</p>
+                  )}
+                  {status === "claimed" && (
+                    <p className="mt-0.5 font-serif text-xs italic text-amber-600">Your claim has been submitted</p>
+                  )}
+                </div>
+                <Baht value={myAmount} className={`text-xl font-bold ${
+                  status === "confirmed" ? "text-green-800"
+                    : status === "claimed" ? "text-amber-800"
+                      : status === "rejected" ? "text-red-800"
+                        : "text-cream-light"
+                }`} />
               </div>
 
               {/* Hidden file input — always rendered so ref works */}
