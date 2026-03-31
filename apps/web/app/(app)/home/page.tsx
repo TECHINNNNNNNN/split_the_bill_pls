@@ -82,14 +82,59 @@ export default function HomePage() {
       {/* ─── Quick Split CTA ─── */}
       <Link
         href="/quick-split"
-        className="mb-8 flex items-center justify-between rounded-2xl bg-brand-700 p-5 shadow-md transition-all hover:bg-brand-800 active:scale-[0.99]"
+        className="group relative mb-8 flex items-center justify-between overflow-hidden rounded-2xl bg-brand-700 p-5 shadow-md transition-all hover:bg-brand-800 active:scale-[0.99]"
       >
-        <div>
-          <p className="font-caveat text-xl font-semibold text-cream-light">Quick Split</p>
-          <p className="mt-0.5 text-sm text-brand-200">No account needed for friends</p>
+        {/* Background catfish watermark — subtle, decorative */}
+        <svg
+          className="absolute -right-4 -bottom-3 h-28 w-28 text-cream-light/6 transition-transform duration-500 group-hover:scale-110 group-hover:text-cream-light/10"
+          viewBox="0 0 100 100"
+          fill="currentColor"
+        >
+          {/* Catfish body */}
+          <ellipse cx="45" cy="50" rx="30" ry="18" />
+          {/* Tail */}
+          <path d="M72 42 C85 30, 92 38, 88 50 C92 62, 85 70, 72 58 Z" />
+          {/* Top fin */}
+          <path d="M30 33 C35 22, 45 24, 48 32 Z" />
+          {/* Bottom fin */}
+          <path d="M40 67 C45 75, 52 73, 50 66 Z" />
+          {/* Whiskers */}
+          <path d="M18 45 C8 40, 5 42, 2 38" stroke="currentColor" strokeWidth="2" fill="none" strokeLinecap="round" />
+          <path d="M18 48 C8 48, 4 50, 1 48" stroke="currentColor" strokeWidth="2" fill="none" strokeLinecap="round" />
+          <path d="M18 55 C10 58, 6 56, 3 58" stroke="currentColor" strokeWidth="1.5" fill="none" strokeLinecap="round" />
+          {/* Eye */}
+          <circle cx="26" cy="46" r="3" fill="none" />
+        </svg>
+
+        <div className="relative z-10">
+          <p className="font-caveat text-2xl font-semibold text-cream-light">Quick Split</p>
+          <p className="mt-0.5 font-serif text-sm italic text-brand-200">Tap to start splitting →</p>
         </div>
-        <div className="flex h-10 w-10 items-center justify-center rounded-full bg-cream-light/20 text-xl text-cream-light">
-          +
+
+        {/* Catfish icon button */}
+        <div className="relative z-10 flex h-12 w-12 items-center justify-center rounded-full bg-cream-light/20 transition-all group-hover:bg-cream-light/30">
+          <svg
+            className="h-7 w-7 text-cream-light"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="1.5"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          >
+            {/* Catfish body */}
+            <ellipse cx="11" cy="12" rx="7" ry="4.5" />
+            {/* Tail fin */}
+            <path d="M17 9.5C20 7, 22 9, 21 12C22 15, 20 17, 17 14.5" />
+            {/* Top fin */}
+            <path d="M8 7.5C9 5, 12 5.5, 12.5 7.5" />
+            {/* Whiskers */}
+            <path d="M4.5 10.5C2.5 9.5, 1.5 10, 1 9" />
+            <path d="M4.5 12C2 12, 1 12.5, 0.5 12" />
+            <path d="M4.5 13.5C2.5 14.5, 1.5 14, 1 15" />
+            {/* Eye */}
+            <circle cx="7.5" cy="11" r="0.8" fill="currentColor" stroke="none" />
+          </svg>
         </div>
       </Link>
 
