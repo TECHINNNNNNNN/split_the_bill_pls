@@ -441,7 +441,7 @@ export default function BillDetailsPage({
                   disabled={parseVoice.isPending}
                   className={`flex items-center gap-1.5 rounded-full border p-2.5 text-sm font-medium transition-colors disabled:opacity-40 md:px-3 md:py-1.5 ${
                     voice.isRecording
-                      ? "border-red-300 bg-red-50 text-red-600"
+                      ? "border-[#D4A5A5] bg-[#faf0f0] text-[#c75450]"
                       : "border-brand-200 text-brand-500 hover:bg-cream-light"
                   }`}
                 >
