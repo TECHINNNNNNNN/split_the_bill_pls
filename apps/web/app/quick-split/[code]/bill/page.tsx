@@ -449,11 +449,6 @@ export default function BillDetailsPage({
         </div>
       </div>
 
-      {/* Voice waveform visualizer */}
-      {voice.isRecording && (
-        <VoiceWaveform analyser={voice.analyser} duration={voice.duration} />
-      )}
-
       {/* Shake to split — mobile only */}
       {!isLocked && shakeSupported && totalItems > 0 && (
         shakeEnabled ? (

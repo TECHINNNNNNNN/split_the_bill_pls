@@ -3,6 +3,7 @@
 import { useRef, useState } from "react";
 import type { CollabSection, BillExtras } from "@/lib/hooks/use-bill-collab";
 import { ItemCard } from "./item-card";
+import { VoiceWaveform } from "@/components/voice-waveform";
 
 export function SectionCard({
   section,
