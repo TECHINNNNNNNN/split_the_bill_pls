@@ -18,6 +18,7 @@ import { PresenceAvatars } from "@/components/bill/presence-avatars";
 import { useShake } from "@/lib/hooks/use-shake";
 import type { SectionBreakdown } from "@/components/bill/breakdown-modal";
 import { VoiceWaveform } from "@/components/voice-waveform";
+import { Skeleton } from "@/components/skeleton";
 
 // ─── Main Page ───
 
@@ -360,7 +361,10 @@ export default function BillDetailsPage({
   if (!room) {
     return (
       <div className="flex min-h-svh items-center justify-center">
-        <p className="text-brand-300">Loading...</p>
+        <div className="flex flex-col items-center gap-3">
+          <Skeleton className="h-8 w-32" />
+          <Skeleton className="h-4 w-48" />
+        </div>
       </div>
     );
   }

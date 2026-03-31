@@ -23,6 +23,7 @@ import { StoryCard } from "@/components/bill/story-card";
 import html2canvas from "html2canvas";
 import { statusConfig, bankNames } from "@/components/tracking/constants";
 import { fireAllPaidConfetti } from "@/lib/confetti";
+import { Skeleton } from "@/components/skeleton";
 import type { PaymentStatus } from "@/components/tracking/constants";
 
 // ─── Main component ───
@@ -33,7 +34,7 @@ export default function PaymentTrackingPage({
   params: Promise<{ code: string }>;
 }) {
   return (
-    <Suspense fallback={<div className="flex min-h-svh items-center justify-center"><p className="text-brand-300">Loading...</p></div>}>
+    <Suspense fallback={<div className="flex min-h-svh flex-col px-6 py-6 md:mx-auto md:max-w-lg md:py-12"><Skeleton className="h-4 w-12" /><Skeleton className="mt-3 h-9 w-48" /><Skeleton className="mt-2 h-4 w-36" /><Skeleton className="mt-6 h-20 rounded-2xl" /><Skeleton className="mt-4 h-16 rounded-2xl" /><Skeleton className="mt-4 h-24 rounded-2xl" /></div>}>
       <PaymentTrackingContent params={params} />
     </Suspense>
   );
@@ -239,8 +240,11 @@ function PaymentTrackingContent({
   // Still loading initial data or auto-identifying
   if (!codeData || identifyParam) {
     return (
-      <div className="flex min-h-svh items-center justify-center">
-        <p className="text-brand-300">Loading...</p>
+      <div className="flex min-h-svh flex-col px-6 py-6 md:mx-auto md:max-w-lg md:py-12">
+        <Skeleton className="h-4 w-12" />
+        <Skeleton className="mt-3 h-9 w-48" />
+        <Skeleton className="mt-6 h-20 rounded-2xl" />
+        <Skeleton className="mt-4 h-32 rounded-2xl" />
       </div>
     );
   }
