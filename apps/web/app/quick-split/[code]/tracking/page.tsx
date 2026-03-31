@@ -23,6 +23,10 @@ import { StoryCard } from "@/components/bill/story-card";
 import html2canvas from "html2canvas";
 import { statusConfig, bankNames } from "@/components/tracking/constants";
 import { fireAllPaidConfetti } from "@/lib/confetti";
+import { Skeleton } from "@/components/skeleton";
+import { useDynamicFavicon } from "@/lib/hooks/use-dynamic-favicon";
+import { Baht } from "@/components/baht";
+import { motion, AnimatePresence } from "motion/react";
 import type { PaymentStatus } from "@/components/tracking/constants";
 
 // ─── Main component ───
@@ -33,7 +37,7 @@ export default function PaymentTrackingPage({
   params: Promise<{ code: string }>;
 }) {
   return (
-    <Suspense fallback={<div className="flex min-h-svh items-center justify-center"><p className="text-gray-400">Loading...</p></div>}>
+    <Suspense fallback={<div className="flex min-h-svh flex-col px-6 py-6 md:mx-auto md:max-w-lg md:py-12"><Skeleton className="h-4 w-12" /><Skeleton className="mt-3 h-9 w-48" /><Skeleton className="mt-2 h-4 w-36" /><Skeleton className="mt-6 h-20 rounded-2xl" /><Skeleton className="mt-4 h-16 rounded-2xl" /><Skeleton className="mt-4 h-24 rounded-2xl" /></div>}>
       <PaymentTrackingContent params={params} />
     </Suspense>
   );
@@ -174,6 +178,10 @@ function PaymentTrackingContent({
   const confirmedTotal = confirmedPayments.reduce((sum, p) => sum + parseFloat(p.amount), 0);
   const confirmedCount = confirmedPayments.length;
   const allPaid = confirmedCount === payments.length && payments.length > 0;
+  const hasClaimed = payments.some((p) => p.status === "claimed");
+
+  // Dynamic favicon — catfish with blush → bell badge → checkmark badge
+  useDynamicFavicon(allPaid ? "allPaid" : hasClaimed ? "claimed" : "default");
 
   // Fire confetti once when all payments are confirmed
   const hasFiredConfetti = useRef(false);
@@ -239,8 +247,11 @@ function PaymentTrackingContent({
   // Still loading initial data or auto-identifying
   if (!codeData || identifyParam) {
     return (
-      <div className="flex min-h-svh items-center justify-center">
-        <p className="text-gray-400">Loading...</p>
+      <div className="flex min-h-svh flex-col px-6 py-6 md:mx-auto md:max-w-lg md:py-12">
+        <Skeleton className="h-4 w-12" />
+        <Skeleton className="mt-3 h-9 w-48" />
+        <Skeleton className="mt-6 h-20 rounded-2xl" />
+        <Skeleton className="mt-4 h-32 rounded-2xl" />
       </div>
     );
   }
@@ -250,10 +261,10 @@ function PaymentTrackingContent({
     const roomMembers = codeData.room?.members ?? [];
     return (
       <div className="flex min-h-svh flex-col items-center justify-center px-6">
-        <h2 className="font-heading text-xl font-bold text-gray-800">
+        <h2 className="font-caveat text-3xl font-bold">
           Who are you?
         </h2>
-        <p className="mt-2 text-sm text-gray-500">
+        <p className="mt-2 text-sm text-brand-400">
           Tap your name to continue.
         </p>
         <div className="mt-4 flex w-full max-w-xs flex-col gap-2">
@@ -273,11 +284,11 @@ function PaymentTrackingContent({
                 );
                 queryClient.invalidateQueries({ queryKey: ["rooms", "code", code] });
               }}
-              className="rounded-lg border border-gray-200 px-4 py-3 text-left text-sm font-medium text-gray-800 transition-colors hover:bg-gray-50 active:bg-gray-100"
+              className="rounded-xl border border-brand-200 bg-cream-light px-4 py-3 text-left text-sm font-medium transition-all hover:bg-cream active:scale-[0.98]"
             >
               {m.displayName}
               {m.isHost && (
-                <span className="ml-2 text-xs text-gray-400">(host)</span>
+                <span className="ml-2 text-xs text-brand-300">(host)</span>
               )}
             </button>
           ))}
@@ -288,8 +299,12 @@ function PaymentTrackingContent({
 
   if (!room) {
     return (
-      <div className="flex min-h-svh items-center justify-center">
-        <p className="text-gray-400">Loading...</p>
+      <div className="flex min-h-svh flex-col px-6 py-6 md:mx-auto md:max-w-lg md:py-12">
+        <Skeleton className="h-4 w-12" />
+        <Skeleton className="mt-3 h-9 w-48" />
+        <Skeleton className="mt-6 h-20 rounded-2xl" />
+        <Skeleton className="mt-4 h-16 rounded-2xl" />
+        <Skeleton className="mt-4 h-24 rounded-2xl" />
       </div>
     );
   }
@@ -310,18 +325,18 @@ function PaymentTrackingContent({
       <button
         type="button"
         onClick={() => router.back()}
-        className="self-start text-sm text-gray-500 hover:text-gray-800"
+        className="self-start text-sm text-brand-400 hover:text-brand-700"
       >
         Back
       </button>
-      <h1 className="mt-2 font-heading text-2xl font-bold text-gray-800 md:text-3xl">
+      <h1 className="mt-2 font-caveat text-3xl font-bold md:text-4xl">
         {room.name || "Payment Tracking"}
       </h1>
-      <p className="mt-1 text-sm text-gray-500">
+      <p className="mt-1 font-serif text-sm italic text-brand-400">
         {isHost ? "Track who has paid." : "See how much you owe."}
       </p>
       {room.finalizedAt && (
-        <p className="mt-1 text-xs text-gray-400">
+        <p className="mt-1 text-xs text-brand-300">
           Bill finalized {new Date(room.finalizedAt).toLocaleDateString("en-US", { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" })}
           {" · "}{finalizedAgo}
         </p>
@@ -353,7 +368,7 @@ function PaymentTrackingContent({
                 toast.error("Couldn't share to LINE");
               }
             }}
-            className="flex items-center gap-1.5 rounded-full bg-[#06C755] px-4 py-1.5 text-sm font-medium text-white transition-opacity hover:opacity-90 active:opacity-80 disabled:opacity-40"
+            className="flex items-center gap-1.5 rounded-full bg-[#5a9e6e] px-4 py-1.5 text-sm font-medium text-cream-light shadow-sm transition-all hover:bg-[#4e8c60] active:scale-[0.97] disabled:opacity-40"
           >
             <svg viewBox="0 0 24 24" className="h-4 w-4 fill-current">
               <path d="M19.365 9.863c.349 0 .63.285.63.631 0 .345-.281.63-.63.63H17.61v1.125h1.755c.349 0 .63.283.63.63 0 .344-.281.629-.63.629h-2.386c-.345 0-.627-.285-.627-.629V8.108c0-.345.282-.63.63-.63h2.386c.346 0 .627.285.627.63 0 .349-.281.63-.63.63H17.61v1.125h1.755zm-3.855 3.016c0 .27-.174.51-.432.596-.064.021-.133.031-.199.031-.211 0-.391-.09-.51-.25l-2.443-3.317v2.94c0 .344-.279.629-.631.629-.346 0-.626-.285-.626-.629V8.108c0-.27.173-.51.43-.595.06-.023.136-.033.194-.033.195 0 .375.104.495.254l2.462 3.33V8.108c0-.345.282-.63.63-.63.345 0 .63.285.63.63v4.771zm-5.741 0c0 .344-.282.629-.631.629-.345 0-.627-.285-.627-.629V8.108c0-.345.282-.63.63-.63.346 0 .628.285.628.63v4.771zm-2.466.629H4.917c-.345 0-.63-.285-.63-.629V8.108c0-.345.285-.63.63-.63.348 0 .63.285.63.63v4.141h1.756c.348 0 .629.283.629.63 0 .344-.282.629-.629.629M24 10.314C24 4.943 18.615.572 12 .572S0 4.943 0 10.314c0 4.811 4.27 8.842 10.035 9.608.391.082.923.258 1.058.59.12.301.079.766.038 1.08l-.164 1.02c-.045.301-.24 1.186 1.049.645 1.291-.539 6.916-4.078 9.436-6.975C23.176 14.393 24 12.458 24 10.314" />
@@ -408,7 +423,7 @@ function PaymentTrackingContent({
                 toast.error("Couldn't generate recap", { id: toastId });
               }
             }}
-            className="flex items-center gap-1.5 rounded-full border border-gray-300 px-4 py-1.5 text-sm font-medium text-gray-600 transition-colors hover:bg-gray-50"
+            className="flex items-center gap-1.5 rounded-full border border-brand-200 px-4 py-1.5 text-sm font-medium text-brand-500 transition-colors hover:bg-cream-light"
           >
             <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z" />
@@ -447,39 +462,62 @@ function PaymentTrackingContent({
           <>
             {/* QR code — hide once confirmed */}
             {qrPayload && (
-              <div className="mt-4 flex flex-col items-center rounded-lg border border-gray-200 bg-white p-5">
-                <p className="text-sm font-medium text-gray-800">
+              <div className="mt-4 flex flex-col items-center rounded-2xl border border-brand-200 bg-cream-light p-6 shadow-sm">
+                <p className="font-serif text-sm italic text-brand-400">
                   Scan to pay {hostMember?.displayName}
                 </p>
-                <div className="mt-3 rounded-lg bg-white p-2">
-                  <QRCodeSVG value={qrPayload} size={200} />
+                <div className="mt-4 rounded-2xl border border-brand-100 bg-cream p-4">
+                  <QRCodeSVG
+                    value={qrPayload}
+                    size={200}
+                    fgColor="#3d2810"
+                    bgColor="transparent"
+                    level="M"
+                  />
                 </div>
-                <p className="mt-3 text-2xl font-bold text-gray-800">
-                  ฿{myAmount.toFixed(2)}
-                </p>
-                <p className="mt-1 text-xs text-gray-400">
-                  PromptPay: {room.promptpayId}
+                <Baht value={myAmount} className="mt-4 font-caveat text-3xl font-bold" />
+                <p className="mt-1 text-xs text-brand-300">
+                  via PromptPay · {room.promptpayId}
                 </p>
               </div>
             )}
 
             {/* Status card for the member */}
-            <div className={`mt-4 rounded-lg border p-4 ${
+            <div className={`mt-4 rounded-2xl border p-5 shadow-sm ${
               status === "confirmed"
-                ? "border-green-300 bg-green-50"
-                : "border-gray-800 bg-gray-800"
+                ? "border-green-200 bg-green-50"
+                : status === "claimed"
+                  ? "border-amber-300 bg-amber-50"
+                  : status === "rejected"
+                    ? "border-red-300 bg-red-50"
+                    : "border-brand-700 bg-brand-700"
             }`}>
               <div className="flex items-center justify-between">
-                <span className={`font-medium ${
-                  status === "confirmed" ? "text-green-800" : "text-white"
-                }`}>
-                  {status === "confirmed" ? "Payment confirmed" : "You owe"}
-                </span>
-                <span className={`text-xl font-bold ${
-                  status === "confirmed" ? "text-green-800" : "text-white"
-                }`}>
-                  ฿{myAmount.toFixed(2)}
-                </span>
+                <div>
+                  <span className={`font-caveat text-lg font-medium ${
+                    status === "confirmed" ? "text-green-800"
+                      : status === "claimed" ? "text-amber-900"
+                        : status === "rejected" ? "text-red-800"
+                          : "text-cream-light"
+                  }`}>
+                    {status === "confirmed" ? "Payment confirmed"
+                      : status === "claimed" ? "Waiting for host to confirm..."
+                        : status === "rejected" ? "Payment rejected"
+                          : "You owe"}
+                  </span>
+                  {status === "confirmed" && (
+                    <p className="mt-0.5 font-serif text-xs italic text-green-600">Thank you for paying!</p>
+                  )}
+                  {status === "claimed" && (
+                    <p className="mt-0.5 font-serif text-sm italic text-amber-700">Your claim has been submitted</p>
+                  )}
+                </div>
+                <Baht value={myAmount} className={`text-xl font-bold ${
+                  status === "confirmed" ? "text-green-800"
+                    : status === "claimed" ? "text-amber-900"
+                      : status === "rejected" ? "text-red-800"
+                        : "text-cream-light"
+                }`} />
               </div>
 
               {/* Hidden file input — always rendered so ref works */}
@@ -501,7 +539,7 @@ function PaymentTrackingContent({
                 <div className="mt-3 space-y-2">
                   {/* Thumbnail preview */}
                   {previewUrl && (
-                    <div className="flex items-start gap-3 rounded-md bg-white/10 p-2">
+                    <div className="flex items-start gap-3 rounded-md bg-cream-light/10 p-2">
                       {/* eslint-disable-next-line @next/next/no-img-element */}
                       <img
                         src={previewUrl}
@@ -525,7 +563,7 @@ function PaymentTrackingContent({
                       type="button"
                       onClick={() => handleConfirmClaim(status)}
                       disabled={slipFlow.step === "submitting"}
-                      className="flex-1 rounded-lg bg-white px-3 py-2 text-sm font-medium text-gray-800 transition-colors hover:bg-gray-100 disabled:opacity-40"
+                      className="flex-1 rounded-xl bg-cream-light px-3 py-2 text-sm font-medium text-brand-800 transition-colors hover:bg-brand-50 disabled:opacity-40"
                     >
                       {slipFlow.step === "submitting" ? "Sending..." : "Send to Host"}
                     </button>
@@ -533,7 +571,7 @@ function PaymentTrackingContent({
                       type="button"
                       onClick={handleCancelScan}
                       disabled={slipFlow.step === "submitting"}
-                      className="rounded-lg border border-white/20 px-3 py-2 text-sm text-gray-300 transition-colors hover:bg-white/10 disabled:opacity-40"
+                      className="rounded-xl border border-white/20 px-3 py-2 text-sm text-brand-200 transition-colors hover:bg-cream-light/10 disabled:opacity-40"
                     >
                       Cancel
                     </button>
@@ -546,7 +584,7 @@ function PaymentTrackingContent({
                 <>
                   {/* Rejected hint */}
                   {status === "rejected" && (
-                    <p className="mt-2 text-sm text-red-300">
+                    <p className="mt-2 text-sm text-red-700">
                       {myPayment.slipVerifiedAmount
                         ? `Amount mismatch (slip: ฿${parseFloat(myPayment.slipVerifiedAmount).toFixed(2)}, owed: ฿${myAmount.toFixed(2)}). Upload the correct slip.`
                         : "Host rejected your claim. Upload a new slip or try again."}
@@ -560,7 +598,7 @@ function PaymentTrackingContent({
                       resetSlip();
                       fileInputRef.current?.click();
                     }}
-                    className="mt-3 flex w-full items-center justify-center gap-2 rounded-lg bg-white px-4 py-2 text-sm font-medium text-gray-800 transition-colors hover:bg-gray-100"
+                    className="mt-3 flex w-full items-center justify-center gap-2 rounded-xl bg-brand-700 px-4 py-2.5 text-sm font-medium text-cream-light shadow-sm transition-all hover:bg-brand-800 active:scale-[0.98]"
                   >
                     <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
@@ -578,7 +616,7 @@ function PaymentTrackingContent({
                       }
                     )}
                     disabled={claimPayment.isPending}
-                    className="mt-2 w-full text-center text-xs text-gray-400 underline transition-colors hover:text-gray-200 disabled:opacity-40"
+                    className="mt-2 w-full text-center text-xs text-brand-300 underline transition-colors hover:text-brand-100 disabled:opacity-40"
                   >
                     I&apos;ve paid (no slip)
                   </button>
@@ -587,7 +625,7 @@ function PaymentTrackingContent({
 
               {/* ── Claimed / just submitted: waiting for host ── */}
               {(status === "claimed" || slipFlow.step === "done") && slipFlow.step !== "scanning" && slipFlow.step !== "preview" && slipFlow.step !== "submitting" && (
-                <p className="mt-2 text-sm text-yellow-200">
+                <p className="mt-2 font-serif text-sm italic text-amber-700">
                   Waiting for host to confirm...
                 </p>
               )}
@@ -602,18 +640,18 @@ function PaymentTrackingContent({
       })()}
 
       {/* Progress bar */}
-      <div className="mt-6 rounded-lg border border-gray-200 p-4">
+      <div className="mt-6 rounded-2xl border border-brand-200 bg-cream-light p-4 shadow-sm">
         <div className="flex justify-between text-sm">
-          <span className="text-gray-600">
+          <span className="font-caveat text-base text-brand-500">
             {confirmedCount}/{payments.length} confirmed
           </span>
-          <span className="text-gray-800">
-            ฿{confirmedTotal.toFixed(2)}/฿{total.toFixed(2)}
+          <span className="tabular-nums font-medium">
+            <Baht value={confirmedTotal} /><span className="text-brand-300">/</span><Baht value={total} />
           </span>
         </div>
-        <div className="mt-2 h-2 overflow-hidden rounded-full bg-gray-100">
+        <div className="mt-2 h-2.5 overflow-hidden rounded-full bg-brand-100">
           <div
-            className="h-full rounded-full bg-gray-800 transition-all duration-300"
+            className="h-full rounded-full bg-gradient-to-r from-brand-500 to-brand-700 transition-all duration-500 ease-out"
             style={{
               width: `${payments.length > 0 ? (confirmedCount / payments.length) * 100 : 0}%`,
             }}
@@ -675,7 +713,7 @@ function PaymentTrackingContent({
               });
             }}
             disabled={nudgeAll.isPending || globalNudgeCooldown > now}
-            className="flex w-full items-center justify-center gap-2 rounded-lg border border-purple-200 bg-purple-50 px-4 py-2.5 text-sm font-medium text-purple-700 transition-colors hover:bg-purple-100 disabled:opacity-40"
+            className="flex w-full items-center justify-center gap-2 rounded-2xl border border-brand-300 bg-brand-50 px-4 py-3 font-caveat text-base font-medium text-brand-700 shadow-sm transition-all hover:bg-brand-100 active:scale-[0.98] disabled:opacity-40"
           >
             <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
@@ -689,17 +727,27 @@ function PaymentTrackingContent({
 
       {/* LINE users: reminders sent automatically via LINE Official Account */}
       {push.isLiff && currentMemberId && (
-        <div className="mt-4 flex items-center gap-2 rounded-lg border border-green-200 bg-green-50 px-4 py-2.5">
-          <span className="text-sm text-green-700">Reminders enabled via LINE</span>
+        <div className="mt-4 flex items-center gap-3 rounded-2xl border border-brand-200 bg-cream-light px-4 py-3">
+          <svg className="h-5 w-5 shrink-0 text-brand-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M12 2C10 2 8.5 3.5 8.5 5.5C8.5 5.5 5 7.5 5 13C5 15 3.5 16 3.5 16H20.5C20.5 16 19 15 19 13C19 7.5 15.5 5.5 15.5 5.5C15.5 3.5 14 2 12 2Z" />
+            <path d="M9.5 16C9.5 17.38 10.62 19 12 19C13.38 19 14.5 17.38 14.5 16" />
+            <circle cx="12" cy="2" r="0.5" fill="currentColor" stroke="none" />
+            <path d="M7 4.5C5.5 3.5 4.5 4 4 4.5" strokeDasharray="2 2" />
+            <path d="M17 4.5C18.5 3.5 19.5 4 20 4.5" strokeDasharray="2 2" />
+          </svg>
+          <div>
+            <p className="font-caveat text-base font-medium text-success">Reminders enabled via LINE</p>
+            <p className="text-xs text-brand-300">We&apos;ll nudge unpaid members automatically</p>
+          </div>
         </div>
       )}
 
       {!push.isLiff && push.isIOS && !push.isPWA && !iosDismissed && (
-        <div className="mt-4 rounded-lg border border-blue-200 bg-blue-50 p-4">
-          <p className="text-sm font-medium text-blue-800">
+        <div className="mt-4 rounded-2xl border border-brand-200 bg-cream-light p-4 shadow-sm">
+          <p className="font-caveat text-lg font-medium">
             Want payment reminders on iPhone?
           </p>
-          <ol className="mt-1 list-inside list-decimal text-xs text-blue-600 space-y-0.5">
+          <ol className="mt-1 list-inside list-decimal text-xs text-brand-400 space-y-0.5">
             <li>Tap the Share button <span className="inline-block translate-y-px">&#xFEFF;&#x2B06;&#xFE0E;</span> at the bottom of Safari</li>
             <li>Scroll down and tap &quot;Add to Home Screen&quot;</li>
             <li>Open PlaDuk from your home screen</li>
@@ -708,7 +756,7 @@ function PaymentTrackingContent({
           <button
             type="button"
             onClick={() => setIosDismissed(true)}
-            className="mt-2 text-xs font-medium text-blue-500 hover:text-blue-700"
+            className="mt-2 text-xs font-medium text-brand-400 hover:text-brand-600"
           >
             Dismiss
           </button>
@@ -716,11 +764,11 @@ function PaymentTrackingContent({
       )}
 
       {push.isSupported && push.permission === "default" && (
-        <div className="mt-4 rounded-lg border border-gray-200 bg-gray-50 p-4">
-          <p className="text-sm font-medium text-gray-800">
+        <div className="mt-4 rounded-xl border border-brand-200 bg-cream-light p-4">
+          <p className="font-caveat text-lg font-medium">
             Get notified
           </p>
-          <p className="mt-1 text-xs text-gray-500">
+          <p className="mt-1 text-xs text-brand-400">
             {isHost
               ? "We'll tell you when someone claims they've paid."
               : "We'll send a gentle nudge if you forget. No spam, promise."}
@@ -729,7 +777,7 @@ function PaymentTrackingContent({
             type="button"
             onClick={push.subscribe}
             disabled={push.isSubscribing}
-            className="mt-2 rounded-lg bg-gray-800 px-4 py-2 text-sm font-medium text-white hover:bg-gray-700 disabled:opacity-50"
+            className="mt-2 rounded-xl bg-brand-700 px-4 py-2 text-sm font-medium text-cream-light hover:bg-brand-800 disabled:opacity-50"
           >
             {push.isSubscribing ? "Setting up..." : "Enable Reminders"}
           </button>
@@ -737,20 +785,30 @@ function PaymentTrackingContent({
       )}
 
       {push.isSupported && push.permission === "granted" && (
-        <div className="mt-4 rounded-lg border border-green-200 bg-green-50 px-4 py-2.5">
-          <span className="text-sm text-green-700">Reminders enabled</span>
+        <div className="mt-4 flex items-center gap-3 rounded-2xl border border-brand-200 bg-cream-light px-4 py-3">
+          <svg className="h-5 w-5 shrink-0 text-brand-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M12 2C10 2 8.5 3.5 8.5 5.5C8.5 5.5 5 7.5 5 13C5 15 3.5 16 3.5 16H20.5C20.5 16 19 15 19 13C19 7.5 15.5 5.5 15.5 5.5C15.5 3.5 14 2 12 2Z" />
+            <path d="M9.5 16C9.5 17.38 10.62 19 12 19C13.38 19 14.5 17.38 14.5 16" />
+            <circle cx="12" cy="2" r="0.5" fill="currentColor" stroke="none" />
+            <path d="M7 4.5C5.5 3.5 4.5 4 4 4.5" strokeDasharray="2 2" />
+            <path d="M17 4.5C18.5 3.5 19.5 4 20 4.5" strokeDasharray="2 2" />
+          </svg>
+          <div>
+            <p className="font-caveat text-base font-medium text-success">Reminders enabled</p>
+            <p className="text-xs text-brand-300">We&apos;ll send a gentle nudge if someone forgets</p>
+          </div>
         </div>
       )}
 
       {/* Host card */}
       {hostMember && (
-        <div className="mt-4 rounded-lg border border-gray-200 p-4">
+        <div className="mt-4 rounded-2xl border border-brand-200 bg-cream-light p-4 shadow-sm">
           <div className="flex items-center justify-between">
-            <span className="font-medium text-gray-800">
+            <span className="font-caveat text-lg font-medium">
               {hostMember.displayName}
-              {isHost && <span className="text-gray-400"> (you)</span>}
+              {isHost && <span className="text-brand-300"> (you)</span>}
             </span>
-            <span className="text-gray-800">
+            <span className="text-brand-800">
               ฿{(() => {
                 const hostPayment = payments.find(
                   (p) => p.memberId === hostMember.id
@@ -766,8 +824,13 @@ function PaymentTrackingContent({
 
       {/* Member payment cards */}
       <div className="mt-2 space-y-2">
-        {payments
+        <AnimatePresence>
+        {[...payments]
           .filter((p) => p.memberId !== hostMember?.id)
+          .sort((a, b) => {
+            const order: Record<string, number> = { unpaid: 0, rejected: 1, claimed: 2, confirmed: 3 };
+            return (order[a.status] ?? 0) - (order[b.status] ?? 0);
+          })
           .map((payment) => {
             const status = payment.status as PaymentStatus;
             const config = statusConfig[status];
@@ -784,9 +847,15 @@ function PaymentTrackingContent({
             );
 
             return (
-              <div
+              <motion.div
                 key={payment.id}
-                className="rounded-lg border border-gray-200 p-4"
+                layout
+                layoutId={payment.id}
+                initial={{ opacity: 0, y: 12 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, scale: 0.95 }}
+                transition={{ type: "spring", stiffness: 400, damping: 30 }}
+                className="rounded-2xl border border-brand-200 bg-cream-light p-4 shadow-sm"
               >
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
@@ -802,7 +871,7 @@ function PaymentTrackingContent({
                       </svg>
                     )}
                     {status === "unpaid" && (
-                      <svg className="h-4 w-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <svg className="h-4 w-4 text-brand-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
                       </svg>
                     )}
@@ -811,18 +880,16 @@ function PaymentTrackingContent({
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                       </svg>
                     )}
-                    <span className="font-medium text-gray-800">
+                    <span className="font-caveat text-lg font-medium">
                       {payment.member?.displayName}
                     </span>
                   </div>
 
                   <div className="flex items-center gap-3">
-                    <span className="text-gray-800">
-                      ฿{parseFloat(payment.amount).toFixed(2)}
-                    </span>
+                    <Baht value={parseFloat(payment.amount)} className="text-brand-800" />
 
                     {/* Status badge (always visible) */}
-                    <span className={`rounded-lg border px-2.5 py-0.5 text-xs font-medium ${config.classes}`}>
+                    <span className={`rounded-xl border px-2.5 py-0.5 text-xs font-medium ${config.classes}`}>
                       {config.label}
                     </span>
                   </div>
@@ -855,7 +922,7 @@ function PaymentTrackingContent({
 
                   if (!nextAt) return null;
                   const diff = nextAt - now;
-                  if (diff <= 0) return <p className="mt-1 text-xs text-gray-400">Reminder sending soon...</p>;
+                  if (diff <= 0) return <p className="mt-1 text-xs text-brand-300">Reminder sending soon...</p>;
 
                   const hours = Math.floor(diff / (1000 * 60 * 60));
                   const mins = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
@@ -865,7 +932,7 @@ function PaymentTrackingContent({
                     : `${mins}m ${String(secs).padStart(2, "0")}s`;
 
                   return (
-                    <p className="mt-1 text-xs text-gray-400">
+                    <p className="mt-1 text-xs text-brand-300">
                       Next auto-reminder in {timeStr}
                     </p>
                   );
@@ -920,7 +987,7 @@ function PaymentTrackingContent({
 
                     {/* No slip warning */}
                     {!hasSlip && status === "claimed" && (
-                      <span className="inline-flex items-center gap-1 rounded-md border border-gray-200 bg-gray-50 px-2 py-0.5 text-gray-500">
+                      <span className="inline-flex items-center gap-1 rounded-md border border-brand-200 bg-cream-light px-2 py-0.5 text-brand-400">
                         No slip attached
                       </span>
                     )}
@@ -964,7 +1031,7 @@ function PaymentTrackingContent({
                 {/* Host actions — confirm from any non-confirmed state, reject only claimed */}
                 {/* Host: undo a confirmed payment */}
                 {isHost && status === "confirmed" && (
-                  <div className="mt-3 flex border-t border-gray-100 pt-3">
+                  <div className="mt-3 flex border-t border-brand-100 pt-3">
                     <button
                       type="button"
                       onClick={() => unconfirmPayment.mutate(payment.id, {
@@ -972,7 +1039,7 @@ function PaymentTrackingContent({
                         onError: () => toast.error("Couldn't unconfirm — try again"),
                       })}
                       disabled={unconfirmPayment.isPending && unconfirmPayment.variables === payment.id}
-                      className="rounded-lg border border-gray-300 px-3 py-1.5 text-xs font-medium text-gray-600 transition-colors hover:bg-gray-50 disabled:opacity-40"
+                      className="rounded-xl border border-brand-200 px-3 py-1.5 text-xs font-medium text-brand-500 transition-colors hover:bg-cream-light disabled:opacity-40"
                     >
                       {unconfirmPayment.isPending && unconfirmPayment.variables === payment.id ? "..." : "Undo Confirm"}
                     </button>
@@ -981,7 +1048,7 @@ function PaymentTrackingContent({
 
                 {/* Host: confirm/reject/nudge actions for non-confirmed payments */}
                 {isHost && status !== "confirmed" && (
-                  <div className="mt-3 flex gap-2 border-t border-gray-100 pt-3">
+                  <div className="mt-3 flex gap-2 border-t border-brand-100 pt-3">
                     <button
                       type="button"
                       onClick={() => confirmPayment.mutate(payment.id, {
@@ -989,10 +1056,10 @@ function PaymentTrackingContent({
                         onError: () => toast.error("Couldn't confirm — try again"),
                       })}
                       disabled={confirmPayment.isPending && confirmPayment.variables === payment.id}
-                      className={`flex-1 rounded-lg px-3 py-1.5 text-xs font-medium text-white transition-colors disabled:opacity-40 ${
+                      className={`flex-1 rounded-xl px-3 py-2 text-xs font-medium transition-all active:scale-[0.97] disabled:opacity-40 ${
                         status === "rejected"
-                          ? "bg-orange-500 hover:bg-orange-600"
-                          : "bg-green-600 hover:bg-green-700"
+                          ? "bg-amber-100 text-amber-900 hover:bg-amber-200"
+                          : "bg-green-100 text-green-800 hover:bg-green-200"
                       }`}
                     >
                       {confirmPayment.isPending && confirmPayment.variables === payment.id
@@ -1007,7 +1074,7 @@ function PaymentTrackingContent({
                           onError: () => toast.error("Couldn't reject — try again"),
                         })}
                         disabled={rejectPayment.isPending && rejectPayment.variables === payment.id}
-                        className="flex-1 rounded-lg border border-red-200 px-3 py-1.5 text-xs font-medium text-red-600 transition-colors hover:bg-red-50 disabled:opacity-40"
+                        className="flex-1 rounded-xl bg-red-100 px-3 py-2 text-xs font-medium text-red-700 transition-all hover:bg-red-200 active:scale-[0.97] disabled:opacity-40"
                       >
                         {rejectPayment.isPending && rejectPayment.variables === payment.id ? "..." : "Reject"}
                       </button>
@@ -1040,7 +1107,7 @@ function PaymentTrackingContent({
                           (nudgeMember.isPending && nudgeMember.variables === payment.memberId) ||
                           (nudgeCooldowns[payment.memberId] ?? 0) > now
                         }
-                        className="rounded-lg border border-purple-200 px-3 py-1.5 text-xs font-medium text-purple-600 transition-colors hover:bg-purple-50 disabled:opacity-40"
+                        className="rounded-xl bg-brand-700 px-4 py-2 text-xs font-medium text-cream-light transition-all hover:bg-brand-800 active:scale-[0.97] disabled:opacity-40"
                       >
                         {(nudgeCooldowns[payment.memberId] ?? 0) > now
                           ? `${Math.floor(((nudgeCooldowns[payment.memberId] ?? 0) - now) / 60000)}:${String(Math.floor((((nudgeCooldowns[payment.memberId] ?? 0) - now) % 60000) / 1000)).padStart(2, "0")}`
@@ -1051,9 +1118,10 @@ function PaymentTrackingContent({
                     )}
                   </div>
                 )}
-              </div>
+              </motion.div>
             );
           })}
+        </AnimatePresence>
       </div>
 
       {/* Back to Home */}
@@ -1061,7 +1129,7 @@ function PaymentTrackingContent({
         <button
           type="button"
           onClick={() => router.push("/login")}
-          className="rounded-full border border-gray-300 px-8 py-2.5 text-sm font-medium text-gray-800 transition-colors hover:bg-gray-50 active:bg-gray-100 md:px-10 md:py-3 md:text-base"
+          className="rounded-full bg-brand-700 px-10 py-3 text-sm font-medium text-cream-light transition-all hover:bg-brand-800 active:scale-[0.98] md:text-base"
         >
           Back to Home
         </button>

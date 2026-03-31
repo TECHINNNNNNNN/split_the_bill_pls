@@ -20,9 +20,10 @@ export interface PresenceUser {
 
 // ─── Color palette for cursors ───
 
+// Warm, muted tones — matches the café aesthetic
 const CURSOR_COLORS = [
-  "#E74C3C", "#3498DB", "#2ECC71", "#F39C12",
-  "#9B59B6", "#1ABC9C", "#E67E22", "#E91E63",
+  "#8B6914", "#B08A56", "#6D8B5E", "#C49A3C",
+  "#9B7A6E", "#6A8BA0", "#C47A5A", "#A06B7A",
 ];
 
 export function getCursorColor(memberId: string, members: { id: string }[]): string {

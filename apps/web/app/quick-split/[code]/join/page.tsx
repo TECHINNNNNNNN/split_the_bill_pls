@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useQuery } from "@tanstack/react-query";
 import { roomQueries } from "@/lib/queries/rooms";
 import { useJoinRoom } from "@/lib/mutations/rooms";
+import { Skeleton } from "@/components/skeleton";
 
 export default function JoinRoomPage({
   params,
@@ -40,8 +41,15 @@ export default function JoinRoomPage({
 
   if (isLoading) {
     return (
-      <div className="flex min-h-svh items-center justify-center">
-        <p className="text-gray-400">Loading...</p>
+      <div className="flex min-h-svh flex-col items-center justify-center px-6">
+        <div className="flex w-full max-w-sm flex-col items-center gap-6">
+          <div className="flex flex-col items-center gap-2">
+            <Skeleton className="h-8 w-36" />
+            <Skeleton className="h-4 w-44" />
+          </div>
+          <Skeleton className="h-12 w-full rounded-xl" />
+          <Skeleton className="h-12 w-32 rounded-full" />
+        </div>
       </div>
     );
   }
@@ -49,8 +57,8 @@ export default function JoinRoomPage({
   if (!room) {
     return (
       <div className="flex min-h-svh flex-col items-center justify-center px-6">
-        <p className="text-gray-800">Room not found</p>
-        <p className="mt-2 text-sm text-gray-500">
+        <p className="font-medium">Room not found</p>
+        <p className="mt-2 text-sm text-brand-400">
           This room may have expired or the code is invalid.
         </p>
       </div>
@@ -60,8 +68,8 @@ export default function JoinRoomPage({
   if (room.status !== "waiting") {
     return (
       <div className="flex min-h-svh flex-col items-center justify-center px-6">
-        <p className="text-gray-800">Room already started</p>
-        <p className="mt-2 text-sm text-gray-500">
+        <p className="font-medium">Room already started</p>
+        <p className="mt-2 text-sm text-brand-400">
           This room has already begun splitting. Ask the host to add you.
         </p>
       </div>
@@ -72,10 +80,10 @@ export default function JoinRoomPage({
     <div className="flex min-h-svh flex-col items-center justify-center px-6">
       <div className="flex w-full max-w-sm flex-col items-center gap-6">
         <div className="text-center">
-          <h1 className="font-heading text-2xl font-bold text-gray-800 md:text-3xl">
+          <h1 className="font-caveat text-4xl font-bold md:text-5xl">
             Join Room
           </h1>
-          <p className="mt-1 text-sm text-gray-500 md:text-base">
+          <p className="mt-2 font-serif text-sm italic text-brand-400 md:text-base">
             {room.name || `${room.hostName}'s bill split`}
           </p>
         </div>
@@ -83,7 +91,7 @@ export default function JoinRoomPage({
         <div className="flex w-full flex-col items-center gap-3">
           <label
             htmlFor="join-name"
-            className="text-sm font-medium text-gray-800 md:text-base"
+            className="font-caveat text-lg font-medium md:text-xl"
           >
             Your name
           </label>
@@ -93,7 +101,7 @@ export default function JoinRoomPage({
             value={name}
             onChange={(e) => setName(e.target.value)}
             placeholder="e.g. Opal"
-            className="w-full rounded-lg border border-gray-300 px-4 py-2.5 text-center text-sm text-gray-800 placeholder:text-gray-400 focus:border-gray-500 focus:outline-none md:py-3 md:text-base"
+            className="w-full rounded-xl border border-brand-200 bg-cream-light px-4 py-3 text-center text-sm placeholder:text-brand-300 focus:border-brand-400 focus:outline-none md:text-base"
             onKeyDown={(e) => {
               if (e.key === "Enter") handleJoin();
             }}
@@ -101,14 +109,14 @@ export default function JoinRoomPage({
         </div>
 
         {error && (
-          <p className="text-sm text-red-500">{error}</p>
+          <p className="text-sm text-error">{error}</p>
         )}
 
         <button
           type="button"
           onClick={handleJoin}
           disabled={!name.trim() || joinRoom.isPending}
-          className="rounded-full border border-gray-300 px-8 py-2.5 text-sm font-medium text-gray-800 transition-colors hover:bg-gray-50 active:bg-gray-100 disabled:opacity-40 md:px-10 md:py-3 md:text-base"
+          className="rounded-full bg-brand-700 px-10 py-3 text-sm font-medium text-cream-light transition-all hover:bg-brand-800 active:scale-[0.98] disabled:opacity-40 disabled:hover:bg-brand-700 md:text-base"
         >
           {joinRoom.isPending ? "Joining..." : "Join"}
         </button>

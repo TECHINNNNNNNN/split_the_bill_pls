@@ -34,7 +34,7 @@ export default function QuickSplitPage() {
         <div className="flex w-full flex-col items-center gap-3">
           <label
             htmlFor="name"
-            className="text-sm font-medium text-gray-800 md:text-base"
+            className="text-sm font-medium font-caveat md:text-2xl"
           >
             Your name
           </label>
@@ -44,7 +44,7 @@ export default function QuickSplitPage() {
             value={name}
             onChange={(e) => setName(e.target.value)}
             placeholder="e.g. Tun"
-            className="w-full rounded-lg border border-gray-300 px-4 py-2.5 text-center text-sm text-gray-800 placeholder:text-gray-400 focus:border-gray-500 focus:outline-none md:py-3 md:text-base"
+            className="w-full rounded-xl border border-brand-200 bg-cream-light px-4 py-3 text-center text-sm placeholder:text-brand-300 focus:border-brand-400 focus:outline-none md:text-base"
           />
         </div>
 
@@ -52,9 +52,9 @@ export default function QuickSplitPage() {
         <div className="flex w-full flex-col items-center gap-3">
           <label
             htmlFor="bill-name"
-            className="text-sm font-medium text-gray-800 md:text-base"
+            className="text-sm font-medium font-caveat md:text-2xl"
           >
-            Bill name <span className="font-normal text-gray-400">(optional)</span>
+            Bill name <span className="font-normal text-brand-300">(optional)</span>
           </label>
           <input
             id="bill-name"
@@ -62,13 +62,13 @@ export default function QuickSplitPage() {
             value={billName}
             onChange={(e) => setBillName(e.target.value)}
             placeholder="e.g. Thursday dinner"
-            className="w-full rounded-lg border border-gray-300 px-4 py-2.5 text-center text-sm text-gray-800 placeholder:text-gray-400 focus:border-gray-500 focus:outline-none md:py-3 md:text-base"
+            className="w-full rounded-xl border border-brand-200 bg-cream-light px-4 py-3 text-center text-sm placeholder:text-brand-300 focus:border-brand-400 focus:outline-none md:text-base"
           />
         </div>
 
         {/* Number of Splitters */}
         <div className="flex flex-col items-center gap-4">
-          <span className="text-sm font-medium text-gray-800 md:text-base">
+          <span className="text-sm font-medium md:text-base">
             Number of Splitters
           </span>
           <div className="flex items-center gap-8">
@@ -76,17 +76,17 @@ export default function QuickSplitPage() {
               type="button"
               onClick={() => setSplitters((s) => Math.max(1, s - 1))}
               disabled={splitters <= 1}
-              className="flex h-10 w-10 items-center justify-center rounded-full text-2xl text-gray-400 transition-colors hover:bg-gray-100 hover:text-gray-600 disabled:opacity-30 disabled:hover:bg-transparent md:h-12 md:w-12 md:text-3xl"
+              className="flex h-11 w-11 items-center justify-center rounded-full border border-brand-200 text-xl transition-all hover:border-brand-400 hover:bg-cream-light active:scale-95 disabled:opacity-30 disabled:hover:border-brand-200 disabled:hover:bg-transparent md:h-12 md:w-12 md:text-2xl"
             >
-              -
+              −
             </button>
-            <span className="min-w-[3rem] text-center font-heading text-4xl font-semibold text-gray-800 md:text-5xl">
+            <span className="min-w-[3rem] text-center font-heading text-4xl font-semibold md:text-5xl">
               {splitters}
             </span>
             <button
               type="button"
               onClick={() => setSplitters((s) => s + 1)}
-              className="flex h-10 w-10 items-center justify-center rounded-full text-2xl text-gray-600 transition-colors hover:bg-gray-100 md:h-12 md:w-12 md:text-3xl"
+              className="flex h-11 w-11 items-center justify-center rounded-full border border-brand-200 text-xl transition-all hover:border-brand-400 hover:bg-cream-light active:scale-95 md:h-12 md:w-12 md:text-2xl"
             >
               +
             </button>
@@ -100,7 +100,7 @@ export default function QuickSplitPage() {
           type="button"
           onClick={handleCreateRoom}
           disabled={!name.trim() || createRoom.isPending}
-          className="rounded-full border border-gray-300 px-8 py-2.5 text-sm font-medium text-gray-800 transition-colors hover:bg-gray-50 active:bg-gray-100 disabled:opacity-40 disabled:hover:bg-transparent md:px-10 md:py-3 md:text-base"
+          className="rounded-full bg-brand-700 px-10 py-3 text-sm font-medium text-cream-light transition-all hover:bg-brand-800 active:scale-[0.98] disabled:opacity-40 disabled:hover:bg-brand-700 md:text-base"
         >
           {createRoom.isPending ? "Creating..." : "Create Room"}
         </button>

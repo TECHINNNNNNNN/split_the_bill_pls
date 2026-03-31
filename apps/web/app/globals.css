@@ -1,8 +1,180 @@
 @import "tailwindcss";
 
+/* ─── Font tokens (resolved at runtime via next/font CSS vars) ─── */
 @theme inline {
   --font-body: var(--font-body);
   --font-heading: var(--font-heading);
+  --font-script: var(--font-script);
+  --font-caveat: var(--font-caveat);
+  --font-serif: var(--font-serif);
+}
+
+/* ─── Brand palette: warm cream / chocolate brown / café aesthetic ─── */
+@theme {
+  /* Primary — chocolate brown (buttons, toggles, active states) */
+  --color-brand-50:  #faf6f1;
+  --color-brand-100: #f0e6d8;
+  --color-brand-200: #e0ccb0;
+  --color-brand-300: #c9a97e;
+  --color-brand-400: #b08a56;
+  --color-brand-500: #8b6914;
+  --color-brand-600: #6d5220;
+  --color-brand-700: #5c3d2e;
+  --color-brand-800: #3d2810;
+  --color-brand-900: #241808;
+  --color-brand-950: #120c04;
+
+  /* Surface — warm cream tones */
+  --color-cream:      #f5f0eb;
+  --color-cream-light: #faf7f3;
+  --color-cream-dark:  #ede8e3;
+
+  /* Semantic — warmed versions of status colors */
+  --color-success: #4a9e6e;
+  --color-error:   #c75450;
+  --color-warning: #c49a3c;
+  --color-info:    #5a8fbf;
+}
+
+/* ─── Base styles ─── */
+body {
+  background-color: var(--color-cream);
+  color: var(--color-brand-800);
+}
+
+/* Subtle paper grain texture — barely visible, adds warmth */
+body::after {
+  content: '';
+  position: fixed;
+  inset: 0;
+  opacity: 0.20;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.82' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.45'/%3E%3C/svg%3E");
+  pointer-events: none;
+  z-index: 0;
+}
+
+/* ─── Page transitions ─── */
+::view-transition-old(root) {
+  animation: fade-out 0.25s ease-in forwards;
+}
+
+::view-transition-new(root) {
+  animation: fade-in 0.3s ease-out forwards;
+}
+
+@keyframes fade-out {
+  from { opacity: 1; transform: translateY(0); }
+  to { opacity: 0; transform: translateY(-8px); }
+}
+
+@keyframes fade-in {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+
+
+/* Hide scrollbar but keep scroll functionality */
+.scrollbar-hidden {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+.scrollbar-hidden::-webkit-scrollbar {
+  display: none;
+}
+
+/* Item card — gentle fade for manual adds */
+@keyframes item-fade {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.animate-item-fade {
+  animation: item-fade 0.3s ease-out both;
+}
+
+/* Item card — waterfall for batch adds (OCR/voice) */
+@keyframes item-waterfall {
+  from {
+    opacity: 0;
+    transform: translateY(16px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-item-waterfall {
+  animation: item-waterfall 0.4s ease-out both;
+}
+
+/* Page section waterfall entrance */
+@keyframes section-enter {
+  from {
+    opacity: 0;
+    transform: translateY(16px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-section {
+  animation: section-enter 0.5s ease-out both;
+}
+
+/* Skeleton shimmer — warm cream gradient sweep */
+@keyframes shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+.skeleton-shimmer {
+  background: linear-gradient(90deg, #ede8e3 25%, #f5f0eb 45%, #ede8e3 65%);
+  background-size: 200% 100%;
+  animation: shimmer 2.8s ease-in-out infinite;
+}
+
+/* Animated gradient border — rotating warm glow */
+@keyframes border-glow {
+  0%, 100% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+}
+
+.gradient-border {
+  position: relative;
+  isolation: isolate;
+}
+
+.gradient-border::before {
+  content: '';
+  position: absolute;
+  inset: -2px;
+  border-radius: 18px;
+  background: linear-gradient(135deg, #C4956A, #5c3d2e, #D4A5A5, #8B6914, #C4956A);
+  background-size: 300% 300%;
+  animation: border-glow 6s ease infinite;
+  z-index: -1;
+  opacity: 0.3;
+  transition: opacity 0.3s ease;
+}
+
+.gradient-border:hover::before {
+  opacity: 0.55;
+}
+
+/* Custom text selection — warm caramel instead of default blue */
+::selection {
+  background-color: #d4a574;
+  color: #3d2810;
+}
+
+/* Custom focus ring — warm brand instead of ugly blue */
+*:focus-visible {
+  outline: 2px solid #C4956A;
+  outline-offset: 2px;
 }
 
 /* Pointer cursor on all interactive elements */

@@ -11,6 +11,7 @@
   },
   "dependencies": {
     "@line/liff": "^2.27.3",
+    "@number-flow/react": "^0.6.0",
     "@pladuk/shared": "workspace:*",
     "@tanstack/react-query": "^5.90.21",
     "@tanstack/react-query-devtools": "^5.91.3",
@@ -21,7 +22,9 @@
     "clsx": "^2.1.1",
     "hono": "^4.12.3",
     "html2canvas": "^1.4.1",
+    "motion": "^12.38.0",
     "next": "16.1.6",
+    "next-view-transitions": "^0.3.5",
     "partysocket": "^1.1.16",
     "promptparse": "^1.5.0",
     "qrcode.react": "^4.2.0",

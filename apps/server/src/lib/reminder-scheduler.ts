@@ -165,6 +165,24 @@ async function checkAndSendReminders() {
     const trackingUrl = toLiffUrl(`${process.env.FRONTEND_URL || "https://pladuk.online"}/quick-split/${room.inviteCode}/tracking`)
 
     for (const payment of unpaidPayments) {
+      // Early exit: skip members with no reachable channel (no LINE, no push sub)
+      const hasLine = !!payment.member.lineUserId
+      let hasPush = false
+      if (!hasLine) {
+        const subs = await db.query.pushSubscriptions.findMany({
+          where: and(
+            eq(pushSubscriptions.memberId, payment.memberId),
+            eq(pushSubscriptions.roomId, room.id),
+          ),
+        })
+        hasPush = subs.length > 0
+      }
+
+      if (!hasLine && !hasPush) {
+        skipped++
+        continue // silently skip — no channel, no point iterating tiers
+      }
+
       const tiers = getTiersForAge(roomAge)
       for (const { tier, afterMs } of tiers) {
         if (roomAge < afterMs) continue
@@ -182,7 +200,7 @@ async function checkAndSendReminders() {
         let channel: "line" | "web-push" | null = null
 
         // 1. Try LINE first (if member has linked their LINE account)
-        if (payment.member.lineUserId) {
+        if (hasLine) {
           const flex = buildReminderFlex(
             tier,
             room.hostName,
@@ -191,40 +209,31 @@ async function checkAndSendReminders() {
             totalCount,
             trackingUrl,
           )
-          const lineSent = await sendLineMessage(payment.member.lineUserId, [flex])
+          const lineSent = await sendLineMessage(payment.member.lineUserId!, [flex])
           if (lineSent) {
             channel = "line"
           }
         }
 
-        // 2. Fallback to Web Push (if LINE didn't work or not available)
-        if (!channel) {
-          const subs = await db.query.pushSubscriptions.findMany({
-            where: and(
-              eq(pushSubscriptions.memberId, payment.memberId),
-              eq(pushSubscriptions.roomId, room.id),
-            ),
+        // 2. Fallback to Web Push
+        if (!channel && hasPush) {
+          const { title, body } = buildWebPushMessage(
+            tier,
+            room.hostName,
+            amount,
+            paidCount,
+            totalCount,
+          )
+          await sendPushToMember(payment.memberId, room.id, {
+            title,
+            body,
+            url: `/quick-split/${room.inviteCode}/tracking`,
+            tag: `reminder-${tier}-${payment.id}`,
           })
-
-          if (subs.length > 0) {
-            const { title, body } = buildWebPushMessage(
-              tier,
-              room.hostName,
-              amount,
-              paidCount,
-              totalCount,
-            )
-            await sendPushToMember(payment.memberId, room.id, {
-              title,
-              body,
-              url: `/quick-split/${room.inviteCode}/tracking`,
-              tag: `reminder-${tier}-${payment.id}`,
-            })
-            channel = "web-push"
-          }
+          channel = "web-push"
         }
 
-        // Log to prevent duplicate sends (only if we actually sent something)
+        // Log to prevent duplicate sends
         if (channel) {
           await db.insert(pushNotificationLog).values({
             paymentId: payment.id,
@@ -233,9 +242,6 @@ async function checkAndSendReminders() {
           })
           sent++
           console.log(`[reminders] ✓ Sent ${tier} via ${channel} to ${payment.member.displayName} (room ${room.inviteCode})`)
-        } else {
-          skipped++
-          console.log(`[reminders] ✗ Skipped ${tier} for ${payment.member.displayName} (room ${room.inviteCode}) — no LINE userId, no push sub`)
         }
       }
     }

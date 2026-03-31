@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import type { MemberSplit } from "@pladuk/shared/utils";
 
 export interface SectionBreakdown {
@@ -27,7 +28,17 @@ export function BreakdownModal({
   currentMemberId: string;
   isMultiSection: boolean;
 }) {
-  // Sort members: current user first, then by total descending
+  // Animate in on mount
+  const [visible, setVisible] = useState(false);
+  useEffect(() => {
+    requestAnimationFrame(() => setVisible(true));
+  }, []);
+
+  const handleClose = () => {
+    setVisible(false);
+    setTimeout(onClose, 280);
+  };
+
   const sortedMembers = [...members].sort((a, b) => {
     if (a.id === currentMemberId) return -1;
     if (b.id === currentMemberId) return 1;
@@ -39,36 +50,51 @@ export function BreakdownModal({
 
   return (
     <div className="fixed inset-0 z-50 flex items-end justify-center sm:items-center">
-      {/* Backdrop */}
-      <div className="fixed inset-0 bg-black/40" onClick={onClose} />
+      {/* Backdrop — fade in */}
+      <div
+        className="fixed inset-0 transition-opacity duration-300"
+        style={{
+          backgroundColor: "rgba(61, 40, 16, 0.35)",
+          opacity: visible ? 1 : 0,
+        }}
+        onClick={handleClose}
+      />
 
-      {/* Panel */}
-      <div className="relative max-h-[85svh] w-full max-w-md overflow-y-auto rounded-t-2xl bg-white px-5 pb-8 pt-5 sm:rounded-2xl">
+      {/* Panel — slide up + fade in with gentle spring feel */}
+      <div
+        className="scrollbar-hidden relative max-h-[85svh] w-full max-w-md overflow-y-auto rounded-t-2xl border-t border-brand-200 bg-cream px-5 pb-8 pt-5 shadow-lg transition-all duration-300 ease-out sm:rounded-2xl sm:border"
+        style={{
+          opacity: visible ? 1 : 0,
+          transform: visible ? "translateY(0)" : "translateY(24px)",
+        }}
+      >
+        {/* Drag indicator — mobile sheet feel */}
+        <div className="mx-auto mb-4 h-1 w-10 rounded-full bg-brand-200 sm:hidden" />
+
         {/* Header */}
         <div className="flex items-center justify-between">
-          <h2 className="font-heading text-lg font-semibold text-gray-800">
+          <h2 className="font-caveat text-2xl font-semibold">
             Calculation Breakdown
           </h2>
           <button
             type="button"
-            onClick={onClose}
-            className="rounded-full p-1 text-gray-400 transition-colors hover:bg-gray-100 hover:text-gray-600"
+            onClick={handleClose}
+            className="rounded-full p-1.5 text-brand-300 transition-colors hover:bg-brand-50 hover:text-brand-600"
           >
             <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
             </svg>
           </button>
         </div>
-        <p className="mt-1 text-xs text-gray-400">
+        <p className="mt-1 font-serif text-xs italic text-brand-300">
           Updates live as the bill changes
         </p>
 
         {/* Member breakdowns */}
         <div className="mt-4 flex flex-col gap-4">
-          {sortedMembers.map((member) => {
+          {sortedMembers.map((member, memberIndex) => {
             const isCurrentUser = member.id === currentMemberId;
 
-            // Gather this member's splits across all sections
             const memberSections = sectionBreakdowns
               .map((bd) => {
                 const split = bd.splits.find((s) => s.memberId === member.id);
@@ -81,34 +107,39 @@ export function BreakdownModal({
             return (
               <div
                 key={member.id}
-                className={`rounded-xl border p-4 ${
+                className={`rounded-2xl border p-4 transition-all duration-300 ease-out ${
                   isCurrentUser
-                    ? "border-gray-800 bg-gray-50"
-                    : "border-gray-200"
+                    ? "border-brand-700 bg-cream-light shadow-sm"
+                    : "border-brand-200 bg-cream-light"
                 }`}
+                style={{
+                  opacity: visible ? 1 : 0,
+                  transform: visible ? "translateY(0)" : "translateY(12px)",
+                  transitionDelay: `${150 + memberIndex * 60}ms`,
+                }}
               >
                 {/* Member name header */}
                 <div className="flex items-center gap-2">
-                  <h3 className="font-heading text-sm font-semibold text-gray-800">
+                  <h3 className="font-caveat text-lg font-semibold">
                     {member.displayName}
                   </h3>
                   {member.isHost && (
-                    <span className="rounded-full bg-gray-200 px-1.5 py-0.5 text-[10px] font-medium text-gray-500">host</span>
+                    <span className="rounded-full bg-brand-100 px-2 py-0.5 text-[10px] font-medium text-brand-500">host</span>
                   )}
                   {isCurrentUser && (
-                    <span className="rounded-full bg-gray-800 px-1.5 py-0.5 text-[10px] font-medium text-white">you</span>
+                    <span className="rounded-full bg-brand-700 px-2 py-0.5 text-[10px] font-medium text-cream-light">you</span>
                   )}
                 </div>
 
                 {memberSections.length === 0 ? (
-                  <p className="mt-2 text-xs text-gray-400">No items assigned</p>
+                  <p className="mt-2 font-caveat text-sm text-brand-300">No items assigned</p>
                 ) : (
                   <div className="mt-3 flex flex-col gap-3">
                     {memberSections.map(({ breakdown: bd, split }, si) => (
                       <div key={si}>
                         {/* Section name (multi-section only) */}
                         {isMultiSection && (
-                          <p className="mb-1.5 text-xs font-medium uppercase tracking-wide text-gray-400">
+                          <p className="mb-1.5 text-xs font-medium uppercase tracking-wide text-brand-300">
                             {bd.sectionName}
                           </p>
                         )}
@@ -120,18 +151,18 @@ export function BreakdownModal({
                             return (
                               <div key={item.itemId} className="flex items-baseline justify-between gap-2">
                                 <div className="min-w-0 flex-1">
-                                  <span className="text-xs text-gray-700">{item.name}</span>
-                                  <span className="ml-1 text-[10px] text-gray-400">
+                                  <span className="text-xs">{item.name}</span>
+                                  <span className="ml-1 text-[10px] text-brand-300">
                                     {claimerCount === 1 ? "(only you)" : `(÷${claimerCount})`}
                                   </span>
                                 </div>
                                 <div className="shrink-0 text-right">
                                   {claimerCount > 1 && (
-                                    <span className="text-[10px] tabular-nums text-gray-400">
+                                    <span className="text-[10px] tabular-nums text-brand-300">
                                       {fmt(item.shareAmount * claimerCount)} ÷ {claimerCount} ={" "}
                                     </span>
                                   )}
-                                  <span className="text-xs tabular-nums font-medium text-gray-700">
+                                  <span className="text-xs tabular-nums font-medium">
                                     {fmt(item.shareAmount)}
                                   </span>
                                 </div>
@@ -141,16 +172,16 @@ export function BreakdownModal({
                         </div>
 
                         {/* Items subtotal */}
-                        <div className="mt-1.5 flex items-center justify-between border-t border-dashed border-gray-200 pt-1.5">
-                          <span className="text-[10px] text-gray-400">Items subtotal</span>
-                          <span className="text-xs tabular-nums font-medium text-gray-700">{fmt(split.itemsSubtotal)}</span>
+                        <div className="mt-1.5 flex items-center justify-between border-t border-dashed border-brand-200 pt-1.5">
+                          <span className="text-[10px] text-brand-400">Items subtotal</span>
+                          <span className="text-xs tabular-nums font-medium">{fmt(split.itemsSubtotal)}</span>
                         </div>
 
                         {/* Proportion */}
                         {bd.subtotal > 0 && (
                           <div className="mt-1 flex items-center justify-between">
-                            <span className="text-[10px] text-gray-400">Your proportion</span>
-                            <span className="text-[10px] tabular-nums text-gray-400">
+                            <span className="text-[10px] text-brand-300">Your proportion</span>
+                            <span className="text-[10px] tabular-nums text-brand-300">
                               {fmt(split.itemsSubtotal)} / {fmt(bd.subtotal)} = {pct(split.proportion)}
                             </span>
                           </div>
@@ -159,33 +190,33 @@ export function BreakdownModal({
                         {/* Extras */}
                         {(split.discountShare > 0 || split.serviceChargeShare > 0 || split.vatShare > 0) && (
                           <div className="mt-2 space-y-0.5">
-                            <p className="text-[10px] font-medium uppercase tracking-wide text-gray-400">Extras</p>
+                            <p className="text-[10px] font-medium uppercase tracking-wide text-brand-300">Extras</p>
                             {split.discountShare > 0 && (
                               <div className="flex items-center justify-between">
-                                <span className="text-[10px] text-gray-400">
+                                <span className="text-[10px] text-brand-300">
                                   Discount: {fmt(bd.discountAmount)} × {pct(split.proportion)}
                                 </span>
-                                <span className="text-xs tabular-nums font-medium text-green-600">
+                                <span className="text-xs tabular-nums font-medium text-success">
                                   -{fmt(split.discountShare)}
                                 </span>
                               </div>
                             )}
                             {split.serviceChargeShare > 0 && (
                               <div className="flex items-center justify-between">
-                                <span className="text-[10px] text-gray-400">
+                                <span className="text-[10px] text-brand-300">
                                   SC: {fmt(bd.serviceChargeAmount)} × {pct(split.proportion)}
                                 </span>
-                                <span className="text-xs tabular-nums font-medium text-gray-500">
+                                <span className="text-xs tabular-nums font-medium text-brand-400">
                                   +{fmt(split.serviceChargeShare)}
                                 </span>
                               </div>
                             )}
                             {split.vatShare > 0 && (
                               <div className="flex items-center justify-between">
-                                <span className="text-[10px] text-gray-400">
+                                <span className="text-[10px] text-brand-300">
                                   VAT: {fmt(bd.vatAmount)} × {pct(split.proportion)}
                                 </span>
-                                <span className="text-xs tabular-nums font-medium text-gray-500">
+                                <span className="text-xs tabular-nums font-medium text-brand-400">
                                   +{fmt(split.vatShare)}
                                 </span>
                               </div>
@@ -195,26 +226,26 @@ export function BreakdownModal({
 
                         {/* Section total (multi-section) */}
                         {isMultiSection && (
-                          <div className="mt-1.5 flex items-center justify-between border-t border-gray-200 pt-1.5">
-                            <span className="text-xs text-gray-600">Section total</span>
-                            <span className="text-xs tabular-nums font-semibold text-gray-800">{fmt(split.totalAmount)}</span>
+                          <div className="mt-1.5 flex items-center justify-between border-t border-brand-200 pt-1.5">
+                            <span className="text-xs text-brand-500">Section total</span>
+                            <span className="text-xs tabular-nums font-semibold">{fmt(split.totalAmount)}</span>
                           </div>
                         )}
                       </div>
                     ))}
 
                     {/* Grand total */}
-                    <div className={`flex items-center justify-between ${isMultiSection ? "border-t-2 border-gray-800 pt-2" : "border-t border-gray-200 pt-1.5"}`}>
-                      <span className="text-sm font-medium text-gray-800">Total</span>
-                      <span className="text-sm tabular-nums font-bold text-gray-800">{fmt(grandTotal)}</span>
+                    <div className={`flex items-center justify-between ${isMultiSection ? "border-t-2 border-brand-700 pt-2" : "border-t border-brand-200 pt-1.5"}`}>
+                      <span className="text-sm font-medium">Total</span>
+                      <span className="text-sm tabular-nums font-bold">{fmt(grandTotal)}</span>
                     </div>
 
-                    {/* Rounding note for last person */}
+                    {/* Rounding note */}
                     {memberSections.some(({ breakdown: bd }) => {
                       const lastSplit = bd.splits[bd.splits.length - 1];
                       return lastSplit?.memberId === member.id && Math.abs(bd.roundingDifference) >= 0.005;
                     }) && (
-                      <p className="text-[10px] text-gray-400">
+                      <p className="font-caveat text-xs text-brand-300">
                         * Includes rounding adjustment (±฿0.01)
                       </p>
                     )}

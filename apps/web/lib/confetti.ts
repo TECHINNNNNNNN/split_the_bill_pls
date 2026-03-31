@@ -2,35 +2,69 @@ import confetti from "canvas-confetti";
 
 /**
  * Celebration burst — fires when all payments are confirmed.
- * Colors/shapes are placeholders — swap during design polish phase.
+ * Warm café palette with gentle, floaty particles.
  */
 export function fireAllPaidConfetti() {
-  const duration = 2500;
-  const end = Date.now() + duration;
+  const colors = [
+    "#5c3d2e",  // chocolate brown
+    "#C4956A",  // warm gold
+    "#D4A5A5",  // blush pink
+    "#B5C7A3",  // sage green
+    "#E8C8A0",  // soft caramel
+    "#f5e6d0",  // cream
+  ];
 
-  const frame = () => {
-    // Left cannon
+  // Big center burst — slow, floaty
+  confetti({
+    particleCount: 80,
+    spread: 100,
+    origin: { y: 0.6 },
+    colors,
+    gravity: 0.5,
+    scalar: 1.3,
+    drift: 0,
+    ticks: 300,
+    shapes: ["circle"],
+  });
+
+  // Delayed second burst — wider, softer
+  setTimeout(() => {
     confetti({
-      particleCount: 3,
+      particleCount: 50,
+      spread: 120,
+      origin: { y: 0.5 },
+      colors,
+      gravity: 0.4,
+      scalar: 1.5,
+      drift: 0.5,
+      ticks: 350,
+      shapes: ["circle"],
+    });
+  }, 400);
+
+  // Gentle side sprinkles
+  setTimeout(() => {
+    confetti({
+      particleCount: 30,
       angle: 60,
-      spread: 55,
-      origin: { x: 0, y: 0.7 },
-      colors: ["#22c55e", "#3b82f6", "#f59e0b", "#ec4899"],
+      spread: 50,
+      origin: { x: 0.1, y: 0.7 },
+      colors,
+      gravity: 0.6,
+      scalar: 1.1,
+      ticks: 250,
+      shapes: ["circle"],
     });
-
-    // Right cannon
     confetti({
-      particleCount: 3,
+      particleCount: 30,
       angle: 120,
-      spread: 55,
-      origin: { x: 1, y: 0.7 },
-      colors: ["#22c55e", "#3b82f6", "#f59e0b", "#ec4899"],
+      spread: 50,
+      origin: { x: 0.9, y: 0.7 },
+      colors,
+      gravity: 0.6,
+      scalar: 1.1,
+      ticks: 250,
+      shapes: ["circle"],
     });
-
-    if (Date.now() < end) {
-      requestAnimationFrame(frame);
-    }
-  };
-
-  frame();
+  }, 200);
 }

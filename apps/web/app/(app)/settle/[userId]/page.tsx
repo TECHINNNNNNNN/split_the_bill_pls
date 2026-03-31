@@ -11,6 +11,7 @@ import { useClaimSettlement } from "@/lib/mutations/settlements";
 import { useSlipScanner } from "@/lib/hooks/use-slip-scanner";
 import type { SlipScanOutput } from "@/lib/hooks/use-slip-scanner";
 import { useWakeLock } from "@/lib/hooks/use-wake-lock";
+import { Skeleton } from "@/components/skeleton";
 
 export default function SettlePage({
   params,
@@ -31,13 +32,16 @@ export default function SettlePage({
 
   const balance = balancesData?.balances.find((b) => b.otherUserId === otherUserId);
 
-  // Keep screen awake while QR code is showing
   useWakeLock(!!balance && balance.netAmount > 0 && !!balance.otherUserPromptpayId);
 
   if (isLoading) {
     return (
-      <div className="flex min-h-[50vh] items-center justify-center">
-        <p className="text-gray-400">Loading...</p>
+      <div className="flex flex-col gap-6">
+        <Skeleton className="h-4 w-16" />
+        <Skeleton className="h-9 w-32" />
+        <Skeleton className="h-24 rounded-2xl" />
+        <Skeleton className="h-64 rounded-2xl" />
+        <Skeleton className="h-12 rounded-full" />
       </div>
     );
   }
@@ -45,11 +49,11 @@ export default function SettlePage({
   if (!balance || balance.netAmount <= 0) {
     return (
       <div className="flex min-h-[50vh] flex-col items-center justify-center gap-3">
-        <p className="text-gray-500">No outstanding balance with this person.</p>
+        <p className="font-caveat text-xl text-brand-400">No outstanding balance with this person.</p>
         <button
           type="button"
-          onClick={() => router.back()}
-          className="text-sm text-gray-400 hover:text-gray-800"
+          onClick={() => router.push("/home")}
+          className="rounded-full bg-brand-700 px-8 py-2.5 text-sm font-medium text-cream-light transition-all hover:bg-brand-800 active:scale-[0.98]"
         >
           Go back
         </button>
@@ -57,7 +61,6 @@ export default function SettlePage({
     );
   }
 
-  // Generate PromptPay QR if the other user has a PromptPay ID
   const qrPayload = balance.otherUserPromptpayId
     ? anyId({
         type: balance.otherUserPromptpayType === "national_id" ? "NATID" : "MSISDN",
@@ -68,7 +71,6 @@ export default function SettlePage({
 
   const handleSlipUpload = async (file: File) => {
     try {
-      // useSlipScanner handles compression internally
       const result = await slipScanner.scanSlip(file);
       if (result) {
         setSlipPreview(result.slipImage);
@@ -103,87 +105,90 @@ export default function SettlePage({
       <div>
         <button
           type="button"
-          onClick={() => router.back()}
-          className="text-sm text-gray-500 hover:text-gray-800"
+          onClick={() => router.push("/home")}
+          className="flex items-center gap-1 text-sm text-brand-400 hover:text-brand-700"
         >
+          <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+          </svg>
           Back
         </button>
-        <h1 className="font-heading text-2xl font-bold text-gray-800">Settle Up</h1>
+        <h1 className="mt-1 font-caveat text-3xl font-bold">Settle Up</h1>
       </div>
 
       {/* Summary */}
-      <div className="rounded-xl border border-gray-200 p-4">
+      <div className="rounded-2xl border border-brand-200 bg-cream-light p-4 shadow-sm">
         <div className="flex items-center gap-3">
           {balance.otherUserImage ? (
             // eslint-disable-next-line @next/next/no-img-element
             <img
               src={balance.otherUserImage}
               alt={balance.otherUserName}
-              className="h-12 w-12 rounded-full object-cover"
+              className="h-12 w-12 rounded-full border-2 border-brand-200 object-cover"
             />
           ) : (
-            <div className="flex h-12 w-12 items-center justify-center rounded-full bg-gray-200 text-lg font-bold text-gray-500">
+            <div className="flex h-12 w-12 items-center justify-center rounded-full border-2 border-brand-200 bg-brand-50 font-caveat text-lg font-bold text-brand-600">
               {balance.otherUserName.charAt(0).toUpperCase()}
             </div>
           )}
           <div>
-            <p className="font-medium text-gray-800">{balance.otherUserName}</p>
-            <p className="text-xs text-gray-400">
+            <p className="font-caveat text-lg font-medium">{balance.otherUserName}</p>
+            <p className="text-xs text-brand-300">
               Across {balance.roomCount} room{balance.roomCount > 1 ? "s" : ""}
             </p>
           </div>
         </div>
 
         {/* Breakdown */}
-        <div className="mt-4 space-y-1 rounded-lg bg-gray-50 px-3 py-2 text-sm">
+        <div className="mt-4 space-y-1 rounded-xl bg-cream px-3 py-2 text-sm">
           {balance.youOwe > 0 && (
-            <div className="flex justify-between text-gray-600">
+            <div className="flex justify-between text-brand-500">
               <span>You owe them</span>
-              <span>฿{balance.youOwe.toFixed(2)}</span>
+              <span className="tabular-nums">฿{balance.youOwe.toFixed(2)}</span>
             </div>
           )}
           {balance.theyOwe > 0 && (
-            <div className="flex justify-between text-gray-600">
+            <div className="flex justify-between text-brand-500">
               <span>They owe you</span>
-              <span>-฿{balance.theyOwe.toFixed(2)}</span>
+              <span className="tabular-nums">-฿{balance.theyOwe.toFixed(2)}</span>
             </div>
           )}
-          <div className="flex justify-between border-t border-gray-200 pt-1 font-semibold text-gray-800">
+          <div className="flex justify-between border-t border-brand-200 pt-1 font-semibold">
             <span>Net amount</span>
-            <span>฿{balance.netAmount.toFixed(2)}</span>
+            <span className="tabular-nums">฿{balance.netAmount.toFixed(2)}</span>
           </div>
         </div>
       </div>
 
       {/* PromptPay QR */}
       {qrPayload ? (
-        <div className="flex flex-col items-center rounded-xl border border-gray-200 p-5">
-          <p className="text-sm font-medium text-gray-800">
+        <div className="flex flex-col items-center rounded-2xl border border-brand-200 bg-cream-light p-5 shadow-sm">
+          <p className="font-serif text-sm italic text-brand-400">
             Scan to pay {balance.otherUserName}
           </p>
-          <div className="mt-3 rounded-lg bg-white p-2">
-            <QRCodeSVG value={qrPayload} size={200} />
+          <div className="mt-3 rounded-xl border border-brand-100 bg-cream-light p-3">
+            <QRCodeSVG value={qrPayload} size={200} fgColor="#3d2810" bgColor="transparent" />
           </div>
-          <p className="mt-3 text-2xl font-bold text-gray-800">
+          <p className="mt-3 font-caveat text-3xl font-bold">
             ฿{balance.netAmount.toFixed(2)}
           </p>
-          <p className="mt-1 text-xs text-gray-400">via PromptPay</p>
+          <p className="mt-1 text-xs text-brand-300">via PromptPay</p>
         </div>
       ) : (
-        <div className="rounded-xl border border-dashed border-gray-300 p-5 text-center">
-          <p className="text-sm text-gray-500">
+        <div className="rounded-2xl border border-dashed border-brand-300 bg-cream-light p-5 text-center shadow-sm">
+          <p className="text-sm text-brand-500">
             {balance.otherUserName} hasn&apos;t set up PromptPay yet.
           </p>
-          <p className="mt-1 text-xs text-gray-400">
+          <p className="mt-1 font-serif text-xs italic text-brand-300">
             Transfer manually and upload your slip below.
           </p>
         </div>
       )}
 
       {/* Slip upload */}
-      <div className="rounded-xl border border-gray-200 p-4">
-        <p className="text-sm font-medium text-gray-800">Upload transfer slip</p>
-        <p className="mt-1 text-xs text-gray-400">Optional — helps verify the payment.</p>
+      <div className="rounded-2xl border border-brand-200 bg-cream-light p-4 shadow-sm">
+        <p className="font-caveat text-lg font-medium">Upload transfer slip</p>
+        <p className="mt-1 font-serif text-xs italic text-brand-300">Optional — helps verify the payment.</p>
 
         <input
           ref={fileInputRef}
@@ -203,17 +208,17 @@ export default function SettlePage({
             <img
               src={slipPreview}
               alt="Transfer slip"
-              className="max-h-48 w-full rounded-lg object-contain"
+              className="max-h-48 w-full rounded-xl object-contain"
             />
             {scanResult?.slipData?.transRef && (
-              <p className="mt-2 text-xs text-green-600">
+              <p className="mt-2 text-xs text-success">
                 QR detected — transaction ref: {scanResult.slipData.transRef}
               </p>
             )}
             <button
               type="button"
               onClick={() => { setSlipPreview(null); setScanResult(null); }}
-              className="mt-2 text-xs text-gray-400 hover:text-gray-600"
+              className="mt-2 text-xs text-brand-300 hover:text-brand-500"
             >
               Remove
             </button>
@@ -222,7 +227,7 @@ export default function SettlePage({
           <button
             type="button"
             onClick={() => fileInputRef.current?.click()}
-            className="mt-3 w-full rounded-lg border border-dashed border-gray-300 px-4 py-3 text-sm text-gray-500 transition-colors hover:border-gray-400 hover:bg-gray-50"
+            className="mt-3 w-full rounded-xl border border-dashed border-brand-300 bg-cream px-4 py-3 text-sm text-brand-400 transition-all hover:border-brand-400 hover:bg-cream-light active:scale-[0.99]"
           >
             Tap to upload slip
           </button>
@@ -234,7 +239,7 @@ export default function SettlePage({
         type="button"
         onClick={handleSettle}
         disabled={settling}
-        className="rounded-full bg-gray-800 px-8 py-3 text-sm font-medium text-white transition-colors hover:bg-gray-700 disabled:opacity-40"
+        className="rounded-full bg-brand-700 px-8 py-3 text-sm font-medium text-cream-light transition-all hover:bg-brand-800 active:scale-[0.98] disabled:opacity-40"
       >
         {settling
           ? "Claiming..."
