@@ -44,6 +44,10 @@ export const metadata: Metadata = {
   title: "PlaDuk — หารบิลง่ายๆ",
   description: "Split bills with friends. No app download needed.",
   manifest: "/manifest.json",
+  icons: {
+    icon: "/icon.svg",
+    apple: "/icon.svg",
+  },
 };
 
 export const viewport: Viewport = {
