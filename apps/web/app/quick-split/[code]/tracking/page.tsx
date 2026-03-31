@@ -675,7 +675,7 @@ function PaymentTrackingContent({
               });
             }}
             disabled={nudgeAll.isPending || globalNudgeCooldown > now}
-            className="flex w-full items-center justify-center gap-2 rounded-2xl border border-brand-200 bg-cream-light px-4 py-3 text-sm font-medium text-brand-600 shadow-sm transition-all hover:bg-cream active:scale-[0.98] disabled:opacity-40"
+            className="flex w-full items-center justify-center gap-2 rounded-2xl border border-brand-300 bg-brand-50 px-4 py-3 font-caveat text-base font-medium text-brand-700 shadow-sm transition-all hover:bg-brand-100 active:scale-[0.98] disabled:opacity-40"
           >
             <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
@@ -689,8 +689,18 @@ function PaymentTrackingContent({
 
       {/* LINE users: reminders sent automatically via LINE Official Account */}
       {push.isLiff && currentMemberId && (
-        <div className="mt-4 flex items-center gap-2 rounded-2xl border border-brand-200 bg-cream-light px-4 py-2.5">
-          <span className="font-caveat text-base text-success">Reminders enabled via LINE</span>
+        <div className="mt-4 flex items-center gap-3 rounded-2xl border border-brand-200 bg-cream-light px-4 py-3">
+          <svg className="h-5 w-5 shrink-0 text-brand-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M12 2C10 2 8.5 3.5 8.5 5.5C8.5 5.5 5 7.5 5 13C5 15 3.5 16 3.5 16H20.5C20.5 16 19 15 19 13C19 7.5 15.5 5.5 15.5 5.5C15.5 3.5 14 2 12 2Z" />
+            <path d="M9.5 16C9.5 17.38 10.62 19 12 19C13.38 19 14.5 17.38 14.5 16" />
+            <circle cx="12" cy="2" r="0.5" fill="currentColor" stroke="none" />
+            <path d="M7 4.5C5.5 3.5 4.5 4 4 4.5" strokeDasharray="2 2" />
+            <path d="M17 4.5C18.5 3.5 19.5 4 20 4.5" strokeDasharray="2 2" />
+          </svg>
+          <div>
+            <p className="font-caveat text-base font-medium text-success">Reminders enabled via LINE</p>
+            <p className="text-xs text-brand-300">We&apos;ll nudge unpaid members automatically</p>
+          </div>
         </div>
       )}
 
@@ -737,8 +747,18 @@ function PaymentTrackingContent({
       )}
 
       {push.isSupported && push.permission === "granted" && (
-        <div className="mt-4 rounded-2xl border border-brand-200 bg-cream-light px-4 py-2.5">
-          <span className="font-caveat text-base text-success">Reminders enabled</span>
+        <div className="mt-4 flex items-center gap-3 rounded-2xl border border-brand-200 bg-cream-light px-4 py-3">
+          <svg className="h-5 w-5 shrink-0 text-brand-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M12 2C10 2 8.5 3.5 8.5 5.5C8.5 5.5 5 7.5 5 13C5 15 3.5 16 3.5 16H20.5C20.5 16 19 15 19 13C19 7.5 15.5 5.5 15.5 5.5C15.5 3.5 14 2 12 2Z" />
+            <path d="M9.5 16C9.5 17.38 10.62 19 12 19C13.38 19 14.5 17.38 14.5 16" />
+            <circle cx="12" cy="2" r="0.5" fill="currentColor" stroke="none" />
+            <path d="M7 4.5C5.5 3.5 4.5 4 4 4.5" strokeDasharray="2 2" />
+            <path d="M17 4.5C18.5 3.5 19.5 4 20 4.5" strokeDasharray="2 2" />
+          </svg>
+          <div>
+            <p className="font-caveat text-base font-medium text-success">Reminders enabled</p>
+            <p className="text-xs text-brand-300">We&apos;ll send a gentle nudge if someone forgets</p>
+          </div>
         </div>
       )}
 
@@ -989,10 +1009,10 @@ function PaymentTrackingContent({
                         onError: () => toast.error("Couldn't confirm — try again"),
                       })}
                       disabled={confirmPayment.isPending && confirmPayment.variables === payment.id}
-                      className={`flex-1 rounded-xl px-3 py-2 text-xs font-medium text-cream-light transition-all active:scale-[0.97] disabled:opacity-40 ${
+                      className={`flex-1 rounded-xl px-3 py-2 text-xs font-medium transition-all active:scale-[0.97] disabled:opacity-40 ${
                         status === "rejected"
-                          ? "bg-orange-500 hover:bg-orange-600"
-                          : "bg-green-600 hover:bg-green-700"
+                          ? "bg-amber-100 text-amber-800 hover:bg-amber-200"
+                          : "bg-green-100 text-green-800 hover:bg-green-200"
                       }`}
                     >
                       {confirmPayment.isPending && confirmPayment.variables === payment.id
@@ -1007,7 +1027,7 @@ function PaymentTrackingContent({
                           onError: () => toast.error("Couldn't reject — try again"),
                         })}
                         disabled={rejectPayment.isPending && rejectPayment.variables === payment.id}
-                        className="flex-1 rounded-xl border border-red-200 px-3 py-1.5 text-xs font-medium text-red-600 transition-colors hover:bg-red-50 disabled:opacity-40"
+                        className="flex-1 rounded-xl bg-red-100 px-3 py-2 text-xs font-medium text-red-700 transition-all hover:bg-red-200 active:scale-[0.97] disabled:opacity-40"
                       >
                         {rejectPayment.isPending && rejectPayment.variables === payment.id ? "..." : "Reject"}
                       </button>
@@ -1040,7 +1060,7 @@ function PaymentTrackingContent({
                           (nudgeMember.isPending && nudgeMember.variables === payment.memberId) ||
                           (nudgeCooldowns[payment.memberId] ?? 0) > now
                         }
-                        className="rounded-xl border border-purple-200 px-3 py-1.5 text-xs font-medium text-purple-600 transition-colors hover:bg-purple-50 disabled:opacity-40"
+                        className="rounded-xl border border-brand-200 bg-brand-50 px-3 py-2 text-xs font-medium text-brand-600 transition-all hover:bg-brand-100 active:scale-[0.97] disabled:opacity-40"
                       >
                         {(nudgeCooldowns[payment.memberId] ?? 0) > now
                           ? `${Math.floor(((nudgeCooldowns[payment.memberId] ?? 0) - now) / 60000)}:${String(Math.floor((((nudgeCooldowns[payment.memberId] ?? 0) - now) % 60000) / 1000)).padStart(2, "0")}`
