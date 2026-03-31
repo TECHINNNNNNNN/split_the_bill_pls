@@ -38,7 +38,7 @@ export default function SettingsPage() {
       <div>
         <button
           type="button"
-          onClick={() => router.back()}
+          onClick={() => router.push("/home")}
           className="text-sm text-gray-500 hover:text-gray-800"
         >
           Back

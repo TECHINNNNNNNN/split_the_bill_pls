@@ -48,7 +48,7 @@ export default function SettlePage({
         <p className="text-gray-500">No outstanding balance with this person.</p>
         <button
           type="button"
-          onClick={() => router.back()}
+          onClick={() => router.push("/home")}
           className="text-sm text-gray-400 hover:text-gray-800"
         >
           Go back
@@ -103,7 +103,7 @@ export default function SettlePage({
       <div>
         <button
           type="button"
-          onClick={() => router.back()}
+          onClick={() => router.push("/home")}
           className="text-sm text-gray-500 hover:text-gray-800"
         >
           Back

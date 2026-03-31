@@ -32,7 +32,7 @@ export default function SettlementDetailPage({
     return (
       <div className="flex min-h-[50vh] flex-col items-center justify-center gap-3">
         <p className="text-gray-500">Settlement not found.</p>
-        <button type="button" onClick={() => router.back()} className="text-sm text-gray-400 hover:text-gray-800">
+        <button type="button" onClick={() => router.push("/home")} className="text-sm text-gray-400 hover:text-gray-800">
           Go back
         </button>
       </div>
@@ -71,7 +71,7 @@ export default function SettlementDetailPage({
     <div className="flex flex-col gap-6">
       {/* Header */}
       <div>
-        <button type="button" onClick={() => router.back()} className="text-sm text-gray-500 hover:text-gray-800">
+        <button type="button" onClick={() => router.push("/home")} className="text-sm text-gray-500 hover:text-gray-800">
           Back
         </button>
         <h1 className="font-heading text-2xl font-bold text-gray-800">Settlement</h1>
