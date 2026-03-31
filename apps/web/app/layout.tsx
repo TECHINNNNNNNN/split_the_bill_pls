@@ -67,7 +67,7 @@ export default function RootLayout({
         <Toaster
           position="top-center"
           richColors
-          duration={60000}
+          duration={3000}
           toastOptions={{
             style: {
               background: "#3d2810",
@@ -79,7 +79,7 @@ export default function RootLayout({
               boxShadow: "0 8px 30px rgba(61,40,16,0.25)",
             },
             classNames: {
-              toast: "!justify-center !w-fit !left-1/2 !-translate-x-1/2",
+              toast: "!justify-center !w-max !max-w-[90vw] !left-1/2 !-translate-x-1/2",
             },
           }}
         />
