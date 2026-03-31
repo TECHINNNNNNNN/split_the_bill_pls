@@ -26,6 +26,7 @@ import { fireAllPaidConfetti } from "@/lib/confetti";
 import { Skeleton } from "@/components/skeleton";
 import { useDynamicFavicon } from "@/lib/hooks/use-dynamic-favicon";
 import { Baht } from "@/components/baht";
+import { motion, AnimatePresence } from "motion/react";
 import type { PaymentStatus } from "@/components/tracking/constants";
 
 // ─── Main component ───
@@ -798,8 +799,13 @@ function PaymentTrackingContent({
 
       {/* Member payment cards */}
       <div className="mt-2 space-y-2">
-        {payments
+        <AnimatePresence>
+        {[...payments]
           .filter((p) => p.memberId !== hostMember?.id)
+          .sort((a, b) => {
+            const order: Record<string, number> = { unpaid: 0, rejected: 1, claimed: 2, confirmed: 3 };
+            return (order[a.status] ?? 0) - (order[b.status] ?? 0);
+          })
           .map((payment) => {
             const status = payment.status as PaymentStatus;
             const config = statusConfig[status];
@@ -816,8 +822,14 @@ function PaymentTrackingContent({
             );
 
             return (
-              <div
+              <motion.div
                 key={payment.id}
+                layout
+                layoutId={payment.id}
+                initial={{ opacity: 0, y: 12 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, scale: 0.95 }}
+                transition={{ type: "spring", stiffness: 400, damping: 30 }}
                 className="rounded-2xl border border-brand-200 bg-cream-light p-4 shadow-sm"
               >
                 <div className="flex items-center justify-between">
@@ -1081,9 +1093,10 @@ function PaymentTrackingContent({
                     )}
                   </div>
                 )}
-              </div>
+              </motion.div>
             );
           })}
+        </AnimatePresence>
       </div>
 
       {/* Back to Home */}
