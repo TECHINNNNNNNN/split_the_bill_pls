@@ -74,6 +74,41 @@ body::after {
 
 
 
+/* Hide scrollbar but keep scroll functionality */
+.scrollbar-hidden {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+.scrollbar-hidden::-webkit-scrollbar {
+  display: none;
+}
+
+/* Item card — gentle fade for manual adds */
+@keyframes item-fade {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.animate-item-fade {
+  animation: item-fade 0.3s ease-out both;
+}
+
+/* Item card — waterfall for batch adds (OCR/voice) */
+@keyframes item-waterfall {
+  from {
+    opacity: 0;
+    transform: translateY(16px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-item-waterfall {
+  animation: item-waterfall 0.4s ease-out both;
+}
+
 /* Pointer cursor on all interactive elements */
 a,
 button,

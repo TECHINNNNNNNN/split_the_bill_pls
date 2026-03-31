@@ -55,7 +55,7 @@ export function ItemCard({
   };
 
   return (
-    <div className="rounded-xl border border-brand-200 bg-cream-light p-3 transition-shadow hover:shadow-sm">
+    <div className="animate-item-enter rounded-xl border border-brand-200 bg-cream-light p-3 transition-shadow hover:shadow-sm">
       {/* Edit mode */}
       {editing ? (
         <div>
