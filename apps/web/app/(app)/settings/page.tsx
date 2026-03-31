@@ -39,39 +39,42 @@ export default function SettingsPage() {
         <button
           type="button"
           onClick={() => router.push("/home")}
-          className="text-sm text-gray-500 hover:text-gray-800"
+          className="flex items-center gap-1 text-sm text-brand-400 hover:text-brand-700"
         >
+          <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+          </svg>
           Back
         </button>
-        <h1 className="font-heading text-2xl font-bold text-gray-800">Settings</h1>
+        <h1 className="mt-1 font-caveat text-3xl font-bold">Settings</h1>
       </div>
 
-      {/* Profile info (read-only) */}
-      <div className="rounded-xl border border-gray-200 p-4">
+      {/* Profile info */}
+      <div className="rounded-2xl border border-brand-200 bg-cream-light p-4 shadow-sm">
         <div className="flex items-center gap-3">
           {user.image ? (
             // eslint-disable-next-line @next/next/no-img-element
             <img
               src={user.image}
               alt={user.name}
-              className="h-12 w-12 rounded-full object-cover"
+              className="h-12 w-12 rounded-full border-2 border-brand-200 object-cover"
             />
           ) : (
-            <div className="flex h-12 w-12 items-center justify-center rounded-full bg-gray-200 text-lg font-bold text-gray-500">
+            <div className="flex h-12 w-12 items-center justify-center rounded-full border-2 border-brand-200 bg-brand-50 font-caveat text-lg font-bold text-brand-600">
               {user.name?.charAt(0).toUpperCase()}
             </div>
           )}
           <div>
-            <p className="font-medium text-gray-800">{user.name}</p>
-            <p className="text-sm text-gray-500">{user.email}</p>
+            <p className="font-medium">{user.name}</p>
+            <p className="text-sm text-brand-400">{user.email}</p>
           </div>
         </div>
       </div>
 
       {/* PromptPay settings */}
-      <div className="rounded-xl border border-gray-200 p-4">
-        <h2 className="font-heading text-base font-semibold text-gray-800">PromptPay</h2>
-        <p className="mt-1 text-xs text-gray-400">
+      <div className="rounded-2xl border border-brand-200 bg-cream-light p-4 shadow-sm">
+        <h2 className="font-caveat text-xl font-semibold">PromptPay</h2>
+        <p className="mt-1 font-serif text-xs italic text-brand-300">
           Set your PromptPay ID so friends can pay you when you settle up.
         </p>
 
@@ -81,10 +84,10 @@ export default function SettingsPage() {
             <button
               type="button"
               onClick={() => setPromptpayType("phone")}
-              className={`flex-1 rounded-lg border px-3 py-2 text-sm font-medium transition-colors ${
+              className={`flex-1 rounded-xl border px-3 py-2.5 text-sm font-medium transition-all active:scale-[0.97] ${
                 promptpayType === "phone"
-                  ? "border-gray-800 bg-gray-800 text-white"
-                  : "border-gray-200 text-gray-600 hover:bg-gray-50"
+                  ? "border-brand-700 bg-brand-700 text-cream-light"
+                  : "border-brand-200 text-brand-500 hover:bg-cream"
               }`}
             >
               Phone Number
@@ -92,10 +95,10 @@ export default function SettingsPage() {
             <button
               type="button"
               onClick={() => setPromptpayType("national_id")}
-              className={`flex-1 rounded-lg border px-3 py-2 text-sm font-medium transition-colors ${
+              className={`flex-1 rounded-xl border px-3 py-2.5 text-sm font-medium transition-all active:scale-[0.97] ${
                 promptpayType === "national_id"
-                  ? "border-gray-800 bg-gray-800 text-white"
-                  : "border-gray-200 text-gray-600 hover:bg-gray-50"
+                  ? "border-brand-700 bg-brand-700 text-cream-light"
+                  : "border-brand-200 text-brand-500 hover:bg-cream"
               }`}
             >
               National ID
@@ -108,7 +111,7 @@ export default function SettingsPage() {
             value={promptpayId}
             onChange={(e) => setPromptpayId(e.target.value)}
             placeholder={promptpayType === "phone" ? "08x-xxx-xxxx" : "x-xxxx-xxxxx-xx-x"}
-            className="w-full rounded-lg border border-gray-200 px-4 py-3 text-sm outline-none transition-colors focus:border-gray-400"
+            className="w-full rounded-xl border border-brand-200 bg-cream px-4 py-3 text-sm placeholder:text-brand-300 focus:border-brand-400 focus:outline-none"
             maxLength={promptpayType === "phone" ? 10 : 13}
           />
 
@@ -117,7 +120,7 @@ export default function SettingsPage() {
             type="button"
             onClick={handleSave}
             disabled={saving}
-            className="w-full rounded-lg bg-gray-800 px-4 py-2.5 text-sm font-medium text-white transition-colors hover:bg-gray-700 disabled:opacity-40"
+            className="w-full rounded-xl bg-brand-700 px-4 py-2.5 text-sm font-medium text-cream-light transition-all hover:bg-brand-800 active:scale-[0.98] disabled:opacity-40"
           >
             {saving ? "Saving..." : "Save PromptPay"}
           </button>
@@ -128,7 +131,7 @@ export default function SettingsPage() {
       <button
         type="button"
         onClick={() => signOut()}
-        className="w-full rounded-xl border border-red-200 px-4 py-2.5 text-sm font-medium text-red-500 transition-colors hover:bg-red-50"
+        className="w-full rounded-xl bg-red-100 px-4 py-2.5 text-sm font-medium text-red-700 transition-all hover:bg-red-200 active:scale-[0.98]"
       >
         Sign out
       </button>
