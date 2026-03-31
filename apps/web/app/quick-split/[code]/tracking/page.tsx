@@ -462,16 +462,22 @@ function PaymentTrackingContent({
           <>
             {/* QR code — hide once confirmed */}
             {qrPayload && (
-              <div className="mt-4 flex flex-col items-center rounded-xl border border-brand-200 bg-cream-light p-5">
-                <p className="text-sm font-medium text-brand-800">
+              <div className="mt-4 flex flex-col items-center rounded-2xl border border-brand-200 bg-cream-light p-6 shadow-sm">
+                <p className="font-serif text-sm italic text-brand-400">
                   Scan to pay {hostMember?.displayName}
                 </p>
-                <div className="mt-3 rounded-xl bg-cream-light p-2">
-                  <QRCodeSVG value={qrPayload} size={200} />
+                <div className="mt-4 rounded-2xl border border-brand-100 bg-cream p-4">
+                  <QRCodeSVG
+                    value={qrPayload}
+                    size={200}
+                    fgColor="#3d2810"
+                    bgColor="transparent"
+                    level="M"
+                  />
                 </div>
-                <Baht value={myAmount} className="mt-3 text-2xl font-bold text-brand-800" />
+                <Baht value={myAmount} className="mt-4 font-caveat text-3xl font-bold" />
                 <p className="mt-1 text-xs text-brand-300">
-                  PromptPay: {room.promptpayId}
+                  via PromptPay · {room.promptpayId}
                 </p>
               </div>
             )}
