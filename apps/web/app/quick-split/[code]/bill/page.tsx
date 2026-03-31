@@ -19,6 +19,7 @@ import { useShake } from "@/lib/hooks/use-shake";
 import type { SectionBreakdown } from "@/components/bill/breakdown-modal";
 import { VoiceWaveform } from "@/components/voice-waveform";
 import { Skeleton } from "@/components/skeleton";
+import { Baht } from "@/components/baht";
 
 // ─── Main Page ───
 
@@ -545,7 +546,7 @@ export default function BillDetailsPage({
           <div className="rounded-xl border border-brand-200 bg-cream-light px-4 py-3">
             <div className="flex items-center justify-between text-sm text-brand-500">
               <span>Subtotal</span>
-              <span>฿{singleSubtotal.toFixed(2)}</span>
+              <Baht value={singleSubtotal} />
             </div>
             {singleDiscount > 0 && (
               <div className="mt-1 flex items-center justify-between text-sm text-green-600">
@@ -570,9 +571,7 @@ export default function BillDetailsPage({
             )}
             <div className="flex items-center justify-between">
               <span className="text-lg font-medium">Total</span>
-              <span className="text-lg font-semibold">
-                ฿{grandTotal.toFixed(2)}
-              </span>
+              <Baht value={grandTotal} className="text-lg font-semibold" />
             </div>
           </div>
         )}
@@ -582,9 +581,7 @@ export default function BillDetailsPage({
           <div className="rounded-xl border border-brand-200 bg-cream-light px-4 py-3">
             <div className="flex items-center justify-between">
               <span className="text-lg font-medium">Grand Total</span>
-              <span className="text-lg font-semibold">
-                ฿{grandTotal.toFixed(2)}
-              </span>
+              <Baht value={grandTotal} className="text-lg font-semibold" />
             </div>
             <p className="mt-1 text-xs text-brand-300">
               {sections.length} sections, {totalItems} items
@@ -619,7 +616,7 @@ export default function BillDetailsPage({
                     {split.memberId === currentMemberId && <span className="ml-1 text-xs text-brand-300">(you)</span>}
                   </span>
                   <span className={`text-sm tabular-nums ${split.memberId === currentMemberId ? "font-semibold" : "text-gray-600"}`}>
-                    {split.total > 0 ? `฿${split.total.toFixed(2)}` : "—"}
+                    {split.total > 0 ? <Baht value={split.total} /> : "—"}
                   </span>
                 </div>
               ))}

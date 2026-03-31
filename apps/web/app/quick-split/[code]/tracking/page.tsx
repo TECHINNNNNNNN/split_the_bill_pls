@@ -25,6 +25,7 @@ import { statusConfig, bankNames } from "@/components/tracking/constants";
 import { fireAllPaidConfetti } from "@/lib/confetti";
 import { Skeleton } from "@/components/skeleton";
 import { useDynamicFavicon } from "@/lib/hooks/use-dynamic-favicon";
+import { Baht } from "@/components/baht";
 import type { PaymentStatus } from "@/components/tracking/constants";
 
 // ─── Main component ───
@@ -467,9 +468,7 @@ function PaymentTrackingContent({
                 <div className="mt-3 rounded-xl bg-cream-light p-2">
                   <QRCodeSVG value={qrPayload} size={200} />
                 </div>
-                <p className="mt-3 text-2xl font-bold text-brand-800">
-                  ฿{myAmount.toFixed(2)}
-                </p>
+                <Baht value={myAmount} className="mt-3 text-2xl font-bold text-brand-800" />
                 <p className="mt-1 text-xs text-brand-300">
                   PromptPay: {room.promptpayId}
                 </p>
@@ -621,7 +620,7 @@ function PaymentTrackingContent({
             {confirmedCount}/{payments.length} confirmed
           </span>
           <span className="tabular-nums font-medium">
-            ฿{confirmedTotal.toFixed(2)}/฿{total.toFixed(2)}
+            <Baht value={confirmedTotal} /><span className="text-brand-300">/</span><Baht value={total} />
           </span>
         </div>
         <div className="mt-2 h-2.5 overflow-hidden rounded-full bg-brand-100">
@@ -850,9 +849,7 @@ function PaymentTrackingContent({
                   </div>
 
                   <div className="flex items-center gap-3">
-                    <span className="text-brand-800">
-                      ฿{parseFloat(payment.amount).toFixed(2)}
-                    </span>
+                    <Baht value={parseFloat(payment.amount)} className="text-brand-800" />
 
                     {/* Status badge (always visible) */}
                     <span className={`rounded-xl border px-2.5 py-0.5 text-xs font-medium ${config.classes}`}>
