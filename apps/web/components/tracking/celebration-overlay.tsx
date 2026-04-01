@@ -1,13 +1,13 @@
 "use client";
 
 import { motion } from "motion/react";
-import { useRouter } from "next/navigation";
 
 interface CelebrationOverlayProps {
   total: number;
   memberCount: number;
   fastestPayer: { name: string; timeMs: number } | null;
   onShareRecap: () => void;
+  onDismiss: () => void;
 }
 
 export function CelebrationOverlay({
@@ -15,8 +15,8 @@ export function CelebrationOverlay({
   memberCount,
   fastestPayer,
   onShareRecap,
+  onDismiss,
 }: CelebrationOverlayProps) {
-  const router = useRouter();
 
   return (
     <motion.div
@@ -197,11 +197,11 @@ export function CelebrationOverlay({
 
         <button
           type="button"
-          onClick={() => router.push("/home")}
+          onClick={onDismiss}
           className="text-sm font-medium transition-colors hover:text-brand-600"
           style={{ color: "#C4956A" }}
         >
-          Back to Home
+          Back to Tracking
         </button>
       </motion.div>
 

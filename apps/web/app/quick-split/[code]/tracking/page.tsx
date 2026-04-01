@@ -184,12 +184,20 @@ function PaymentTrackingContent({
   // Dynamic favicon — catfish with blush → bell badge → checkmark badge
   useDynamicFavicon(allPaid ? "allPaid" : hasClaimed ? "claimed" : "default");
 
-  // Fire confetti once when all payments are confirmed
+  // Celebration overlay — show when all paid, dismissable by host
   const hasFiredConfetti = useRef(false);
+  const [celebrationDismissed, setCelebrationDismissed] = useState(false);
+  const showCelebration = allPaid && !celebrationDismissed;
+
   useEffect(() => {
     if (allPaid && !hasFiredConfetti.current) {
       hasFiredConfetti.current = true;
+      setCelebrationDismissed(false);
       fireAllPaidConfetti();
+    }
+    // If a payment gets unconfirmed, reset so celebration can fire again
+    if (!allPaid) {
+      hasFiredConfetti.current = false;
     }
   }, [allPaid]);
 
@@ -1148,9 +1156,9 @@ function PaymentTrackingContent({
         />
       )}
 
-      {/* Celebration overlay — appears when all payments confirmed */}
+      {/* Celebration overlay — appears when all payments confirmed, dismissable */}
       <AnimatePresence>
-        {allPaid && (
+        {showCelebration && (
           <CelebrationOverlay
             total={total}
             memberCount={payments.length}
@@ -1165,6 +1173,7 @@ function PaymentTrackingContent({
                 timeMs: new Date(fastest.claimedAt!).getTime() - new Date(room!.finalizedAt ?? room!.createdAt).getTime(),
               };
             })()}
+            onDismiss={() => setCelebrationDismissed(true)}
             onShareRecap={async () => {
               if (!storyCardRef.current) return;
               const toastId = toast.loading("Generating recap...");
