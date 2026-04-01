@@ -98,7 +98,7 @@ export function CelebrationOverlay({
         />
       </motion.svg>
 
-      {/* Catfish illustration — refined, minimal line art */}
+      {/* Catfish — Picasso-style side profile */}
       <motion.div
         initial={{ opacity: 0, scale: 0.85 }}
         animate={{ opacity: 1, scale: 1 }}
@@ -106,48 +106,34 @@ export function CelebrationOverlay({
         className="my-8"
       >
         <svg
-          className="h-28 w-28 animate-float md:h-32 md:w-32"
-          viewBox="0 0 120 120"
+          className="h-28 w-36 animate-float md:h-32 md:w-40"
+          viewBox="0 0 340 160"
           fill="none"
           stroke="#3d2810"
           strokeLinecap="round"
           strokeLinejoin="round"
         >
-          {/* Body — elegant ellipse */}
-          <ellipse cx="55" cy="62" rx="28" ry="16" strokeWidth="2.2" />
-          <ellipse cx="55" cy="62" rx="28" ry="16" strokeWidth="2.2" fill="#3d2810" opacity="0.04" />
-
-          {/* Tail — flowing, calligraphic */}
-          <path d="M82 52 C94 42, 104 50, 100 62 C104 74, 94 82, 82 72" strokeWidth="2.2" />
-
-          {/* Dorsal fin — delicate */}
-          <path d="M44 46 C48 36, 58 37, 60 46" strokeWidth="1.8" />
-
-          {/* Belly fin */}
-          <path d="M54 78 C58 84, 64 83, 62 77" strokeWidth="1.5" />
-
-          {/* Whiskers — the soul */}
-          <path d="M28 56 C18 50, 10 52, 4 48" strokeWidth="1.8" />
-          <path d="M27 62 C16 62, 8 63, 2 61" strokeWidth="1.8" />
-          <path d="M28 68 C18 72, 12 70, 5 74" strokeWidth="1.5" />
-
-          {/* Eye — expressive */}
-          <circle cx="40" cy="58" r="4" strokeWidth="1.8" fill="#3d2810" />
-          <circle cx="38.5" cy="56.5" r="1.5" fill="#f5f0eb" stroke="none" />
-
-          {/* Gentle smile */}
-          <path d="M34 68 C37 72, 43 73, 46 70" strokeWidth="1.6" />
-
-          {/* Blush marks */}
-          <circle cx="35" cy="72" r="3" fill="#C4956A" opacity="0.2" stroke="none" />
-          <circle cx="48" cy="70" r="2.5" fill="#C4956A" opacity="0.15" stroke="none" />
-
-          {/* Tiny heart */}
-          <path
-            d="M72 38 C72 35, 75 33, 77 36 C79 33, 82 35, 82 38 C82 42, 77 45, 77 45 C77 45, 72 42, 72 38 Z"
-            strokeWidth="1.4"
-            fill="none"
-          />
+          <g transform="translate(170, 80)">
+            {/* Upper body */}
+            <path d="M -65 -8 C -60 -40, -20 -50, 25 -46 C 60 -42, 95 -28, 118 -6" strokeWidth="3.2" />
+            {/* Lower body */}
+            <path d="M -65 8 C -55 42, -5 55, 40 48 C 72 42, 98 26, 118 6" strokeWidth="2.8" />
+            {/* Flat head */}
+            <path d="M -65 -8 C -72 -4, -72 4, -65 8" strokeWidth="3" />
+            {/* Tail */}
+            <path d="M 116 -4 C 138 -32, 158 -38, 170 -24" strokeWidth="3" />
+            <path d="M 116 4 C 138 32, 158 38, 170 24" strokeWidth="3" />
+            {/* Dorsal fin */}
+            <path d="M 25 -46 C 35 -72, 60 -68, 70 -42" strokeWidth="2.5" />
+            {/* Ventral fin */}
+            <path d="M 50 48 C 55 58, 65 56, 64 46" strokeWidth="1.8" />
+            {/* Whiskers */}
+            <path d="M -68 2 C -100 -8, -138 -4, -168 -14" strokeWidth="3.2" />
+            <path d="M -68 6 C -98 14, -135 18, -162 12" strokeWidth="2.5" />
+            <path d="M -66 9 C -88 28, -118 34, -150 36" strokeWidth="1.8" />
+            {/* Eye */}
+            <circle cx="-35" cy="-6" r="6.5" fill="#3d2810" stroke="none" />
+          </g>
         </svg>
       </motion.div>
 

@@ -1,43 +1,55 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
-  <!-- Warm cream background -->
   <circle cx="256" cy="256" r="256" fill="#f5f0eb"/>
 
-  <!-- Everything drawn in one ink color — like a pen sketch -->
-  <g fill="none" stroke="#3d2810" stroke-linecap="round" stroke-linejoin="round">
+  <!--
+    Catfish — Picasso line drawing, but unmistakably a fish.
+    Wide flat head, whiskers drooping from mouth area,
+    body tapers cleanly into a forked tail.
+  -->
+  <g
+    fill="none"
+    stroke="#3d2810"
+    stroke-linecap="round"
+    stroke-linejoin="round"
+    transform="translate(248, 256)"
+  >
 
-    <!-- Catfish body — one elegant stroke, slightly chubby -->
-    <ellipse cx="240" cy="280" rx="110" ry="65" stroke-width="6" fill="#3d2810" opacity="0.06"/>
-    <ellipse cx="240" cy="280" rx="110" ry="65" stroke-width="6"/>
+    <!-- Upper body — wide flat head flowing into tapered body -->
+    <path
+      d="M -65 -8
+         C -60 -40, -20 -50, 25 -46
+         C 60 -42, 95 -28, 118 -6"
+      stroke-width="3.2"
+    />
 
-    <!-- Tail — flowing, calligraphic -->
-    <path d="M344 240 C385 195, 415 230, 400 275 C415 320, 385 355, 344 315" stroke-width="6"/>
+    <!-- Lower body — rounder belly, clearly a fish profile -->
+    <path
+      d="M -65 8
+         C -55 42, -5 55, 40 48
+         C 72 42, 98 26, 118 6"
+      stroke-width="2.8"
+    />
 
-    <!-- Dorsal fin — delicate curve -->
-    <path d="M195 216 C210 175, 245 178, 255 210" stroke-width="5"/>
+    <!-- Flat head connector — the wide catfish snout -->
+    <path d="M -65 -8 C -72 -4, -72 4, -65 8" stroke-width="3" />
 
-    <!-- Little belly fin -->
-    <path d="M235 344 C245 365, 265 362, 260 342" stroke-width="4"/>
+    <!-- Tail — prominent forked fish tail, no mistaking this -->
+    <path d="M 116 -4 C 138 -32, 158 -38, 170 -24" stroke-width="3" />
+    <path d="M 116 4 C 138 32, 158 38, 170 24" stroke-width="3" />
 
-    <!-- Whiskers — the soul of the catfish, elegant curves -->
-    <path d="M135 258 C100 238, 72 242, 48 228" stroke-width="5"/>
-    <path d="M132 275 C90 272, 60 278, 35 270" stroke-width="5"/>
-    <path d="M135 292 C105 308, 78 300, 55 312" stroke-width="4"/>
+    <!-- Dorsal fin — signals "fish" immediately -->
+    <path d="M 25 -46 C 35 -72, 60 -68, 70 -42" stroke-width="2.5" />
 
-    <!-- Eye — simple, expressive -->
-    <circle cx="182" cy="262" r="14" stroke-width="5" fill="#3d2810"/>
-    <!-- Eye sparkle -->
-    <circle cx="176" cy="256" r="5" fill="#f5f0eb" stroke="none"/>
+    <!-- Small ventral fin — reinforces fish shape -->
+    <path d="M 50 48 C 55 58, 65 56, 64 46" stroke-width="1.8" />
 
-    <!-- Gentle smile -->
-    <path d="M155 298 C165 310, 185 312, 195 302" stroke-width="4.5"/>
+    <!-- Whiskers — drooping FROM the mouth area, clearly barbels not tentacles -->
+    <path d="M -68 2 C -100 -8, -138 -4, -168 -14" stroke-width="3.2" />
+    <path d="M -68 6 C -98 14, -135 18, -162 12" stroke-width="2.5" />
+    <path d="M -66 9 C -88 28, -118 34, -150 36" stroke-width="1.8" />
 
-    <!-- Single blush mark — minimal girly touch -->
-    <circle cx="160" cy="305" r="10" fill="#C4956A" opacity="0.25" stroke="none"/>
-    <circle cx="205" cy="300" r="8" fill="#C4956A" opacity="0.2" stroke="none"/>
-
-    <!-- Tiny heart — one small detail, not overdone -->
-    <path d="M300 195 C300 189, 306 184, 311 189 C316 184, 322 189, 322 195 C322 203, 311 211, 311 211 C311 211, 300 203, 300 195 Z"
-      stroke-width="3.5" fill="none"/>
+    <!-- Eye — bold dot, positioned on the wide head -->
+    <circle cx="-35" cy="-6" r="6.5" fill="#3d2810" stroke="none" />
 
   </g>
 </svg>
