@@ -125,6 +125,15 @@ body::after {
   animation: section-enter 0.5s ease-out both;
 }
 
+/* Celebration catfish float — gentle bob */
+@keyframes float {
+  0%, 100% { transform: translateY(0) rotate(0deg); }
+  50% { transform: translateY(-8px) rotate(2deg); }
+}
+.animate-float {
+  animation: float 3s ease-in-out infinite;
+}
+
 /* Skeleton shimmer — warm cream gradient sweep */
 @keyframes shimmer {
   0% { background-position: -200% 0; }

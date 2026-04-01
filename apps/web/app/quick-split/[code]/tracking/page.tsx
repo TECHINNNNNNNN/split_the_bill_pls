@@ -26,6 +26,7 @@ import { fireAllPaidConfetti } from "@/lib/confetti";
 import { Skeleton } from "@/components/skeleton";
 import { useDynamicFavicon } from "@/lib/hooks/use-dynamic-favicon";
 import { Baht } from "@/components/baht";
+import { CelebrationOverlay } from "@/components/tracking/celebration-overlay";
 import { motion, AnimatePresence } from "motion/react";
 import type { PaymentStatus } from "@/components/tracking/constants";
 
@@ -1146,6 +1147,56 @@ function PaymentTrackingContent({
           onClose={() => setSlipModal(null)}
         />
       )}
+
+      {/* Celebration overlay — appears when all payments confirmed */}
+      <AnimatePresence>
+        {allPaid && (
+          <CelebrationOverlay
+            total={total}
+            memberCount={payments.length}
+            fastestPayer={(() => {
+              const withClaim = confirmedPayments
+                .filter((p) => p.claimedAt)
+                .sort((a, b) => new Date(a.claimedAt!).getTime() - new Date(b.claimedAt!).getTime());
+              if (withClaim.length === 0) return null;
+              const fastest = withClaim[0];
+              return {
+                name: fastest.member?.displayName ?? "Someone",
+                timeMs: new Date(fastest.claimedAt!).getTime() - new Date(room!.finalizedAt ?? room!.createdAt).getTime(),
+              };
+            })()}
+            onShareRecap={async () => {
+              if (!storyCardRef.current) return;
+              const toastId = toast.loading("Generating recap...");
+              try {
+                const clone = storyCardRef.current.cloneNode(true) as HTMLElement;
+                clone.style.clipPath = "none";
+                clone.style.left = "-9999px";
+                clone.style.top = "0";
+                document.body.appendChild(clone);
+                const canvas = await (await import("html2canvas")).default(clone, {
+                  scale: 1, width: 1080, height: 1920, windowWidth: 1080, windowHeight: 1920, backgroundColor: null,
+                });
+                document.body.removeChild(clone);
+                const blob = await new Promise<Blob>((resolve) => canvas.toBlob((b) => resolve(b!), "image/png"));
+                const file = new File([blob], "pladuk-recap.png", { type: "image/png" });
+                if (navigator.canShare?.({ files: [file] })) {
+                  await navigator.share({ files: [file], title: "PlaDuk Recap" });
+                  toast.success("Shared!", { id: toastId });
+                } else {
+                  const url = URL.createObjectURL(blob);
+                  const a = document.createElement("a");
+                  a.href = url; a.download = "pladuk-recap.png"; a.click();
+                  URL.revokeObjectURL(url);
+                  toast.success("Downloaded!", { id: toastId });
+                }
+              } catch {
+                toast.error("Couldn't generate recap", { id: toastId });
+              }
+            }}
+          />
+        )}
+      </AnimatePresence>
     </div>
   );
 }
