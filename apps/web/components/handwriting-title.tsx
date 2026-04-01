@@ -93,14 +93,13 @@ export function HandwritingTitle({ onComplete }: HandwritingTitleProps) {
         const svg = svgRef.current;
         if (!svg) return resolve();
         const ld = letterDataRef.current[index];
-        const clipRect = svg.querySelector(`#clipRect-${index}`) as SVGRectElement;
+        const fillEl = svg.querySelector(`#fill-${index}`) as SVGTextElement;
+        const bleedEl = svg.querySelector(`#bleed-${index}`) as SVGTextElement;
         const strokeEl = svg.querySelector(`#stroke-${index}`) as SVGTextElement;
         const penDot = svg.querySelector("#penDot") as SVGCircleElement;
 
-        if (!clipRect || !strokeEl || !penDot) return resolve();
+        if (!fillEl || !strokeEl || !penDot) return resolve();
 
-        const clipPadLeft = Math.max(ld.bboxLeft, 8) + 14;
-        const targetWidth = Math.max(ld.visualWidth, ld.width) + clipPadLeft + 24;
         const startTime = performance.now();
         let lastParticleT = 0;
 
@@ -113,7 +112,12 @@ export function HandwritingTitle({ onComplete }: HandwritingTitleProps) {
           const rawT = Math.min(elapsed / duration, 1);
           const t = easeOutCubic(rawT);
 
-          clipRect.setAttribute("width", String(t * targetWidth));
+          // Reveal letter using opacity fade-in
+          // (WebKit poisons SVG rendering with any form of clip-path)
+          const fillOpacity = t * LETTER_OPACITY[index];
+          fillEl.setAttribute("opacity", String(fillOpacity));
+          if (bleedEl) bleedEl.setAttribute("opacity", String(t * 0.06));
+
           strokeEl.style.strokeDashoffset = String(800 * (1 - t * 0.8));
 
           const penX = svgPad + ld.x + t * ld.width;
@@ -137,7 +141,8 @@ export function HandwritingTitle({ onComplete }: HandwritingTitleProps) {
           if (rawT < 1) {
             requestAnimationFrame(tick);
           } else {
-            clipRect.setAttribute("width", String(targetWidth));
+            fillEl.setAttribute("opacity", String(LETTER_OPACITY[index]));
+            if (bleedEl) bleedEl.setAttribute("opacity", "0.06");
             strokeEl.style.transition = "opacity 0.4s ease-out";
             strokeEl.style.opacity = "0";
             spawnInkParticles(penX, penY + FONT_SIZE * 0.1, 3);
@@ -230,82 +235,9 @@ export function HandwritingTitle({ onComplete }: HandwritingTitleProps) {
         svg.setAttribute("viewBox", `0 0 ${svgW} ${svgH}`);
         svg.innerHTML = "";
 
-        // Defs: filters + clip paths
-        const defs = document.createElementNS(
-          "http://www.w3.org/2000/svg",
-          "defs"
-        );
-
-        // Ink roughness filter
-        const inkFilter = document.createElementNS(
-          "http://www.w3.org/2000/svg",
-          "filter"
-        );
-        inkFilter.id = "inkRough";
-        inkFilter.setAttribute("x", "-5%");
-        inkFilter.setAttribute("y", "-5%");
-        inkFilter.setAttribute("width", "110%");
-        inkFilter.setAttribute("height", "110%");
-        inkFilter.innerHTML = `
-          <feTurbulence type="turbulence" baseFrequency="0.04" numOctaves="4" result="noise" seed="2"/>
-          <feDisplacementMap in="SourceGraphic" in2="noise" scale="1.8" xChannelSelector="R" yChannelSelector="G"/>
-        `;
-        defs.appendChild(inkFilter);
-
-        // Softer ink filter
-        const inkFilterSoft = document.createElementNS(
-          "http://www.w3.org/2000/svg",
-          "filter"
-        );
-        inkFilterSoft.id = "inkRoughSoft";
-        inkFilterSoft.setAttribute("x", "-5%");
-        inkFilterSoft.setAttribute("y", "-5%");
-        inkFilterSoft.setAttribute("width", "110%");
-        inkFilterSoft.setAttribute("height", "110%");
-        inkFilterSoft.innerHTML = `
-          <feTurbulence type="turbulence" baseFrequency="0.035" numOctaves="3" result="noise" seed="7"/>
-          <feDisplacementMap in="SourceGraphic" in2="noise" scale="1.2" xChannelSelector="R" yChannelSelector="G"/>
-        `;
-        defs.appendChild(inkFilterSoft);
-
-        // Ink bleed filter
-        const bleedFilter = document.createElementNS(
-          "http://www.w3.org/2000/svg",
-          "filter"
-        );
-        bleedFilter.id = "inkBleed";
-        bleedFilter.setAttribute("x", "-10%");
-        bleedFilter.setAttribute("y", "-10%");
-        bleedFilter.setAttribute("width", "120%");
-        bleedFilter.setAttribute("height", "120%");
-        bleedFilter.innerHTML = `
-          <feGaussianBlur in="SourceGraphic" stdDeviation="0.6" result="blur"/>
-          <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
-        `;
-        defs.appendChild(bleedFilter);
-
-        // Clip paths per letter
-        data.forEach((ld, i) => {
-          const clipPath = document.createElementNS(
-            "http://www.w3.org/2000/svg",
-            "clipPath"
-          );
-          clipPath.id = `clip-${i}`;
-          const rect = document.createElementNS(
-            "http://www.w3.org/2000/svg",
-            "rect"
-          );
-          const clipPadLeft = Math.max(ld.bboxLeft, 8) + 14;
-          rect.setAttribute("x", String(svgPad + ld.x - clipPadLeft));
-          rect.setAttribute("y", "0");
-          rect.setAttribute("width", "0");
-          rect.setAttribute("height", String(svgH));
-          rect.id = `clipRect-${i}`;
-          clipPath.appendChild(rect);
-          defs.appendChild(clipPath);
-        });
-
-        svg.appendChild(defs);
+        // WebKit uses glyph advance width for paint area, but cursive fonts
+        // (like Caveat) have glyphs extending beyond it. We add transparent
+        // stroke-width="20" on text elements to expand the paint rect.
 
         // Ink bleed shadow layer
         data.forEach((ld, i) => {
@@ -321,10 +253,11 @@ export function HandwritingTitle({ onComplete }: HandwritingTitleProps) {
           bleed.setAttribute("font-weight", "500");
           bleed.setAttribute("font-size", String(FONT_SIZE));
           bleed.setAttribute("fill", INK);
-          bleed.setAttribute("opacity", "0.06");
-          bleed.setAttribute("filter", "url(#inkBleed)");
-          bleed.setAttribute("clip-path", `url(#clip-${i})`);
+          bleed.setAttribute("stroke", "transparent");
+          bleed.setAttribute("stroke-width", "20");
+          bleed.setAttribute("opacity", "0");
           bleed.setAttribute("transform", `rotate(${LETTER_TILTS[i]} ${cx} ${cy})`);
+          bleed.id = `bleed-${i}`;
           bleed.textContent = ld.char;
           svg.appendChild(bleed);
         });
@@ -356,7 +289,7 @@ export function HandwritingTitle({ onComplete }: HandwritingTitleProps) {
           svg.appendChild(strokeText);
         });
 
-        // Fill layer with ink roughness
+        // Fill layer
         data.forEach((ld, i) => {
           const fillText = document.createElementNS(
             "http://www.w3.org/2000/svg",
@@ -370,12 +303,11 @@ export function HandwritingTitle({ onComplete }: HandwritingTitleProps) {
           fillText.setAttribute("font-weight", "500");
           fillText.setAttribute("font-size", String(FONT_SIZE));
           fillText.setAttribute("fill", INK);
-          fillText.setAttribute("opacity", String(LETTER_OPACITY[i]));
-          fillText.setAttribute("clip-path", `url(#clip-${i})`);
-          fillText.setAttribute(
-            "filter",
-            i % 2 === 0 ? "url(#inkRough)" : "url(#inkRoughSoft)"
-          );
+          // Transparent stroke forces WebKit to expand its paint area
+          // beyond the glyph advance width — fixes cursive font clipping
+          fillText.setAttribute("stroke", "transparent");
+          fillText.setAttribute("stroke-width", "20");
+          fillText.setAttribute("opacity", "0");
           fillText.setAttribute("transform", `rotate(${LETTER_TILTS[i]} ${cx} ${cy})`);
           fillText.id = `fill-${i}`;
           fillText.textContent = ld.char;
@@ -420,7 +352,6 @@ export function HandwritingTitle({ onComplete }: HandwritingTitleProps) {
         underline.setAttribute("stroke", ACCENT);
         underline.setAttribute("stroke-width", "2.2");
         underline.setAttribute("stroke-linecap", "round");
-        underline.setAttribute("filter", "url(#inkRoughSoft)");
         underline.id = "underline";
         svg.appendChild(underline);
 
@@ -436,13 +367,6 @@ export function HandwritingTitle({ onComplete }: HandwritingTitleProps) {
             await animateLetter(i, DURATIONS[i], svgPad, baselineY);
             if (GAPS[i] > 0) await sleep(GAPS[i]);
           }
-
-          // Remove clip-paths so letters are fully visible
-          // (iOS Safari measures font metrics differently in Canvas vs SVG,
-          //  causing clip rects to be too narrow for the rendered text)
-          svg.querySelectorAll("[clip-path]").forEach((el) => {
-            el.removeAttribute("clip-path");
-          });
 
           // Hide pen
           penDot.style.transition = "opacity 0.3s ease-out";
