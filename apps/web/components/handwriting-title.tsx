@@ -211,9 +211,9 @@ export function HandwritingTitle({ onComplete }: HandwritingTitleProps) {
         letterDataRef.current = data;
 
         // Set up SVG
-        const svgPad = 35;
-        const svgH = FONT_SIZE * 1.9;
-        const svgW = totalWidth + svgPad * 2 + 30;
+        const svgPad = 50;
+        const svgH = FONT_SIZE * 2.0;
+        const svgW = totalWidth + svgPad * 2 + 50;
         const baselineY = FONT_SIZE * 1.15;
 
         svg.setAttribute(
