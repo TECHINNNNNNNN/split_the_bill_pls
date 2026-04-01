@@ -98,73 +98,34 @@ export default function NotFound() {
             <animate attributeName="opacity" values="0;0.1;0" dur="4s" repeatCount="indefinite" begin="1.5s" />
           </circle>
 
-          {/* The catfish — hand-drawn style */}
+          {/* The catfish — Picasso side profile */}
           <g ref={fishRef}>
             <g
               fill="none"
               stroke="#3d2810"
               strokeLinecap="round"
               strokeLinejoin="round"
+              transform="translate(150, 125) scale(0.85)"
             >
-              {/* Body */}
-              <ellipse
-                cx="140"
-                cy="130"
-                rx="55"
-                ry="32"
-                strokeWidth="2.5"
-                fill="#3d2810"
-                opacity="0.05"
-              />
-              <ellipse
-                cx="140"
-                cy="130"
-                rx="55"
-                ry="32"
-                strokeWidth="2.5"
-              />
-
+              {/* Upper body */}
+              <path d="M -65 -8 C -60 -40, -20 -50, 25 -46 C 60 -42, 95 -28, 118 -6" strokeWidth="2.8" />
+              {/* Lower body */}
+              <path d="M -65 8 C -55 42, -5 55, 40 48 C 72 42, 98 26, 118 6" strokeWidth="2.5" />
+              {/* Flat head */}
+              <path d="M -65 -8 C -72 -4, -72 4, -65 8" strokeWidth="2.8" />
               {/* Tail */}
-              <path
-                d="M192 115 C215 95, 230 110, 222 130 C230 150, 215 165, 192 145"
-                strokeWidth="2.5"
-              />
-
-              {/* Top fin */}
-              <path d="M115 99 C122 78, 142 80, 148 96" strokeWidth="2" />
-
-              {/* Bottom fin */}
-              <path d="M135 161 C140 174, 155 172, 152 160" strokeWidth="2" />
-
+              <path d="M 116 -4 C 138 -32, 158 -38, 170 -24" strokeWidth="2.8" />
+              <path d="M 116 4 C 138 32, 158 38, 170 24" strokeWidth="2.8" />
+              {/* Dorsal fin */}
+              <path d="M 25 -46 C 35 -72, 60 -68, 70 -42" strokeWidth="2.2" />
+              {/* Ventral fin */}
+              <path d="M 50 48 C 55 58, 65 56, 64 46" strokeWidth="1.8" />
               {/* Whiskers */}
-              <path d="M88 122 C68 112, 52 116, 40 108" strokeWidth="2" />
-              <path d="M86 130 C62 128, 48 132, 32 128" strokeWidth="2" />
-              <path d="M88 138 C70 148, 56 142, 42 150" strokeWidth="1.8" />
-
-              {/* Eye — big and sad */}
-              <circle cx="108" cy="124" r="8" strokeWidth="2" fill="#3d2810" />
-              <circle cx="105" cy="121" r="3" fill="#f5f0eb" />
-              <circle cx="112" cy="127" r="1.5" fill="#f5f0eb" opacity="0.5" />
-
-              {/* Sad mouth */}
-              <path d="M95 143 C100 138, 112 137, 118 140" strokeWidth="2" />
-
-              {/* Blush */}
-              <circle
-                cx="95"
-                cy="140"
-                r="6"
-                fill="#D4A5A5"
-                opacity="0.3"
-                stroke="none"
-              />
-
-              {/* Tiny tear drop */}
-              <path
-                d="M100 132 C100 135, 102 138, 100 140"
-                strokeWidth="1.5"
-                opacity="0.4"
-              />
+              <path d="M -68 2 C -100 -8, -138 -4, -168 -14" strokeWidth="2.8" />
+              <path d="M -68 6 C -98 14, -135 18, -162 12" strokeWidth="2.2" />
+              <path d="M -66 9 C -88 28, -118 34, -150 36" strokeWidth="1.8" />
+              {/* Eye */}
+              <circle cx="-35" cy="-6" r="5.5" fill="#3d2810" stroke="none" />
             </g>
           </g>
 
