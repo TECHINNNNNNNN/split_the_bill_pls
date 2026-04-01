@@ -192,7 +192,7 @@ function PaymentTrackingContent({
   useEffect(() => {
     if (allPaid && !hasFiredConfetti.current) {
       hasFiredConfetti.current = true;
-      setCelebrationDismissed(false);
+      queueMicrotask(() => setCelebrationDismissed(false));
       fireAllPaidConfetti();
     }
     // If a payment gets unconfirmed, reset so celebration can fire again
