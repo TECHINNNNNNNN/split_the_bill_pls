@@ -51,9 +51,18 @@ export default function HomePage() {
   const balances = balancesData?.balances ?? [];
   const pending = pendingSettlements?.pending ?? [];
 
-  // Dynamic waterfall delay — increments for each visible section
-  let sectionIndex = 0;
-  const nextDelay = () => `${++sectionIndex * 100}ms`;
+  // Compute waterfall delays based on which sections are visible.
+  // Each visible section gets the next 100ms slot. Stable across re-renders
+  // because the delays are derived from data, not a mutable counter.
+  const hasInvites = !invitesLoading && invites && invites.length > 0;
+  const hasBalances = balances.length > 0 || pending.length > 0;
+
+  let slot = 1;
+  const ctaDelay = `${slot++ * 100}ms`;
+  const invitesDelay = hasInvites ? `${slot++ * 100}ms` : "0ms";
+  const balancesDelay = hasBalances ? `${slot++ * 100}ms` : "0ms";
+  const recentDelay = `${slot++ * 100}ms`;
+  const groupsDelay = `${slot++ * 100}ms`;
 
   return (
     <div>
@@ -92,7 +101,7 @@ export default function HomePage() {
       </div>
 
       {/* ─── Quick Split CTA ─── */}
-      <Magnetic strength={0.1} className="animate-section mb-8 -mx-2 px-2 -my-2 py-2" style={{ animationDelay: nextDelay() }}>
+      <Magnetic strength={0.1} className="animate-section mb-8 -mx-2 px-2 -my-2 py-2" style={{ animationDelay: ctaDelay }}>
       <Link
         href="/quick-split"
         className="gradient-border group relative flex items-center justify-between rounded-2xl bg-brand-700 p-5 shadow-md transition-all hover:bg-brand-800 active:scale-[0.99]"
@@ -156,7 +165,7 @@ export default function HomePage() {
 
       {/* ─── Pending invites (urgent, top) ─── */}
       {!invitesLoading && invites && invites.length > 0 && (
-        <div className="animate-section mb-6 space-y-2" style={{ animationDelay: nextDelay() }}>
+        <div className="animate-section mb-6 space-y-2" style={{ animationDelay: invitesDelay }}>
           {invites.map((invite) => (
             <div
               key={invite.id}
@@ -206,7 +215,7 @@ export default function HomePage() {
 
       {/* ─── Balances + Pending settlements (compact card) ─── */}
       {(balances.length > 0 || pending.length > 0) && (
-        <section className="animate-section mb-8" style={{ animationDelay: nextDelay() }}>
+        <section className="animate-section mb-8" style={{ animationDelay: balancesDelay }}>
           <h2 className="font-caveat text-xl font-semibold mb-3">Balances</h2>
           <div className="rounded-2xl border border-brand-200 bg-cream-light shadow-sm overflow-hidden">
             {/* Pending settlements first */}
@@ -262,7 +271,7 @@ export default function HomePage() {
       )}
 
       {/* ─── Recent splits (horizontal scroll) ─── */}
-      <section className="animate-section mb-8" style={{ animationDelay: nextDelay() }}>
+      <section className="animate-section mb-8" style={{ animationDelay: recentDelay }}>
         <h2 className="font-caveat text-xl font-semibold mb-3">Recent</h2>
         {roomsLoading ? (
           <div className="flex gap-3">
@@ -301,7 +310,7 @@ export default function HomePage() {
       </section>
 
       {/* ─── Groups (compact) ─── */}
-      <section className="animate-section" style={{ animationDelay: nextDelay() }}>
+      <section className="animate-section" style={{ animationDelay: groupsDelay }}>
         <div className="mb-3 flex items-center justify-between">
           <h2 className="font-caveat text-xl font-semibold">
             Groups {groups?.length ? <span className="text-brand-300">({groups.length})</span> : null}
