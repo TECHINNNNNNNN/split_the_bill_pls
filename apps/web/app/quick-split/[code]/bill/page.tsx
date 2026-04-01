@@ -463,8 +463,26 @@ export default function BillDetailsPage({
       {/* Shake to split — mobile only */}
       {!isLocked && shakeSupported && totalItems > 0 && (
         shakeEnabled ? (
-          <p className="mt-4 text-center font-caveat text-sm text-brand-400">
-            📱 Shake your phone to split equally!
+          <p className="mt-4 flex items-center justify-center gap-2 text-center font-caveat text-sm text-brand-400">
+            <svg className="h-5 w-5 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+              {/* Catfish wiggling — active shake state */}
+              <ellipse cx="12" cy="13" rx="6.5" ry="4" />
+              <path d="M18.5 10.5C20 9, 21.5 10, 21 12.5C21.5 15, 20 16, 18.5 14.5" />
+              <path d="M5.5 11.5C3.5 10.5, 2 11, 1.5 10" />
+              <path d="M5.5 13C3.5 13, 2 13.2, 1 13" />
+              <path d="M5.5 14.5C3.5 15, 2.5 15.5, 1.5 16" />
+              <circle cx="8.5" cy="12" r="1" fill="currentColor" stroke="none" />
+              <circle cx="8" cy="11.5" r="0.4" fill="var(--color-cream-light, #faf7f3)" stroke="none" />
+              <path d="M10 9C11 7, 13 7.2, 13.5 9" />
+              {/* Animated wiggle lines — more energetic */}
+              <path d="M3.5 4.5L5.5 6" strokeWidth="1.2" opacity="0.6" />
+              <path d="M2 7L4.5 7.5" strokeWidth="1.2" opacity="0.6" />
+              <path d="M3 18L5 16.5" strokeWidth="1.2" opacity="0.6" />
+              <path d="M20.5 4.5L18.5 6" strokeWidth="1.2" opacity="0.6" />
+              <path d="M22 7L19.5 7.5" strokeWidth="1.2" opacity="0.6" />
+              <path d="M21 18L19 16.5" strokeWidth="1.2" opacity="0.6" />
+            </svg>
+            Shake your phone to split equally!
           </p>
         ) : (
           <button
@@ -473,14 +491,33 @@ export default function BillDetailsPage({
               const granted = await requestShakePermission();
               if (granted) {
                 setShakeEnabled(true);
-                toast.success("Shake enabled! Give your phone a good shake 📱");
+                toast.success("Shake enabled! Give your phone a good shake ~");
               } else {
                 toast.error("Motion access denied — enable in browser settings");
               }
             }}
             className="mt-4 flex items-center justify-center gap-2 self-center rounded-full border border-dashed border-brand-200 px-5 py-2 text-sm font-medium text-brand-400 transition-colors hover:border-brand-400 hover:bg-cream-light hover:text-brand-600"
           >
-            <span className="text-base">📱</span>
+            <svg className="h-5 w-5 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+              {/* Catfish body */}
+              <ellipse cx="12" cy="13" rx="6.5" ry="4" />
+              {/* Tail */}
+              <path d="M18.5 10.5C20 9, 21.5 10, 21 12.5C21.5 15, 20 16, 18.5 14.5" />
+              {/* Whiskers */}
+              <path d="M5.5 11.5C3.5 10.5, 2 11, 1.5 10" />
+              <path d="M5.5 13C3.5 13, 2 13.2, 1 13" />
+              <path d="M5.5 14.5C3.5 15, 2.5 15.5, 1.5 16" />
+              {/* Eye */}
+              <circle cx="8.5" cy="12" r="1" fill="currentColor" stroke="none" />
+              <circle cx="8" cy="11.5" r="0.4" fill="var(--color-cream-light, #faf7f3)" stroke="none" />
+              {/* Dorsal fin */}
+              <path d="M10 9C11 7, 13 7.2, 13.5 9" />
+              {/* Shake motion lines */}
+              <path d="M4 5L5.5 6.5" strokeWidth="1.2" opacity="0.5" />
+              <path d="M2.5 7.5L4.5 8" strokeWidth="1.2" opacity="0.5" />
+              <path d="M20 5L18.5 6.5" strokeWidth="1.2" opacity="0.5" />
+              <path d="M21.5 7.5L19.5 8" strokeWidth="1.2" opacity="0.5" />
+            </svg>
             Enable shake to split
           </button>
         )
