@@ -437,6 +437,13 @@ export function HandwritingTitle({ onComplete }: HandwritingTitleProps) {
             if (GAPS[i] > 0) await sleep(GAPS[i]);
           }
 
+          // Remove clip-paths so letters are fully visible
+          // (iOS Safari measures font metrics differently in Canvas vs SVG,
+          //  causing clip rects to be too narrow for the rendered text)
+          svg.querySelectorAll("[clip-path]").forEach((el) => {
+            el.removeAttribute("clip-path");
+          });
+
           // Hide pen
           penDot.style.transition = "opacity 0.3s ease-out";
           penDot.setAttribute("opacity", "0");
