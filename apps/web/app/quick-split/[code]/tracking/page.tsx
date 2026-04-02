@@ -203,6 +203,7 @@ function PaymentTrackingContent({
 
   // Recap image sharing — two-tap pattern for reliable navigator.share({ files })
   const [recapState, setRecapState] = useState<"idle" | "loading" | "ready">("idle");
+  const [recapPreviewUrl, setRecapPreviewUrl] = useState<string | null>(null);
   const recapBlobRef = useRef<Blob | null>(null);
 
   const handleShareRecap = async () => {
