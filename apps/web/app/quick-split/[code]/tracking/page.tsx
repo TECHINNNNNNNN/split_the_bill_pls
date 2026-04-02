@@ -1223,6 +1223,54 @@ function PaymentTrackingContent({
         )}
       </AnimatePresence>
 
+      {/* Recap image preview — loading or ready to share */}
+      {recapState !== "idle" && (
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          className="fixed inset-0 z-[60] flex flex-col items-center justify-center px-8"
+          style={{ backgroundColor: "rgba(61, 40, 16, 0.85)" }}
+          onClick={() => setRecapState("idle")}
+        >
+          {recapState === "loading" && (
+            <div className="flex flex-col items-center gap-4" onClick={(e) => e.stopPropagation()}>
+              <div className="h-8 w-8 animate-spin rounded-full border-2 border-cream-light/30 border-t-cream-light" />
+              <p className="font-caveat text-xl text-cream-light/70">Generating your recap...</p>
+            </div>
+          )}
+
+          {recapState === "ready" && recapBlobRef.current && (
+            <div className="flex flex-col items-center gap-5" onClick={(e) => e.stopPropagation()}>
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={URL.createObjectURL(recapBlobRef.current)}
+                alt="Recap"
+                className="max-h-[68vh] rounded-2xl shadow-2xl"
+              />
+              <div className="flex items-center gap-3">
+                <button
+                  type="button"
+                  onClick={handleShareFromPreview}
+                  className="flex items-center gap-2 rounded-full bg-cream-light px-7 py-3 text-sm font-medium text-brand-800 shadow-lg transition-all active:scale-[0.97]"
+                >
+                  <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M4 12v8a2 2 0 002 2h12a2 2 0 002-2v-8M16 6l-4-4-4 4M12 2v13" />
+                  </svg>
+                  Share
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setRecapState("idle")}
+                  className="rounded-full px-5 py-3 text-sm text-cream-light/60 transition-all hover:text-cream-light"
+                >
+                  Close
+                </button>
+              </div>
+            </div>
+          )}
+        </motion.div>
+      )}
+
     </div>
   );
 }
