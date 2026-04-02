@@ -251,13 +251,54 @@ function PaymentTrackingContent({
       .finally(() => { recapFetchingRef.current = false; });
   }, [allPaid, payments, members, room, total]);
 
-  // Shared share-recap handler — uses pre-fetched blob for instant share
+  // Recap preview state — shown when blob isn't cached yet on first click
+  const [recapPreviewUrl, setRecapPreviewUrl] = useState<string | null>(null);
+
+  // Share-recap handler — uses pre-fetched blob for instant share
   const handleShareRecap = async () => {
-    if (!recapBlobRef.current) {
-      toast("Preparing your recap...");
+    // If blob is ready, share/download instantly
+    if (recapBlobRef.current) {
+      await shareOrDownload(recapBlobRef.current);
       return;
     }
-    const file = new File([recapBlobRef.current], "pladuk-recap.png", { type: "image/png" });
+    // Blob not ready — fetch now and show preview when done
+    const toastId = toast.loading("Generating your recap...");
+    try {
+      // Wait for the pre-fetch if it's in progress, or start a new one
+      if (!recapFetchingRef.current) {
+        // Pre-fetch didn't start or failed — shouldn't happen, but handle it
+        toast.error("Something went wrong. Try again.", { id: toastId });
+        return;
+      }
+      // Poll until blob is ready (pre-fetch is in progress)
+      await new Promise<void>((resolve) => {
+        const check = () => {
+          if (recapBlobRef.current) return resolve();
+          setTimeout(check, 200);
+        };
+        check();
+      });
+      toast.dismiss(toastId);
+      // Show preview — user will tap share with fresh gesture
+      const url = URL.createObjectURL(recapBlobRef.current!);
+      setRecapPreviewUrl(url);
+    } catch {
+      toast.error("Couldn't generate recap", { id: toastId });
+    }
+  };
+
+  // Called from the preview modal's Share button — fresh user gesture
+  const handleShareFromPreview = async () => {
+    if (!recapBlobRef.current) return;
+    await shareOrDownload(recapBlobRef.current);
+    if (recapPreviewUrl) {
+      URL.revokeObjectURL(recapPreviewUrl);
+      setRecapPreviewUrl(null);
+    }
+  };
+
+  async function shareOrDownload(blob: Blob) {
+    const file = new File([blob], "pladuk-recap.png", { type: "image/png" });
     try {
       if (navigator.canShare?.({ files: [file] })) {
         await navigator.share({ files: [file], title: "PlaDuk Recap" });
@@ -265,18 +306,17 @@ function PaymentTrackingContent({
         return;
       }
     } catch (e) {
-      if (e instanceof Error && e.name === "AbortError") return; // user dismissed — not an error
+      if (e instanceof Error && e.name === "AbortError") return;
       // fall through to download
     }
-    // Fallback: download
-    const url = URL.createObjectURL(recapBlobRef.current);
+    const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
     a.download = "pladuk-recap.png";
     a.click();
     URL.revokeObjectURL(url);
     toast.success("Downloaded!");
-  };
+  }
 
   // Handle slip file selection — set scanning state SYNCHRONOUSLY before async work
   const handleSlipUpload = async (e: React.ChangeEvent<HTMLInputElement>, paymentId: string) => {
@@ -1214,6 +1254,34 @@ function PaymentTrackingContent({
           />
         )}
       </AnimatePresence>
+
+      {/* Recap preview modal — shown when image wasn't cached on first click */}
+      {recapPreviewUrl && (
+        <div className="fixed inset-0 z-[60] flex flex-col items-center justify-center bg-black/70 px-6" onClick={() => { URL.revokeObjectURL(recapPreviewUrl); setRecapPreviewUrl(null); }}>
+          <img
+            src={recapPreviewUrl}
+            alt="Recap"
+            className="max-h-[75vh] rounded-2xl shadow-2xl"
+            onClick={(e) => e.stopPropagation()}
+          />
+          <div className="mt-4 flex gap-3" onClick={(e) => e.stopPropagation()}>
+            <button
+              type="button"
+              onClick={handleShareFromPreview}
+              className="rounded-full bg-brand-700 px-8 py-3 text-sm font-medium text-cream-light transition-all hover:bg-brand-800 active:scale-[0.98]"
+            >
+              Share
+            </button>
+            <button
+              type="button"
+              onClick={() => { URL.revokeObjectURL(recapPreviewUrl); setRecapPreviewUrl(null); }}
+              className="rounded-full border border-brand-200 px-6 py-3 text-sm text-cream-light transition-all hover:bg-white/10"
+            >
+              Close
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
