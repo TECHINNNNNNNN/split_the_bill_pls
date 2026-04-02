@@ -1228,7 +1228,7 @@ function PaymentTrackingContent({
         <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
-          className="fixed inset-0 z-[60] flex flex-col items-center justify-center px-8"
+          className="fixed inset-0 z-60 flex flex-col items-center justify-center px-8"
           style={{ backgroundColor: "rgba(61, 40, 16, 0.85)" }}
           onClick={() => setRecapState("idle")}
         >
