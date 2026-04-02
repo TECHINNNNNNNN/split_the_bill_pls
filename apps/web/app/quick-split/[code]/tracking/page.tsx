@@ -251,72 +251,32 @@ function PaymentTrackingContent({
       .finally(() => { recapFetchingRef.current = false; });
   }, [allPaid, payments, members, room, total]);
 
-  // Recap preview state — shown when blob isn't cached yet on first click
-  const [recapPreviewUrl, setRecapPreviewUrl] = useState<string | null>(null);
-
-  // Share-recap handler — uses pre-fetched blob for instant share
+  // Share recap — instant URL share (no async gap, no gesture timeout)
   const handleShareRecap = async () => {
-    // If blob is ready, share/download instantly
-    if (recapBlobRef.current) {
-      await shareOrDownload(recapBlobRef.current);
-      return;
-    }
-    // Blob not ready — fetch now and show preview when done
-    const toastId = toast.loading("Generating your recap...");
+    const recapUrl = `${window.location.origin}/quick-split/${code}/recap`;
     try {
-      // Wait for the pre-fetch if it's in progress, or start a new one
-      if (!recapFetchingRef.current) {
-        // Pre-fetch didn't start or failed — shouldn't happen, but handle it
-        toast.error("Something went wrong. Try again.", { id: toastId });
-        return;
-      }
-      // Poll until blob is ready (pre-fetch is in progress)
-      await new Promise<void>((resolve) => {
-        const check = () => {
-          if (recapBlobRef.current) return resolve();
-          setTimeout(check, 200);
-        };
-        check();
-      });
-      toast.dismiss(toastId);
-      // Show preview — user will tap share with fresh gesture
-      const url = URL.createObjectURL(recapBlobRef.current!);
-      setRecapPreviewUrl(url);
-    } catch {
-      toast.error("Couldn't generate recap", { id: toastId });
-    }
-  };
-
-  // Called from the preview modal's Share button — fresh user gesture
-  const handleShareFromPreview = async () => {
-    if (!recapBlobRef.current) return;
-    await shareOrDownload(recapBlobRef.current);
-    if (recapPreviewUrl) {
-      URL.revokeObjectURL(recapPreviewUrl);
-      setRecapPreviewUrl(null);
-    }
-  };
-
-  async function shareOrDownload(blob: Blob) {
-    const file = new File([blob], "pladuk-recap.png", { type: "image/png" });
-    try {
-      if (navigator.canShare?.({ files: [file] })) {
-        await navigator.share({ files: [file], title: "PlaDuk Recap" });
+      if (navigator.share) {
+        await navigator.share({
+          title: `PlaDuk — ${room?.name || "Bill Split"}`,
+          text: "Check out our bill split recap!",
+          url: recapUrl,
+        });
         toast.success("Shared!");
-        return;
+      } else {
+        await navigator.clipboard.writeText(recapUrl);
+        toast.success("Link copied!");
       }
     } catch (e) {
       if (e instanceof Error && e.name === "AbortError") return;
-      // fall through to download
+      // Fallback: copy to clipboard
+      try {
+        await navigator.clipboard.writeText(recapUrl);
+        toast.success("Link copied!");
+      } catch {
+        toast.error("Couldn't share");
+      }
     }
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = "pladuk-recap.png";
-    a.click();
-    URL.revokeObjectURL(url);
-    toast.success("Downloaded!");
-  }
+  };
 
   // Handle slip file selection — set scanning state SYNCHRONOUSLY before async work
   const handleSlipUpload = async (e: React.ChangeEvent<HTMLInputElement>, paymentId: string) => {
