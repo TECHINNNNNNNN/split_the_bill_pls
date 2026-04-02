@@ -1210,63 +1210,7 @@ function PaymentTrackingContent({
               };
             })()}
             onDismiss={() => setCelebrationDismissed(true)}
-            onShareRecap={async () => {
-              const toastId = toast.loading("Generating recap...");
-              try {
-                // Build stats from current data
-                const recapStats: { label: string; name: string; detail: string; icon: string }[] = [];
-                if (payments.length > 0) {
-                  const sorted = [...payments].sort((a, b) => parseFloat(b.amount) - parseFloat(a.amount));
-                  const topMember = members.find(m => m.id === sorted[0].memberId);
-                  if (topMember) recapStats.push({ label: "BIG SPENDER", name: topMember.displayName, detail: `฿${parseFloat(sorted[0].amount).toFixed(2)}`, icon: "crown" });
-                }
-                if (room?.finalizedAt) {
-                  const claimed = payments.filter(p => p.claimedAt).sort((a, b) => new Date(a.claimedAt!).getTime() - new Date(b.claimedAt!).getTime());
-                  if (claimed.length > 0) {
-                    const fm = members.find(m => m.id === claimed[0].memberId);
-                    const mins = Math.max(0, Math.floor((new Date(claimed[0].claimedAt!).getTime() - new Date(room.finalizedAt).getTime()) / 60000));
-                    if (fm) recapStats.push({ label: "FASTEST PAYER", name: fm.displayName, detail: mins < 1 ? "instantly" : `${mins}m`, icon: "lightning" });
-                  }
-                }
-                const billItems = room?.billItems || [];
-                if (billItems.length > 0) {
-                  const withCounts = billItems.map(item => ({ name: item.name, splitCount: item.splits?.length || 0 }));
-                  const popular = withCounts.sort((a, b) => b.splitCount - a.splitCount)[0];
-                  if (popular && popular.splitCount > 1) recapStats.push({ label: "MOST POPULAR", name: popular.name, detail: `${popular.splitCount} people`, icon: "plate" });
-                }
-
-                const res = await fetch("/api/recap", {
-                  method: "POST",
-                  headers: { "Content-Type": "application/json" },
-                  body: JSON.stringify({
-                    roomName: room?.name || "Bill Split",
-                    date: room?.createdAt ? new Date(room.createdAt).toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" }) : "",
-                    total: total.toFixed(2),
-                    memberCount: String(payments.length),
-                    itemCount: String(billItems.length),
-                    stats: recapStats,
-                    members: members.slice(0, 8).map((m, i) => ({
-                      initial: m.displayName.charAt(0).toUpperCase(),
-                      color: ["#8B6914", "#B08A56", "#6D8B5E", "#C49A3C", "#9B7A6E", "#6A8BA0", "#C47A5A", "#A06B7A"][i % 8],
-                    })),
-                  }),
-                });
-                const blob = await res.blob();
-                const file = new File([blob], "pladuk-recap.png", { type: "image/png" });
-                if (navigator.canShare?.({ files: [file] })) {
-                  await navigator.share({ files: [file], title: "PlaDuk Recap" });
-                  toast.success("Shared!", { id: toastId });
-                } else {
-                  const url = URL.createObjectURL(blob);
-                  const a = document.createElement("a");
-                  a.href = url; a.download = "pladuk-recap.png"; a.click();
-                  URL.revokeObjectURL(url);
-                  toast.success("Downloaded!", { id: toastId });
-                }
-              } catch {
-                toast.error("Couldn't generate recap", { id: toastId });
-              }
-            }}
+            onShareRecap={handleShareRecap}
           />
         )}
       </AnimatePresence>
