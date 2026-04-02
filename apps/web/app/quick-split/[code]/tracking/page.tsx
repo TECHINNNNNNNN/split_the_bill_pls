@@ -261,6 +261,12 @@ function PaymentTrackingContent({
     }
   };
 
+  const closeRecapPreview = () => {
+    if (recapPreviewUrl) URL.revokeObjectURL(recapPreviewUrl);
+    setRecapPreviewUrl(null);
+    setRecapState("idle");
+  };
+
   // Called from preview modal — fresh user gesture = reliable share
   const handleShareFromPreview = async () => {
     if (!recapBlobRef.current) return;
@@ -269,14 +275,11 @@ function PaymentTrackingContent({
       if (navigator.canShare?.({ files: [file] })) {
         await navigator.share({ files: [file], title: "PlaDuk Recap" });
         toast.success("Shared!");
-        setRecapState("idle");
+        closeRecapPreview();
         return;
       }
     } catch (e) {
-      if (e instanceof Error && e.name === "AbortError") {
-        // User dismissed share sheet — keep preview open
-        return;
-      }
+      if (e instanceof Error && e.name === "AbortError") return;
     }
     // Fallback: download
     const url = URL.createObjectURL(recapBlobRef.current);
@@ -286,7 +289,7 @@ function PaymentTrackingContent({
     a.click();
     URL.revokeObjectURL(url);
     toast.success("Saved!");
-    setRecapState("idle");
+    closeRecapPreview();
   };
 
   // Handle slip file selection — set scanning state SYNCHRONOUSLY before async work
@@ -1233,7 +1236,7 @@ function PaymentTrackingContent({
           animate={{ opacity: 1 }}
           className="fixed inset-0 z-60 flex flex-col items-center justify-center px-8"
           style={{ backgroundColor: "rgba(61, 40, 16, 0.85)" }}
-          onClick={() => setRecapState("idle")}
+          onClick={closeRecapPreview}
         >
           {recapState === "loading" && (
             <div className="flex flex-col items-center gap-4" onClick={(e) => e.stopPropagation()}>
@@ -1242,11 +1245,11 @@ function PaymentTrackingContent({
             </div>
           )}
 
-          {recapState === "ready" && recapBlobRef.current && (
+          {recapState === "ready" && recapPreviewUrl && (
             <div className="flex flex-col items-center gap-5" onClick={(e) => e.stopPropagation()}>
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
-                src={URL.createObjectURL(recapBlobRef.current)}
+                src={recapPreviewUrl}
                 alt="Recap"
                 className="max-h-[68vh] rounded-2xl shadow-2xl"
               />
@@ -1263,7 +1266,7 @@ function PaymentTrackingContent({
                 </button>
                 <button
                   type="button"
-                  onClick={() => setRecapState("idle")}
+                  onClick={closeRecapPreview}
                   className="rounded-full px-5 py-3 text-sm text-cream-light/60 transition-all hover:text-cream-light"
                 >
                   Close
