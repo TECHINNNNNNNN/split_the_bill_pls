@@ -1165,33 +1165,6 @@ function PaymentTrackingContent({
         )}
       </AnimatePresence>
 
-      {/* Recap preview modal — shown when image wasn't cached on first click */}
-      {recapPreviewUrl && (
-        <div className="fixed inset-0 z-[60] flex flex-col items-center justify-center bg-black/70 px-6" onClick={() => { URL.revokeObjectURL(recapPreviewUrl); setRecapPreviewUrl(null); }}>
-          <img
-            src={recapPreviewUrl}
-            alt="Recap"
-            className="max-h-[75vh] rounded-2xl shadow-2xl"
-            onClick={(e) => e.stopPropagation()}
-          />
-          <div className="mt-4 flex gap-3" onClick={(e) => e.stopPropagation()}>
-            <button
-              type="button"
-              onClick={handleShareFromPreview}
-              className="rounded-full bg-brand-700 px-8 py-3 text-sm font-medium text-cream-light transition-all hover:bg-brand-800 active:scale-[0.98]"
-            >
-              Share
-            </button>
-            <button
-              type="button"
-              onClick={() => { URL.revokeObjectURL(recapPreviewUrl); setRecapPreviewUrl(null); }}
-              className="rounded-full border border-brand-200 px-6 py-3 text-sm text-cream-light transition-all hover:bg-white/10"
-            >
-              Close
-            </button>
-          </div>
-        </div>
-      )}
     </div>
   );
 }
