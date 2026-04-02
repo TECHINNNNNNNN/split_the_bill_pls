@@ -209,6 +209,7 @@ function PaymentTrackingContent({
   const handleShareRecap = async () => {
     // If image already cached, show preview immediately
     if (recapBlobRef.current) {
+      setRecapPreviewUrl(URL.createObjectURL(recapBlobRef.current));
       setRecapState("ready");
       return;
     }
@@ -252,6 +253,7 @@ function PaymentTrackingContent({
         }),
       });
       recapBlobRef.current = await res.blob();
+      setRecapPreviewUrl(URL.createObjectURL(recapBlobRef.current));
       setRecapState("ready");
     } catch {
       toast.error("Couldn't generate recap");
