@@ -51,18 +51,13 @@ export default function HomePage() {
   const balances = balancesData?.balances ?? [];
   const pending = pendingSettlements?.pending ?? [];
 
-  // Compute waterfall delays based on which sections are visible.
-  // Each visible section gets the next 100ms slot. Stable across re-renders
-  // because the delays are derived from data, not a mutable counter.
-  const hasInvites = !invitesLoading && invites && invites.length > 0;
-  const hasBalances = balances.length > 0 || pending.length > 0;
-
-  let slot = 1;
-  const ctaDelay = `${slot++ * 100}ms`;
-  const invitesDelay = hasInvites ? `${slot++ * 100}ms` : "0ms";
-  const balancesDelay = hasBalances ? `${slot++ * 100}ms` : "0ms";
-  const recentDelay = `${slot++ * 100}ms`;
-  const groupsDelay = `${slot++ * 100}ms`;
+  // Fixed waterfall delays per section — never shift regardless of data loading.
+  // If a section isn't visible, its slot is simply skipped (no flicker).
+  const ctaDelay = "100ms";
+  const invitesDelay = "200ms";
+  const balancesDelay = "300ms";
+  const recentDelay = "400ms";
+  const groupsDelay = "500ms";
 
   return (
     <div>
