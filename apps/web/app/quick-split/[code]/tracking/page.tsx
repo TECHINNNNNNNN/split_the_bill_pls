@@ -20,7 +20,7 @@ import { ScanProgress } from "@/components/tracking/scan-progress";
 import { ScanResultBadge } from "@/components/tracking/scan-result-badge";
 import { SlipModal } from "@/components/tracking/slip-modal";
 import { StoryCard } from "@/components/bill/story-card";
-import html2canvas from "html2canvas";
+// html2canvas removed — recap images now generated server-side via Satori
 import { statusConfig, bankNames } from "@/components/tracking/constants";
 import { fireAllPaidConfetti } from "@/lib/confetti";
 import { Skeleton } from "@/components/skeleton";
