@@ -195,11 +195,88 @@ function PaymentTrackingContent({
       queueMicrotask(() => setCelebrationDismissed(false));
       fireAllPaidConfetti();
     }
-    // If a payment gets unconfirmed, reset so celebration can fire again
     if (!allPaid) {
       hasFiredConfetti.current = false;
     }
   }, [allPaid]);
+
+  // Pre-fetch recap image when all paid — so share button works instantly
+  const recapBlobRef = useRef<Blob | null>(null);
+  const recapFetchingRef = useRef(false);
+
+  useEffect(() => {
+    if (!allPaid || recapBlobRef.current || recapFetchingRef.current) return;
+    recapFetchingRef.current = true;
+
+    const billItems = room?.billItems || [];
+    const recapStats: { label: string; name: string; detail: string; icon: string }[] = [];
+    if (payments.length > 0) {
+      const sorted = [...payments].sort((a, b) => parseFloat(b.amount) - parseFloat(a.amount));
+      const topMember = members.find(m => m.id === sorted[0].memberId);
+      if (topMember) recapStats.push({ label: "BIG SPENDER", name: topMember.displayName, detail: `฿${parseFloat(sorted[0].amount).toFixed(2)}`, icon: "crown" });
+    }
+    if (room?.finalizedAt) {
+      const claimed = payments.filter(p => p.claimedAt).sort((a, b) => new Date(a.claimedAt!).getTime() - new Date(b.claimedAt!).getTime());
+      if (claimed.length > 0) {
+        const fm = members.find(m => m.id === claimed[0].memberId);
+        const mins = Math.max(0, Math.floor((new Date(claimed[0].claimedAt!).getTime() - new Date(room.finalizedAt).getTime()) / 60000));
+        if (fm) recapStats.push({ label: "FASTEST PAYER", name: fm.displayName, detail: mins < 1 ? "instantly" : `${mins}m`, icon: "lightning" });
+      }
+    }
+    if (billItems.length > 0) {
+      const withCounts = billItems.map(item => ({ name: item.name, splitCount: item.splits?.length || 0 }));
+      const popular = [...withCounts].sort((a, b) => b.splitCount - a.splitCount)[0];
+      if (popular && popular.splitCount > 1) recapStats.push({ label: "MOST POPULAR", name: popular.name, detail: `${popular.splitCount} people`, icon: "plate" });
+    }
+
+    fetch("/api/recap", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        roomName: room?.name || "Bill Split",
+        date: room?.createdAt ? new Date(room.createdAt).toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" }) : "",
+        total: total.toFixed(2),
+        memberCount: String(payments.length),
+        itemCount: String(billItems.length),
+        stats: recapStats,
+        members: members.slice(0, 8).map((m, i) => ({
+          initial: m.displayName.charAt(0).toUpperCase(),
+          color: ["#8B6914", "#B08A56", "#6D8B5E", "#C49A3C", "#9B7A6E", "#6A8BA0", "#C47A5A", "#A06B7A"][i % 8],
+        })),
+      }),
+    })
+      .then(r => r.blob())
+      .then(blob => { recapBlobRef.current = blob; })
+      .catch(() => { /* will retry on click */ })
+      .finally(() => { recapFetchingRef.current = false; });
+  }, [allPaid, payments, members, room, total]);
+
+  // Shared share-recap handler — uses pre-fetched blob for instant share
+  const handleShareRecap = async () => {
+    if (!recapBlobRef.current) {
+      toast("Preparing your recap...");
+      return;
+    }
+    const file = new File([recapBlobRef.current], "pladuk-recap.png", { type: "image/png" });
+    try {
+      if (navigator.canShare?.({ files: [file] })) {
+        await navigator.share({ files: [file], title: "PlaDuk Recap" });
+        toast.success("Shared!");
+        return;
+      }
+    } catch (e) {
+      if (e instanceof Error && e.name === "AbortError") return; // user dismissed — not an error
+      // fall through to download
+    }
+    // Fallback: download
+    const url = URL.createObjectURL(recapBlobRef.current);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "pladuk-recap.png";
+    a.click();
+    URL.revokeObjectURL(url);
+    toast.success("Downloaded!");
+  };
 
   // Handle slip file selection — set scanning state SYNCHRONOUSLY before async work
   const handleSlipUpload = async (e: React.ChangeEvent<HTMLInputElement>, paymentId: string) => {
@@ -390,48 +467,7 @@ function PaymentTrackingContent({
         {confirmedCount === payments.length && payments.length > 0 && (
           <button
             type="button"
-            onClick={async () => {
-              if (!storyCardRef.current) return;
-              const toastId = toast.loading("Generating recap...");
-              try {
-                // Clone the card so the original never flashes on screen
-                const clone = storyCardRef.current.cloneNode(true) as HTMLElement;
-                clone.style.clipPath = "none";
-                clone.style.left = "-9999px";
-                clone.style.top = "0";
-                document.body.appendChild(clone);
-
-                const canvas = await html2canvas(clone, {
-                  scale: 1,
-                  width: 1080,
-                  height: 1920,
-                  windowWidth: 1080,
-                  windowHeight: 1920,
-                  backgroundColor: null,
-                });
-
-                document.body.removeChild(clone);
-                const blob = await new Promise<Blob>((resolve) =>
-                  canvas.toBlob((b) => resolve(b!), "image/png")
-                );
-                const file = new File([blob], "pladuk-recap.png", { type: "image/png" });
-
-                if (navigator.canShare?.({ files: [file] })) {
-                  await navigator.share({ files: [file], title: "PlaDuk Recap" });
-                  toast.success("Shared!", { id: toastId });
-                } else {
-                  const url = URL.createObjectURL(blob);
-                  const a = document.createElement("a");
-                  a.href = url;
-                  a.download = "pladuk-recap.png";
-                  a.click();
-                  URL.revokeObjectURL(url);
-                  toast.success("Downloaded!", { id: toastId });
-                }
-              } catch {
-                toast.error("Couldn't generate recap", { id: toastId });
-              }
-            }}
+            onClick={handleShareRecap}
             className="flex items-center gap-1.5 rounded-full border border-brand-200 px-4 py-1.5 text-sm font-medium text-brand-500 transition-colors hover:bg-cream-light"
           >
             <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
