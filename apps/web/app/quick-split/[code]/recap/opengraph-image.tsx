@@ -35,7 +35,6 @@ export default async function Image({
 
   let roomName = "Bill Split";
   let hostName = "Someone";
-  let totalStr = "0.00";
   let memberCount = 0;
 
   try {
