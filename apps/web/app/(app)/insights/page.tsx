@@ -121,7 +121,42 @@ export default function InsightsPage() {
       .sort((a, b) => b.count - a.count)
       .slice(0, 5);
 
-    return { filtered: f, filteredSpent: spent, filteredRoomCount: roomCount, filteredSplitCount: splitCount, filteredAvg: avg, filteredFriends: friends };
+    // Compute trend chart data
+    const dayLabels = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
+    const monthLabels = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+    let trendSlots: string[];
+    if (rangeDays <= 7) {
+      trendSlots = dayLabels;
+    } else if (rangeDays <= 30) {
+      trendSlots = [];
+      for (let i = 3; i >= 0; i--) {
+        const d = new Date(now);
+        d.setDate(d.getDate() - i * 7);
+        d.setDate(d.getDate() - ((d.getDay() + 6) % 7));
+        trendSlots.push(d.toLocaleDateString("en-US", { month: "short", day: "numeric" }));
+      }
+    } else {
+      trendSlots = monthLabels;
+    }
+    const trendBuckets = new Map<string, number>();
+    for (const s of trendSlots) trendBuckets.set(s, 0);
+    for (const p of f) {
+      const d = new Date((p as { date: string }).date);
+      let key: string;
+      if (rangeDays <= 7) {
+        key = dayLabels[(d.getDay() + 6) % 7];
+      } else if (rangeDays <= 30) {
+        const monday = new Date(d);
+        monday.setDate(d.getDate() - ((d.getDay() + 6) % 7));
+        key = monday.toLocaleDateString("en-US", { month: "short", day: "numeric" });
+      } else {
+        key = monthLabels[d.getMonth()];
+      }
+      if (trendBuckets.has(key)) trendBuckets.set(key, (trendBuckets.get(key) || 0) + (p as { amount: number }).amount);
+    }
+    const trend = trendSlots.map(label => ({ label, amount: trendBuckets.get(label) || 0 }));
+
+    return { filtered: f, filteredSpent: spent, filteredRoomCount: roomCount, filteredSplitCount: splitCount, filteredAvg: avg, filteredFriends: friends, trendData: trend };
   }, [data?.allPayments, rangeDays, nowSnapshot]);
 
   if (isLoading) {
