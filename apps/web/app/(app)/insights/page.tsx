@@ -455,7 +455,7 @@ export default function InsightsPage() {
                     <span className="text-sm font-bold text-brand-700">{f.name}</span>
                     {i === 0 && <CrownIcon className="h-3.5 w-3.5 text-brand-400" />}
                   </div>
-                  <span className="text-xs text-brand-300">{f.count} bills · ฿{f.total.toFixed(0)}</span>
+                  <span className="text-xs text-brand-300">{f.count} bills together · their share ฿{f.total.toFixed(0)}</span>
                 </div>
               </div>
             ))}
