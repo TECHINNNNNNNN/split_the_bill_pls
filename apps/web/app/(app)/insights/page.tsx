@@ -120,16 +120,78 @@ export default function InsightsPage() {
 
   const COLORS = ["#8B6914", "#B08A56", "#6D8B5E", "#C49A3C", "#9B7A6E", "#6A8BA0", "#C47A5A", "#A06B7A"];
 
+  // Time range filter — all computation happens client-side
+  const ranges = [
+    { key: "week", label: "Week", days: 7 },
+    { key: "month", label: "Month", days: 30 },
+    { key: "quarter", label: "3M", days: 90 },
+    { key: "half", label: "6M", days: 180 },
+    { key: "year", label: "Year", days: 365 },
+    { key: "all", label: "All", days: Infinity },
+  ] as const;
+  const [activeRange, setActiveRange] = useState<string>("all");
+  const rangeDays = ranges.find(r => r.key === activeRange)?.days ?? Infinity;
+
+  // Filter allPayments by selected range
+  const allPayments = data.allPayments || [];
+  const cutoff = rangeDays === Infinity ? 0 : Date.now() - rangeDays * 24 * 60 * 60 * 1000;
+  const filtered = allPayments.filter((p: { date: string }) => new Date(p.date).getTime() >= cutoff);
+
+  // Compute stats from filtered data
+  const filteredSpent = filtered.filter((p: { isHost: boolean }) => !p.isHost).reduce((s: number, p: { amount: number }) => s + p.amount, 0);
+  const filteredCollected = filtered.filter((p: { isHost: boolean }) => p.isHost).reduce((s: number, p: { amount: number }) => s + p.amount, 0);
+  const filteredRoomCount = new Set(filtered.map((p: { roomName: string; date: string }) => `${p.roomName}-${p.date}`)).size;
+  const filteredSplitCount = filtered.length;
+  const filteredAvg = filteredRoomCount > 0 ? filteredSpent / filteredRoomCount : 0;
+
+  // Compute top friends from filtered data
+  const friendMap = new Map<string, { count: number; total: number }>();
+  for (const p of filtered) {
+    for (const name of (p as { memberNames: string[] }).memberNames || []) {
+      const existing = friendMap.get(name) || { count: 0, total: 0 };
+      existing.count++;
+      existing.total += (p as { amount: number }).amount;
+      friendMap.set(name, existing);
+    }
+  }
+  const filteredFriends = [...friendMap.entries()]
+    .map(([name, stats]) => ({ name, ...stats }))
+    .sort((a, b) => b.count - a.count)
+    .slice(0, 5);
+
   return (
     <div className="min-h-svh px-4 py-6 md:mx-auto md:max-w-lg md:py-12">
       {/* Header */}
-      <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} className="mb-8">
+      <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} className="mb-6">
         <Link href="/home" className="mb-2 inline-flex items-center gap-1 text-sm text-brand-400 hover:text-brand-600">
           <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"><path d="M15 18L9 12L15 6" /></svg>
           Home
         </Link>
         <h1 className="font-caveat text-3xl font-bold">Your Spending</h1>
         <p className="mt-1 font-serif text-sm italic text-brand-400">~ PlaDukKhlongToei ~</p>
+      </motion.div>
+
+      {/* Time range toggle pills */}
+      <motion.div
+        initial={{ opacity: 0, y: 8 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.05 }}
+        className="mb-6 flex gap-1.5 overflow-x-auto scrollbar-hidden"
+      >
+        {ranges.map((r) => (
+          <button
+            key={r.key}
+            type="button"
+            onClick={() => setActiveRange(r.key)}
+            className={`rounded-full px-4 py-1.5 text-xs font-medium transition-all ${
+              activeRange === r.key
+                ? "bg-brand-700 text-cream-light"
+                : "border border-brand-200 text-brand-400 hover:bg-cream-light"
+            }`}
+          >
+            {r.label}
+          </button>
+        ))}
       </motion.div>
 
       {/* Bento Stats Grid */}
@@ -143,9 +205,9 @@ export default function InsightsPage() {
         >
           <p className="text-xs font-bold uppercase tracking-[3px] text-brand-300">Total Spent</p>
           <p className="mt-1 font-caveat text-4xl font-bold text-brand-800">
-            <AnimatedBaht value={data.totalSpent} />
+            <AnimatedBaht value={filteredSpent} />
           </p>
-          <p className="mt-1 text-xs text-brand-300">across {data.roomCount} splits</p>
+          <p className="mt-1 text-xs text-brand-300">across {filteredRoomCount} splits</p>
         </motion.div>
 
         {/* Split Count */}
