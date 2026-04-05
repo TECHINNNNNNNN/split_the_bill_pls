@@ -14,18 +14,20 @@ function useCountUp(target: number, duration = 800) {
   const ref = useRef<number>(0);
 
   useEffect(() => {
-    if (target === 0) { setValue(0); return; }
+    if (target === 0) { queueMicrotask(() => setValue(0)); return; }
     const start = performance.now();
     const from = ref.current;
+    let rafId: number;
     function tick(now: number) {
       const t = Math.min((now - start) / duration, 1);
-      const eased = 1 - Math.pow(1 - t, 3); // easeOutCubic
+      const eased = 1 - Math.pow(1 - t, 3);
       const current = from + (target - from) * eased;
       setValue(current);
-      if (t < 1) requestAnimationFrame(tick);
+      if (t < 1) rafId = requestAnimationFrame(tick);
       else ref.current = target;
     }
-    requestAnimationFrame(tick);
+    rafId = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(rafId);
   }, [target, duration]);
 
   return value;
