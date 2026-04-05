@@ -182,7 +182,7 @@ export default function InsightsPage() {
           <button
             key={r.key}
             type="button"
-            onClick={() => setActiveRange(r.key)}
+            onClick={() => { setActiveRange(r.key); setSelectedDot(null); }}
             className={`rounded-full px-4 py-1.5 text-xs font-medium transition-all ${
               activeRange === r.key
                 ? "bg-brand-700 text-cream-light"
