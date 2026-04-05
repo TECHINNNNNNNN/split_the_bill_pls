@@ -93,7 +93,7 @@ export default function InsightsPage() {
 
   // Snapshot "now" when range changes — avoids impure Date.now() in useMemo
   const [nowSnapshot, setNowSnapshot] = useState(() => Date.now());
-  useEffect(() => { setNowSnapshot(Date.now()); }, [activeRange]);
+  useEffect(() => { queueMicrotask(() => setNowSnapshot(Date.now())); }, [activeRange]);
 
   // Filter allPayments by selected range — all hooks BEFORE early returns
   const { filtered, filteredSpent, filteredRoomCount, filteredSplitCount, filteredAvg, filteredFriends } = useMemo(() => {
