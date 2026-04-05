@@ -129,7 +129,7 @@ export default function InsightsPage() {
     } else if (rangeDays <= 30) {
       trendSlots = [];
       for (let i = 3; i >= 0; i--) {
-        const d = new Date(now);
+        const d = new Date(nowSnapshot);
         d.setDate(d.getDate() - i * 7);
         d.setDate(d.getDate() - ((d.getDay() + 6) % 7));
         trendSlots.push(d.toLocaleDateString("en-US", { month: "short", day: "numeric" }));
