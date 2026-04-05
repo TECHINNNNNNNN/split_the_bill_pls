@@ -5,7 +5,7 @@ import { settlementQueries } from "@/lib/queries/settlements";
 import { Link } from "next-view-transitions";
 import { Skeleton } from "@/components/skeleton";
 import { motion } from "motion/react";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 
 // ─── Animated counter hook ───
 
@@ -135,31 +135,34 @@ export default function InsightsPage() {
   ] as const;
   const rangeDays = ranges.find(r => r.key === activeRange)?.days ?? Infinity;
 
-  // Filter allPayments by selected range
-  const allPayments = data.allPayments || [];
-  const cutoff = rangeDays === Infinity ? 0 : Date.now() - rangeDays * 24 * 60 * 60 * 1000;
-  const filtered = allPayments.filter((p: { date: string }) => new Date(p.date).getTime() >= cutoff);
+  // Filter allPayments by selected range — memoized to avoid impure Date.now() on every render
+  const { filtered, filteredSpent, filteredRoomCount, filteredSplitCount, filteredAvg, filteredFriends } = useMemo(() => {
+    const allPayments = data.allPayments || [];
+    const now = Date.now();
+    const cutoff = rangeDays === Infinity ? 0 : now - rangeDays * 24 * 60 * 60 * 1000;
+    const f = allPayments.filter((p: { date: string }) => new Date(p.date).getTime() >= cutoff);
 
-  // Compute stats from filtered data
-  const filteredSpent = filtered.filter((p: { isHost: boolean }) => !p.isHost).reduce((s: number, p: { amount: number }) => s + p.amount, 0);
-  const filteredRoomCount = new Set(filtered.map((p: { roomName: string; date: string }) => `${p.roomName}-${p.date}`)).size;
-  const filteredSplitCount = filtered.length;
-  const filteredAvg = filteredRoomCount > 0 ? filteredSpent / filteredRoomCount : 0;
+    const spent = f.filter((p: { isHost: boolean }) => !p.isHost).reduce((s: number, p: { amount: number }) => s + p.amount, 0);
+    const roomCount = new Set(f.map((p: { roomName: string; date: string }) => `${p.roomName}-${p.date}`)).size;
+    const splitCount = f.length;
+    const avg = roomCount > 0 ? spent / roomCount : 0;
 
-  // Compute top friends from filtered data
-  const friendMap = new Map<string, { count: number; total: number }>();
-  for (const p of filtered) {
-    for (const name of (p as { memberNames: string[] }).memberNames || []) {
-      const existing = friendMap.get(name) || { count: 0, total: 0 };
-      existing.count++;
-      existing.total += (p as { amount: number }).amount;
-      friendMap.set(name, existing);
+    const friendMap = new Map<string, { count: number; total: number }>();
+    for (const p of f) {
+      for (const name of (p as { memberNames: string[] }).memberNames || []) {
+        const existing = friendMap.get(name) || { count: 0, total: 0 };
+        existing.count++;
+        existing.total += (p as { amount: number }).amount;
+        friendMap.set(name, existing);
+      }
     }
-  }
-  const filteredFriends = [...friendMap.entries()]
-    .map(([name, stats]) => ({ name, ...stats }))
-    .sort((a, b) => b.count - a.count)
-    .slice(0, 5);
+    const friends = [...friendMap.entries()]
+      .map(([name, stats]) => ({ name, ...stats }))
+      .sort((a, b) => b.count - a.count)
+      .slice(0, 5);
+
+    return { filtered: f, filteredSpent: spent, filteredRoomCount: roomCount, filteredSplitCount: splitCount, filteredAvg: avg, filteredFriends: friends };
+  }, [data.allPayments, rangeDays]);
 
   return (
     <div className="min-h-svh px-4 py-6 md:mx-auto md:max-w-lg md:py-12">
