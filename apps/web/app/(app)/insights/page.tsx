@@ -218,7 +218,7 @@ export default function InsightsPage() {
           className="rounded-2xl border border-brand-100 bg-cream-light p-4"
         >
           <p className="text-xs font-bold uppercase tracking-[3px] text-brand-300">Splits</p>
-          <p className="mt-1 font-caveat text-2xl font-bold text-brand-700">{data.splitCount}</p>
+          <p className="mt-1 font-caveat text-2xl font-bold text-brand-700">{filteredSplitCount}</p>
         </motion.div>
 
         {/* Average */}
