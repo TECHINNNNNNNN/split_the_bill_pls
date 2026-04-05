@@ -54,10 +54,11 @@ export default function HomePage() {
   // Fixed waterfall delays per section — never shift regardless of data loading.
   // If a section isn't visible, its slot is simply skipped (no flicker).
   const ctaDelay = "100ms";
-  const invitesDelay = "200ms";
-  const balancesDelay = "300ms";
-  const recentDelay = "400ms";
-  const groupsDelay = "500ms";
+  const insightsDelay = "200ms";
+  const invitesDelay = "300ms";
+  const balancesDelay = "400ms";
+  const recentDelay = "500ms";
+  const groupsDelay = "600ms";
 
   return (
     <div>
