@@ -80,7 +80,6 @@ function PlateIcon({ className = "h-5 w-5" }: { className?: string }) {
 export default function InsightsPage() {
   const { data, isLoading } = useQuery(settlementQueries.insights());
   const [activeRange, setActiveRange] = useState<string>("all");
-  const [selectedDot, setSelectedDot] = useState<number | null>(null);
 
   const ranges = [
     { key: "week", label: "Week", days: 7 },
@@ -97,7 +96,7 @@ export default function InsightsPage() {
   useEffect(() => { queueMicrotask(() => setNowSnapshot(Date.now())); }, [activeRange]);
 
   // Filter allPayments by selected range — all hooks BEFORE early returns
-  const { filtered, filteredSpent, filteredRoomCount, filteredSplitCount, filteredAvg, filteredFriends } = useMemo(() => {
+  const { filtered, filteredSpent, filteredRoomCount, filteredSplitCount, filteredAvg, filteredFriends, trendData } = useMemo(() => {
     const allPayments = data?.allPayments || [];
     const cutoff = rangeDays === Infinity ? 0 : nowSnapshot - rangeDays * 24 * 60 * 60 * 1000;
     const f = allPayments.filter((p: { date: string }) => new Date(p.date).getTime() >= cutoff);
