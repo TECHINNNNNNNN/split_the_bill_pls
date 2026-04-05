@@ -76,6 +76,7 @@ function PlateIcon({ className = "h-5 w-5" }: { className?: string }) {
 
 export default function InsightsPage() {
   const { data, isLoading } = useQuery(settlementQueries.insights());
+  const [activeRange, setActiveRange] = useState<string>("all");
 
   if (isLoading) {
     return (
