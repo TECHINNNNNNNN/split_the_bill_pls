@@ -290,7 +290,7 @@ export default function InsightsPage() {
 
               const trend = slots.map(label => ({ month: label, amount: bucketMap.get(label) || 0 }));
               const maxVal = Math.max(...trend.map(m => m.amount), 1);
-              const padding = { top: 24, bottom: 32, left: 10, right: 10 };
+              const padding = { top: 24, bottom: 32, left: 32, right: 10 };
               const chartW = 320;
               const chartH = 140;
               const plotW = chartW - padding.left - padding.right;
@@ -327,8 +327,31 @@ export default function InsightsPage() {
               // Total path length estimate for dash animation
               const pathLen = points.length * 100;
 
+              // Y-axis gridlines (3 levels: 0, mid, max)
+              const gridLevels = maxVal > 0
+                ? [0, Math.round(maxVal / 2), Math.round(maxVal)]
+                : [0];
+
               return (
-                <svg viewBox={`0 0 ${chartW} ${chartH}`} className="w-full" style={{ height: "140px" }}>
+                <svg
+                  viewBox={`0 0 ${chartW} ${chartH}`}
+                  className="w-full"
+                  style={{ height: "160px" }}
+                  onClick={() => setSelectedDot(null)}
+                >
+                  {/* Y-axis gridlines */}
+                  {gridLevels.map((val, i) => {
+                    const y = padding.top + plotH - (val / (maxVal || 1)) * plotH;
+                    return (
+                      <g key={`grid-${i}`}>
+                        <line x1={padding.left} y1={y} x2={chartW - padding.right} y2={y} stroke="#e0ccb0" strokeWidth="0.5" strokeDasharray="4 4" />
+                        <text x={padding.left - 2} y={y + 3} textAnchor="end" fill="#b08a56" fontSize="8" fontFamily="system-ui">
+                          {val >= 1000 ? `${(val / 1000).toFixed(0)}k` : val}
+                        </text>
+                      </g>
+                    );
+                  })}
+
                   {/* The organic line */}
                   {points.length > 1 && (
                     <motion.path
@@ -344,50 +367,60 @@ export default function InsightsPage() {
                     />
                   )}
 
-                  {/* Data points — dots */}
+                  {/* Data points — dots (tappable) */}
                   {points.map((p, i) => (
-                    <motion.circle
-                      key={i}
-                      cx={p.x}
-                      cy={p.y}
-                      r="4"
-                      fill="#f5f0eb"
-                      stroke="#C4956A"
-                      strokeWidth="2"
-                      initial={{ opacity: 0, scale: 0 }}
-                      animate={{ opacity: 1, scale: 1 }}
-                      transition={{ delay: 0.8 + i * 0.1, duration: 0.3 }}
-                    />
+                    <g key={i} onClick={(e) => { e.stopPropagation(); setSelectedDot(selectedDot === i ? null : i); }} style={{ cursor: "pointer" }}>
+                      {/* Larger invisible hit area for touch */}
+                      <circle cx={p.x} cy={p.y} r="14" fill="transparent" />
+                      <motion.circle
+                        cx={p.x}
+                        cy={p.y}
+                        r={selectedDot === i ? 6 : 4}
+                        fill={selectedDot === i ? "#C4956A" : "#f5f0eb"}
+                        stroke="#C4956A"
+                        strokeWidth="2"
+                        initial={{ opacity: 0, scale: 0 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        transition={{ delay: 0.8 + i * 0.05, duration: 0.3 }}
+                      />
+                    </g>
                   ))}
 
-                  {/* Amount labels above dots — only for non-zero values */}
-                  {points.filter(p => p.amount > 0).map((p, i) => (
-                    <motion.text
-                      key={`amt-${i}`}
-                      x={p.x}
-                      y={p.y - 14}
-                      textAnchor="middle"
-                      fill="#8B6914"
-                      fontSize="10"
-                      fontWeight="700"
-                      fontFamily="system-ui"
-                      initial={{ opacity: 0 }}
-                      animate={{ opacity: 1 }}
-                      transition={{ delay: 1 + i * 0.1 }}
-                    >
-                      ฿{p.amount >= 1000 ? `${(p.amount / 1000).toFixed(1)}k` : p.amount.toFixed(0)}
-                    </motion.text>
-                  ))}
+                  {/* Tooltip — shows on tap */}
+                  {selectedDot !== null && points[selectedDot] && (
+                    <g>
+                      {/* Vertical guide line */}
+                      <line
+                        x1={points[selectedDot].x} y1={padding.top}
+                        x2={points[selectedDot].x} y2={padding.top + plotH}
+                        stroke="#C4956A" strokeWidth="1" strokeDasharray="3 3" opacity="0.4"
+                      />
+                      {/* Tooltip background */}
+                      <rect
+                        x={points[selectedDot].x - 32} y={points[selectedDot].y - 28}
+                        width="64" height="20" rx="6"
+                        fill="#3d2810" opacity="0.9"
+                      />
+                      {/* Tooltip text */}
+                      <text
+                        x={points[selectedDot].x} y={points[selectedDot].y - 14}
+                        textAnchor="middle" fill="#faf7f3" fontSize="10" fontWeight="700" fontFamily="system-ui"
+                      >
+                        ฿{points[selectedDot].amount >= 1000 ? `${(points[selectedDot].amount / 1000).toFixed(1)}k` : points[selectedDot].amount.toFixed(0)}
+                      </text>
+                    </g>
+                  )}
 
-                  {/* Month labels below */}
+                  {/* X-axis labels */}
                   {points.map((p, i) => (
                     <text
                       key={`lbl-${i}`}
                       x={p.x}
-                      y={chartH - 8}
+                      y={chartH - 4}
                       textAnchor="middle"
-                      fill="#b08a56"
-                      fontSize="10"
+                      fill={selectedDot === i ? "#3d2810" : "#b08a56"}
+                      fontSize="9"
+                      fontWeight={selectedDot === i ? "700" : "400"}
                       fontFamily="system-ui"
                     >
                       {p.label}
