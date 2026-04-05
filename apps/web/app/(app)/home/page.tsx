@@ -160,6 +160,29 @@ export default function HomePage() {
       </Link>
       </Magnetic>
 
+      {/* ─── Insights summary card ─── */}
+      {insightsData && insightsData.splitCount > 0 && (
+        <Link
+          href="/insights"
+          className="animate-section mb-6 block rounded-2xl border border-brand-200 bg-cream-light p-5 shadow-sm transition-all hover:shadow-md active:scale-[0.99]"
+          style={{ animationDelay: insightsDelay }}
+        >
+          <div className="flex items-start justify-between">
+            <div>
+              <p className="text-xs font-bold uppercase tracking-[3px] text-brand-300">Your Spending</p>
+              <p className="mt-1 font-caveat text-2xl font-bold text-brand-800">
+                ฿{insightsData.totalSpent.toFixed(2)}
+              </p>
+              <p className="mt-0.5 text-xs text-brand-300">
+                across {insightsData.roomCount} splits
+                {insightsData.topFriends?.[0] && ` · mostly with ${insightsData.topFriends[0].name}`}
+              </p>
+            </div>
+            <span className="font-serif text-xs italic text-brand-400">See insights →</span>
+          </div>
+        </Link>
+      )}
+
       {/* ─── Pending invites (urgent, top) ─── */}
       {!invitesLoading && invites && invites.length > 0 && (
         <div className="animate-section mb-6 space-y-2" style={{ animationDelay: invitesDelay }}>
