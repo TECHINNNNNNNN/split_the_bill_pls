@@ -42,6 +42,7 @@ export default function HomePage() {
   const { data: invites, isLoading: invitesLoading } = useQuery(roomQueries.invites());
   const { data: balancesData } = useQuery(settlementQueries.balances());
   const { data: pendingSettlements } = useQuery(settlementQueries.pending());
+  const { data: insightsData } = useQuery(settlementQueries.insights());
   const [showCreateGroup, setShowCreateGroup] = useState(false);
   const [showJoinGroup, setShowJoinGroup] = useState(false);
   const [groupCode, setGroupCode] = useState("");
