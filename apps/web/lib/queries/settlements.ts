@@ -24,6 +24,17 @@ export const settlementQueries = {
       staleTime: 0,
       refetchOnMount: "always" as const,
     }),
+  insights: () =>
+    queryOptions({
+      queryKey: ["settlements", "insights"],
+      queryFn: async () => {
+        const res = await api.api.settlements.insights.$get();
+        if (!res.ok) throw new Error("Failed to fetch insights");
+        return res.json();
+      },
+      staleTime: 5 * 60 * 1000,
+      refetchOnMount: false,
+    }),
   detail: (id: string) =>
     queryOptions({
       queryKey: ["settlements", id],
