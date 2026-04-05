@@ -277,7 +277,7 @@ export default function InsightsPage() {
                 x: padding.left + (trend.length === 1 ? plotW / 2 : (i / (trend.length - 1)) * plotW),
                 y: padding.top + plotH - (m.amount / maxVal) * plotH,
                 amount: m.amount,
-                label: new Date(m.month + "-01").toLocaleDateString("en-US", { month: "short" }),
+                label: m.month,
               }));
 
               // Build smooth curve path (catmull-rom to cubic bezier)
