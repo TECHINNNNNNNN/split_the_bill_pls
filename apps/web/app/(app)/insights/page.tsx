@@ -130,7 +130,6 @@ export default function InsightsPage() {
     { key: "year", label: "Year", days: 365 },
     { key: "all", label: "All", days: Infinity },
   ] as const;
-  const [activeRange, setActiveRange] = useState<string>("all");
   const rangeDays = ranges.find(r => r.key === activeRange)?.days ?? Infinity;
 
   // Filter allPayments by selected range
