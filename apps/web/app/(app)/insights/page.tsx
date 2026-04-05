@@ -248,23 +248,47 @@ export default function InsightsPage() {
           </p>
           <div className="mt-4">
             {(() => {
-              // Group filtered payments into time buckets based on active range
+              // Build ALL time slots (not just those with data)
+              const dayLabels = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
+              const monthLabels = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+
+              let slots: string[];
+              if (activeRange === "week") {
+                slots = dayLabels;
+              } else if (activeRange === "month") {
+                // Last 4 weeks
+                slots = [];
+                for (let i = 3; i >= 0; i--) {
+                  const d = new Date();
+                  d.setDate(d.getDate() - i * 7);
+                  d.setDate(d.getDate() - d.getDay() + 1); // Monday
+                  slots.push(d.toLocaleDateString("en-US", { month: "short", day: "numeric" }));
+                }
+              } else {
+                slots = monthLabels;
+              }
+
+              // Group filtered payments into buckets
               const bucketMap = new Map<string, number>();
+              for (const s of slots) bucketMap.set(s, 0);
               for (const p of filtered) {
                 const d = new Date((p as { date: string }).date);
                 let key: string;
                 if (activeRange === "week") {
-                  key = d.toLocaleDateString("en-US", { weekday: "short" });
+                  key = dayLabels[(d.getDay() + 6) % 7]; // Monday = 0
                 } else if (activeRange === "month") {
-                  const weekStart = new Date(d);
-                  weekStart.setDate(d.getDate() - d.getDay());
-                  key = weekStart.toLocaleDateString("en-US", { month: "short", day: "numeric" });
+                  const monday = new Date(d);
+                  monday.setDate(d.getDate() - ((d.getDay() + 6) % 7));
+                  key = monday.toLocaleDateString("en-US", { month: "short", day: "numeric" });
                 } else {
-                  key = d.toLocaleDateString("en-US", { month: "short", year: "2-digit" });
+                  key = monthLabels[d.getMonth()];
                 }
-                bucketMap.set(key, (bucketMap.get(key) || 0) + (p as { amount: number }).amount);
+                if (bucketMap.has(key)) {
+                  bucketMap.set(key, (bucketMap.get(key) || 0) + (p as { amount: number }).amount);
+                }
               }
-              const trend = [...bucketMap.entries()].map(([label, amount]) => ({ month: label, amount }));
+
+              const trend = slots.map(label => ({ month: label, amount: bucketMap.get(label) || 0 }));
               const maxVal = Math.max(...trend.map(m => m.amount), 1);
               const padding = { top: 24, bottom: 32, left: 10, right: 10 };
               const chartW = 320;
