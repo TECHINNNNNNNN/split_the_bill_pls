@@ -230,7 +230,7 @@ export default function InsightsPage() {
         >
           <p className="text-xs font-bold uppercase tracking-[3px] text-brand-300">Avg / Bill</p>
           <p className="mt-1 font-caveat text-2xl font-bold text-brand-700">
-            ฿{data.averageBill.toFixed(0)}
+            ฿{filteredAvg.toFixed(0)}
           </p>
         </motion.div>
       </div>
@@ -359,7 +359,7 @@ export default function InsightsPage() {
       )}
 
       {/* Top Friends */}
-      {data.topFriends && data.topFriends.length > 0 && (
+      {filteredFriends.length > 0 && (
         <motion.div
           initial={{ opacity: 0, y: 16 }}
           animate={{ opacity: 1, y: 0 }}
