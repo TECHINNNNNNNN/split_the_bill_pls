@@ -368,7 +368,7 @@ export default function InsightsPage() {
         >
           <p className="text-xs font-bold uppercase tracking-[3px] text-brand-300">Top Friends</p>
           <div className="mt-3 flex flex-col gap-3">
-            {data.topFriends.map((f: { name: string; image: string | null; count: number; totalAmount: number }, i: number) => (
+            {filteredFriends.map((f, i) => (
               <div key={f.name} className="flex items-center gap-3">
                 <div
                   className="flex h-9 w-9 items-center justify-center rounded-full text-sm font-bold text-cream-light"
@@ -381,7 +381,7 @@ export default function InsightsPage() {
                     <span className="text-sm font-bold text-brand-700">{f.name}</span>
                     {i === 0 && <CrownIcon className="h-3.5 w-3.5 text-brand-400" />}
                   </div>
-                  <span className="text-xs text-brand-300">{f.count} bills · ฿{f.totalAmount.toFixed(0)}</span>
+                  <span className="text-xs text-brand-300">{f.count} bills · ฿{f.total.toFixed(0)}</span>
                 </div>
               </div>
             ))}
