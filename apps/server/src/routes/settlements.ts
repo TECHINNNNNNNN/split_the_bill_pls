@@ -141,6 +141,15 @@ const app = new Hono()
     return c.json({ pending })
   })
 
+  // ─── GET /settlements/insights ──────────────
+  // Aggregated spending insights for the authenticated user
+  .get("/insights", requireAuth, async (c) => {
+    const currentUser = c.get("user")
+    const { getInsights } = await import("../lib/insights.js")
+    const data = await getInsights(currentUser.id)
+    return c.json(data)
+  })
+
   // ─── GET /settlements/:id ──────────────────
   // Returns settlement details for the detail page
   .get("/:id", requireAuth, async (c) => {

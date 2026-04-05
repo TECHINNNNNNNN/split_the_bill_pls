@@ -40,24 +40,58 @@ export default function HomePage() {
   const { data: groups, isLoading: groupsLoading } = useQuery(groupQueries.all());
   const { data: myRooms, isLoading: roomsLoading } = useQuery(roomQueries.my());
   const { data: invites, isLoading: invitesLoading } = useQuery(roomQueries.invites());
-  const { data: balancesData } = useQuery(settlementQueries.balances());
-  const { data: pendingSettlements } = useQuery(settlementQueries.pending());
+  const { data: balancesData, isLoading: balancesLoading } = useQuery(settlementQueries.balances());
+  const { data: pendingSettlements, isLoading: pendingLoading } = useQuery(settlementQueries.pending());
+  const { data: insightsData, isLoading: insightsLoading } = useQuery(settlementQueries.insights());
   const [showCreateGroup, setShowCreateGroup] = useState(false);
   const [showJoinGroup, setShowJoinGroup] = useState(false);
   const [groupCode, setGroupCode] = useState("");
   const acceptInvite = useAcceptInvite();
   const declineInvite = useDeclineInvite();
 
+  // Wait for ALL data before rendering — clean waterfall, no flicker
+  const allLoaded = !groupsLoading && !roomsLoading && !invitesLoading && !balancesLoading && !pendingLoading && !insightsLoading;
+
   const balances = balancesData?.balances ?? [];
   const pending = pendingSettlements?.pending ?? [];
 
-  // Fixed waterfall delays per section — never shift regardless of data loading.
-  // If a section isn't visible, its slot is simply skipped (no flicker).
+  // Waterfall delays — only applied after all data is ready
   const ctaDelay = "100ms";
-  const invitesDelay = "200ms";
-  const balancesDelay = "300ms";
-  const recentDelay = "400ms";
-  const groupsDelay = "500ms";
+  const insightsDelay = "200ms";
+  const invitesDelay = "300ms";
+  const balancesDelay = "400ms";
+  const recentDelay = "500ms";
+  const groupsDelay = "600ms";
+
+  if (!allLoaded) {
+    return (
+      <div className="px-4 py-6 md:mx-auto md:max-w-lg md:py-12">
+        {/* Header skeleton */}
+        <div className="mb-8 flex items-center justify-between">
+          <div>
+            <Skeleton className="h-3 w-24" />
+            <Skeleton className="mt-2 h-8 w-32" />
+          </div>
+          <Skeleton className="h-10 w-10 rounded-full" />
+        </div>
+        {/* CTA skeleton */}
+        <Skeleton className="mb-6 h-20 rounded-2xl" />
+        {/* Insights skeleton */}
+        <Skeleton className="mb-6 h-20 rounded-2xl" />
+        {/* Recent skeleton */}
+        <Skeleton className="mb-3 h-5 w-16" />
+        <div className="mb-8 flex gap-3">
+          <Skeleton className="h-28 w-36 shrink-0 rounded-2xl" />
+          <Skeleton className="h-28 w-36 shrink-0 rounded-2xl" />
+          <Skeleton className="h-28 w-36 shrink-0 rounded-2xl" />
+        </div>
+        {/* Groups skeleton */}
+        <Skeleton className="mb-3 h-5 w-20" />
+        <Skeleton className="h-14 rounded-2xl" />
+        <Skeleton className="mt-2 h-14 rounded-2xl" />
+      </div>
+    );
+  }
 
   return (
     <div>
@@ -157,6 +191,29 @@ export default function HomePage() {
         </div>
       </Link>
       </Magnetic>
+
+      {/* ─── Insights summary card ─── */}
+      {insightsData && insightsData.splitCount > 0 && (
+        <Link
+          href="/insights"
+          className="animate-section mb-6 block rounded-2xl border border-brand-200 bg-cream-light p-5 shadow-sm transition-all hover:shadow-md active:scale-[0.99]"
+          style={{ animationDelay: insightsDelay }}
+        >
+          <div className="flex items-start justify-between">
+            <div>
+              <p className="text-xs font-bold uppercase tracking-[3px] text-brand-300">Your Spending</p>
+              <p className="mt-1 font-caveat text-2xl font-bold text-brand-800">
+                ฿{insightsData.totalSpent.toFixed(2)}
+              </p>
+              <p className="mt-0.5 text-xs text-brand-300">
+                across {insightsData.roomCount} splits
+                {insightsData.topFriends?.[0] && ` · mostly with ${insightsData.topFriends[0].name}`}
+              </p>
+            </div>
+            <span className="font-serif text-xs italic text-brand-400">See insights →</span>
+          </div>
+        </Link>
+      )}
 
       {/* ─── Pending invites (urgent, top) ─── */}
       {!invitesLoading && invites && invites.length > 0 && (
