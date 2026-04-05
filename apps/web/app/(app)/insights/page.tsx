@@ -386,30 +386,29 @@ export default function InsightsPage() {
                     </g>
                   ))}
 
-                  {/* Tooltip — shows on tap */}
-                  {selectedDot !== null && points[selectedDot] && (
-                    <g>
-                      {/* Vertical guide line */}
-                      <line
-                        x1={points[selectedDot].x} y1={padding.top}
-                        x2={points[selectedDot].x} y2={padding.top + plotH}
-                        stroke="#C4956A" strokeWidth="1" strokeDasharray="3 3" opacity="0.4"
-                      />
-                      {/* Tooltip background */}
-                      <rect
-                        x={points[selectedDot].x - 32} y={points[selectedDot].y - 28}
-                        width="64" height="20" rx="6"
-                        fill="#3d2810" opacity="0.9"
-                      />
-                      {/* Tooltip text */}
-                      <text
-                        x={points[selectedDot].x} y={points[selectedDot].y - 14}
-                        textAnchor="middle" fill="#faf7f3" fontSize="10" fontWeight="700" fontFamily="system-ui"
-                      >
-                        ฿{points[selectedDot].amount >= 1000 ? `${(points[selectedDot].amount / 1000).toFixed(1)}k` : points[selectedDot].amount.toFixed(0)}
-                      </text>
-                    </g>
-                  )}
+                  {/* Tooltip — shows on tap, auto-positioned to avoid clipping */}
+                  {selectedDot !== null && points[selectedDot] && (() => {
+                    const p = points[selectedDot];
+                    const tooltipW = 64;
+                    const tooltipH = 20;
+                    // Position above by default, below if too close to top
+                    const showBelow = p.y - 30 < 0;
+                    const tooltipY = showBelow ? p.y + 12 : p.y - 28;
+                    const textY = showBelow ? p.y + 26 : p.y - 14;
+                    // Clamp horizontally
+                    const tooltipX = Math.max(2, Math.min(p.x - tooltipW / 2, chartW - tooltipW - 2));
+                    const textX = tooltipX + tooltipW / 2;
+
+                    return (
+                      <g>
+                        <line x1={p.x} y1={padding.top} x2={p.x} y2={padding.top + plotH} stroke="#C4956A" strokeWidth="1" strokeDasharray="3 3" opacity="0.4" />
+                        <rect x={tooltipX} y={tooltipY} width={tooltipW} height={tooltipH} rx="6" fill="#3d2810" opacity="0.9" />
+                        <text x={textX} y={textY} textAnchor="middle" fill="#faf7f3" fontSize="10" fontWeight="700" fontFamily="system-ui">
+                          ฿{p.amount >= 1000 ? `${(p.amount / 1000).toFixed(1)}k` : p.amount.toFixed(0)}
+                        </text>
+                      </g>
+                    );
+                  })()}
 
                   {/* X-axis labels */}
                   {points.map((p, i) => (
