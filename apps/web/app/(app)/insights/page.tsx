@@ -120,7 +120,6 @@ export default function InsightsPage() {
   }
 
   const COLORS = ["#8B6914", "#B08A56", "#6D8B5E", "#C49A3C", "#9B7A6E", "#6A8BA0", "#C47A5A", "#A06B7A"];
-  const maxMonthly = Math.max(...(data.monthlyTrend?.map((m: { amount: number }) => m.amount) || [1]));
 
   return (
     <div className="min-h-svh px-4 py-6 md:mx-auto md:max-w-lg md:py-12">
