@@ -77,6 +77,7 @@ function PlateIcon({ className = "h-5 w-5" }: { className?: string }) {
 export default function InsightsPage() {
   const { data, isLoading } = useQuery(settlementQueries.insights());
   const [activeRange, setActiveRange] = useState<string>("all");
+  const [selectedDot, setSelectedDot] = useState<number | null>(null);
 
   if (isLoading) {
     return (
@@ -139,7 +140,6 @@ export default function InsightsPage() {
 
   // Compute stats from filtered data
   const filteredSpent = filtered.filter((p: { isHost: boolean }) => !p.isHost).reduce((s: number, p: { amount: number }) => s + p.amount, 0);
-  const filteredCollected = filtered.filter((p: { isHost: boolean }) => p.isHost).reduce((s: number, p: { amount: number }) => s + p.amount, 0);
   const filteredRoomCount = new Set(filtered.map((p: { roomName: string; date: string }) => `${p.roomName}-${p.date}`)).size;
   const filteredSplitCount = filtered.length;
   const filteredAvg = filteredRoomCount > 0 ? filteredSpent / filteredRoomCount : 0;
@@ -360,12 +360,12 @@ export default function InsightsPage() {
                     />
                   ))}
 
-                  {/* Amount labels above dots */}
-                  {points.map((p, i) => (
+                  {/* Amount labels above dots — only for non-zero values */}
+                  {points.filter(p => p.amount > 0).map((p, i) => (
                     <motion.text
                       key={`amt-${i}`}
                       x={p.x}
-                      y={p.y - 12}
+                      y={p.y - 14}
                       textAnchor="middle"
                       fill="#8B6914"
                       fontSize="10"
