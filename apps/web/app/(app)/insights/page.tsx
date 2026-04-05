@@ -175,7 +175,7 @@ export default function InsightsPage() {
         </motion.div>
       </div>
 
-      {/* Monthly Trend */}
+      {/* Monthly Trend — organic hand-drawn line */}
       {data.monthlyTrend && data.monthlyTrend.length > 0 && (
         <motion.div
           initial={{ opacity: 0, y: 16 }}
@@ -184,25 +184,116 @@ export default function InsightsPage() {
           className="mt-6 rounded-2xl border border-brand-100 bg-cream-light p-5"
         >
           <p className="text-xs font-bold uppercase tracking-[3px] text-brand-300">Monthly Trend</p>
-          <div className="mt-4 flex items-end gap-2" style={{ height: "120px" }}>
-            {data.monthlyTrend.map((m: { month: string; amount: number }, i: number) => {
-              const height = maxMonthly > 0 ? (m.amount / maxMonthly) * 100 : 0;
-              const isLast = i === data.monthlyTrend.length - 1;
+          <div className="mt-4">
+            {(() => {
+              const trend = data.monthlyTrend as { month: string; amount: number }[];
+              const maxVal = Math.max(...trend.map(m => m.amount), 1);
+              const padding = { top: 24, bottom: 32, left: 10, right: 10 };
+              const chartW = 320;
+              const chartH = 140;
+              const plotW = chartW - padding.left - padding.right;
+              const plotH = chartH - padding.top - padding.bottom;
+
+              // Calculate points
+              const points = trend.map((m, i) => ({
+                x: padding.left + (trend.length === 1 ? plotW / 2 : (i / (trend.length - 1)) * plotW),
+                y: padding.top + plotH - (m.amount / maxVal) * plotH,
+                amount: m.amount,
+                label: new Date(m.month + "-01").toLocaleDateString("en-US", { month: "short" }),
+              }));
+
+              // Build smooth curve path (catmull-rom to cubic bezier)
+              let pathD = `M ${points[0].x} ${points[0].y}`;
+              if (points.length === 1) {
+                // Single point — just a dot, no line
+              } else if (points.length === 2) {
+                pathD += ` L ${points[1].x} ${points[1].y}`;
+              } else {
+                for (let i = 0; i < points.length - 1; i++) {
+                  const p0 = points[Math.max(i - 1, 0)];
+                  const p1 = points[i];
+                  const p2 = points[i + 1];
+                  const p3 = points[Math.min(i + 2, points.length - 1)];
+                  const cp1x = p1.x + (p2.x - p0.x) / 6;
+                  const cp1y = p1.y + (p2.y - p0.y) / 6;
+                  const cp2x = p2.x - (p3.x - p1.x) / 6;
+                  const cp2y = p2.y - (p3.y - p1.y) / 6;
+                  pathD += ` C ${cp1x} ${cp1y}, ${cp2x} ${cp2y}, ${p2.x} ${p2.y}`;
+                }
+              }
+
+              // Total path length estimate for dash animation
+              const pathLen = points.length * 100;
+
               return (
-                <div key={m.month} className="flex flex-1 flex-col items-center gap-1">
-                  <span className="text-[10px] font-bold text-brand-400">฿{m.amount >= 1000 ? `${(m.amount/1000).toFixed(1)}k` : m.amount.toFixed(0)}</span>
-                  <motion.div
-                    initial={{ height: 0 }}
-                    animate={{ height: `${Math.max(height, 4)}%` }}
-                    transition={{ delay: 0.5 + i * 0.05, duration: 0.6, ease: "easeOut" }}
-                    className={`w-full rounded-t-lg ${isLast ? "bg-brand-700" : "bg-brand-300"}`}
-                  />
-                  <span className="text-[10px] text-brand-300">
-                    {new Date(m.month + "-01").toLocaleDateString("en-US", { month: "short" })}
-                  </span>
-                </div>
+                <svg viewBox={`0 0 ${chartW} ${chartH}`} className="w-full" style={{ height: "140px" }}>
+                  {/* The organic line */}
+                  {points.length > 1 && (
+                    <motion.path
+                      d={pathD}
+                      fill="none"
+                      stroke="#C4956A"
+                      strokeWidth="2.5"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      initial={{ strokeDasharray: pathLen, strokeDashoffset: pathLen }}
+                      animate={{ strokeDashoffset: 0 }}
+                      transition={{ delay: 0.5, duration: 1.2, ease: "easeOut" }}
+                    />
+                  )}
+
+                  {/* Data points — dots */}
+                  {points.map((p, i) => (
+                    <motion.circle
+                      key={i}
+                      cx={p.x}
+                      cy={p.y}
+                      r="4"
+                      fill="#f5f0eb"
+                      stroke="#C4956A"
+                      strokeWidth="2"
+                      initial={{ opacity: 0, scale: 0 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                      transition={{ delay: 0.8 + i * 0.1, duration: 0.3 }}
+                    />
+                  ))}
+
+                  {/* Amount labels above dots */}
+                  {points.map((p, i) => (
+                    <motion.text
+                      key={`amt-${i}`}
+                      x={p.x}
+                      y={p.y - 12}
+                      textAnchor="middle"
+                      fill="#8B6914"
+                      fontSize="10"
+                      fontWeight="700"
+                      fontFamily="system-ui"
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      transition={{ delay: 1 + i * 0.1 }}
+                    >
+                      ฿{p.amount >= 1000 ? `${(p.amount / 1000).toFixed(1)}k` : p.amount.toFixed(0)}
+                    </motion.text>
+                  ))}
+
+                  {/* Month labels below */}
+                  {points.map((p, i) => (
+                    <text
+                      key={`lbl-${i}`}
+                      x={p.x}
+                      y={chartH - 8}
+                      textAnchor="middle"
+                      fill="#b08a56"
+                      fontSize="10"
+                      fontFamily="system-ui"
+                    >
+                      {p.label}
+                    </text>
+                  ))}
+                </svg>
               );
-            })}
+            })()}
           </div>
         </motion.div>
       )}
