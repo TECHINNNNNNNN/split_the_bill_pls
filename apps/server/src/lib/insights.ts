@@ -226,5 +226,33 @@ async function aggregateInsights(userId: string): Promise<InsightsData> {
     dayOfWeekPattern,
     funStats: { fastestPayer, mostExpensiveItem, mostCommonDay },
     recentActivity,
+    allPayments: await getAllPayments(userId),
   }
+}
+
+// ── All payment records for client-side time range filtering ──
+async function getAllPayments(userId: string) {
+  const result = await db.execute(sql`
+    SELECT
+      r.name as room_name, r.host_name, r.created_at as room_date,
+      rp.amount, rp.confirmed_at,
+      rm_me.is_host,
+      ARRAY_AGG(DISTINCT rm_other.display_name) FILTER (WHERE rm_other.user_id != ${userId} OR rm_other.user_id IS NULL) as member_names
+    FROM room_payments rp
+    JOIN rooms r ON rp.room_id = r.id
+    JOIN room_members rm_me ON rm_me.room_id = r.id AND rm_me.user_id = ${userId}
+    JOIN room_members rm_other ON rm_other.room_id = r.id AND rm_other.id != rm_me.id
+    WHERE r.status IN ('payment', 'settled')
+      AND rp.status = 'confirmed'
+    GROUP BY r.id, r.name, r.host_name, r.created_at, rp.amount, rp.confirmed_at, rm_me.is_host
+    ORDER BY COALESCE(rp.confirmed_at, r.created_at) DESC
+  `)
+
+  return result.rows.map((r) => ({
+    roomName: String(r.room_name || `${r.host_name}'s Split`),
+    amount: parseFloat(String(r.amount)),
+    date: String(r.confirmed_at || r.room_date),
+    isHost: Boolean(r.is_host),
+    memberNames: Array.isArray(r.member_names) ? r.member_names.map(String) : [],
+  }))
 }
