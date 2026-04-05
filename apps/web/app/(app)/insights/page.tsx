@@ -81,6 +81,48 @@ export default function InsightsPage() {
   const [activeRange, setActiveRange] = useState<string>("all");
   const [selectedDot, setSelectedDot] = useState<number | null>(null);
 
+  const ranges = [
+    { key: "week", label: "Week", days: 7 },
+    { key: "month", label: "Month", days: 30 },
+    { key: "quarter", label: "3M", days: 90 },
+    { key: "half", label: "6M", days: 180 },
+    { key: "year", label: "Year", days: 365 },
+    { key: "all", label: "All", days: Infinity },
+  ] as const;
+  const rangeDays = ranges.find(r => r.key === activeRange)?.days ?? Infinity;
+
+  // Snapshot "now" when range changes — avoids impure Date.now() in useMemo
+  const [nowSnapshot, setNowSnapshot] = useState(() => Date.now());
+  useEffect(() => { setNowSnapshot(Date.now()); }, [activeRange]);
+
+  // Filter allPayments by selected range — all hooks BEFORE early returns
+  const { filtered, filteredSpent, filteredRoomCount, filteredSplitCount, filteredAvg, filteredFriends } = useMemo(() => {
+    const allPayments = data?.allPayments || [];
+    const cutoff = rangeDays === Infinity ? 0 : nowSnapshot - rangeDays * 24 * 60 * 60 * 1000;
+    const f = allPayments.filter((p: { date: string }) => new Date(p.date).getTime() >= cutoff);
+
+    const spent = f.filter((p: { isHost: boolean }) => !p.isHost).reduce((s: number, p: { amount: number }) => s + p.amount, 0);
+    const roomCount = new Set(f.map((p: { roomName: string; date: string }) => `${p.roomName}-${p.date}`)).size;
+    const splitCount = f.length;
+    const avg = roomCount > 0 ? spent / roomCount : 0;
+
+    const friendMap = new Map<string, { count: number; total: number }>();
+    for (const p of f) {
+      for (const name of (p as { memberNames: string[] }).memberNames || []) {
+        const existing = friendMap.get(name) || { count: 0, total: 0 };
+        existing.count++;
+        existing.total += (p as { amount: number }).amount;
+        friendMap.set(name, existing);
+      }
+    }
+    const friends = [...friendMap.entries()]
+      .map(([name, stats]) => ({ name, ...stats }))
+      .sort((a, b) => b.count - a.count)
+      .slice(0, 5);
+
+    return { filtered: f, filteredSpent: spent, filteredRoomCount: roomCount, filteredSplitCount: splitCount, filteredAvg: avg, filteredFriends: friends };
+  }, [data?.allPayments, rangeDays, nowSnapshot]);
+
   if (isLoading) {
     return (
       <div className="min-h-svh px-4 py-6 md:mx-auto md:max-w-lg md:py-12">
@@ -123,46 +165,6 @@ export default function InsightsPage() {
   }
 
   const COLORS = ["#8B6914", "#B08A56", "#6D8B5E", "#C49A3C", "#9B7A6E", "#6A8BA0", "#C47A5A", "#A06B7A"];
-
-  // Time range filter — all computation happens client-side
-  const ranges = [
-    { key: "week", label: "Week", days: 7 },
-    { key: "month", label: "Month", days: 30 },
-    { key: "quarter", label: "3M", days: 90 },
-    { key: "half", label: "6M", days: 180 },
-    { key: "year", label: "Year", days: 365 },
-    { key: "all", label: "All", days: Infinity },
-  ] as const;
-  const rangeDays = ranges.find(r => r.key === activeRange)?.days ?? Infinity;
-
-  // Filter allPayments by selected range — memoized to avoid impure Date.now() on every render
-  const { filtered, filteredSpent, filteredRoomCount, filteredSplitCount, filteredAvg, filteredFriends } = useMemo(() => {
-    const allPayments = data.allPayments || [];
-    const now = Date.now();
-    const cutoff = rangeDays === Infinity ? 0 : now - rangeDays * 24 * 60 * 60 * 1000;
-    const f = allPayments.filter((p: { date: string }) => new Date(p.date).getTime() >= cutoff);
-
-    const spent = f.filter((p: { isHost: boolean }) => !p.isHost).reduce((s: number, p: { amount: number }) => s + p.amount, 0);
-    const roomCount = new Set(f.map((p: { roomName: string; date: string }) => `${p.roomName}-${p.date}`)).size;
-    const splitCount = f.length;
-    const avg = roomCount > 0 ? spent / roomCount : 0;
-
-    const friendMap = new Map<string, { count: number; total: number }>();
-    for (const p of f) {
-      for (const name of (p as { memberNames: string[] }).memberNames || []) {
-        const existing = friendMap.get(name) || { count: 0, total: 0 };
-        existing.count++;
-        existing.total += (p as { amount: number }).amount;
-        friendMap.set(name, existing);
-      }
-    }
-    const friends = [...friendMap.entries()]
-      .map(([name, stats]) => ({ name, ...stats }))
-      .sort((a, b) => b.count - a.count)
-      .slice(0, 5);
-
-    return { filtered: f, filteredSpent: spent, filteredRoomCount: roomCount, filteredSplitCount: splitCount, filteredAvg: avg, filteredFriends: friends };
-  }, [data.allPayments, rangeDays]);
 
   return (
     <div className="min-h-svh px-4 py-6 md:mx-auto md:max-w-lg md:py-12">
