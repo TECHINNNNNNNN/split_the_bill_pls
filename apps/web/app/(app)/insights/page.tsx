@@ -235,18 +235,36 @@ export default function InsightsPage() {
         </motion.div>
       </div>
 
-      {/* Monthly Trend — organic hand-drawn line */}
-      {data.monthlyTrend && data.monthlyTrend.length > 0 && (
+      {/* Spending Trend — organic hand-drawn line */}
+      {filtered.length > 0 && (
         <motion.div
           initial={{ opacity: 0, y: 16 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.4 }}
           className="mt-6 rounded-2xl border border-brand-100 bg-cream-light p-5"
         >
-          <p className="text-xs font-bold uppercase tracking-[3px] text-brand-300">Monthly Trend</p>
+          <p className="text-xs font-bold uppercase tracking-[3px] text-brand-300">
+            {activeRange === "week" ? "Daily" : activeRange === "month" ? "Weekly" : "Monthly"} Trend
+          </p>
           <div className="mt-4">
             {(() => {
-              const trend = data.monthlyTrend as { month: string; amount: number }[];
+              // Group filtered payments into time buckets based on active range
+              const bucketMap = new Map<string, number>();
+              for (const p of filtered) {
+                const d = new Date((p as { date: string }).date);
+                let key: string;
+                if (activeRange === "week") {
+                  key = d.toLocaleDateString("en-US", { weekday: "short" });
+                } else if (activeRange === "month") {
+                  const weekStart = new Date(d);
+                  weekStart.setDate(d.getDate() - d.getDay());
+                  key = weekStart.toLocaleDateString("en-US", { month: "short", day: "numeric" });
+                } else {
+                  key = d.toLocaleDateString("en-US", { month: "short", year: "2-digit" });
+                }
+                bucketMap.set(key, (bucketMap.get(key) || 0) + (p as { amount: number }).amount);
+              }
+              const trend = [...bucketMap.entries()].map(([label, amount]) => ({ month: label, amount }));
               const maxVal = Math.max(...trend.map(m => m.amount), 1);
               const padding = { top: 24, bottom: 32, left: 10, right: 10 };
               const chartW = 320;
