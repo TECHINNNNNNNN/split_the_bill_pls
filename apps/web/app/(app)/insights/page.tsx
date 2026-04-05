@@ -4,7 +4,6 @@ import { useQuery } from "@tanstack/react-query";
 import { settlementQueries } from "@/lib/queries/settlements";
 import { Link } from "next-view-transitions";
 import { Skeleton } from "@/components/skeleton";
-import { Baht } from "@/components/baht";
 import { motion } from "motion/react";
 import { useEffect, useRef, useState } from "react";
 

@@ -17,6 +17,8 @@ export interface InsightsData {
     mostCommonDay: { dayName: string; percentage: number } | null
   }
   recentActivity: Array<{ roomName: string; amount: number; date: string; status: string }>
+  // Raw payment records for client-side time range filtering
+  allPayments: Array<{ roomName: string; amount: number; date: string; isHost: boolean; memberNames: string[] }>
 }
 
 // Simple in-memory cache: userId → { data, timestamp }
