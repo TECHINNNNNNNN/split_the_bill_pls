@@ -8,6 +8,7 @@ import { auth } from "./lib/auth.js";
 import groupRoutes from "./routes/groups.js"
 import roomRoutes from "./routes/rooms.js"
 import settlementRoutes from "./routes/settlements.js"
+import aiRoutes from "./routes/ai.js"
 
 
 const app = new Hono().basePath("/api")
