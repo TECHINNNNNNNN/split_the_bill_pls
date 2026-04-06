@@ -146,22 +146,54 @@ export async function getRoomsList(userId: string, sortBy: string = "biggest", l
 }
 
 export async function getRoomDetails(userId: string, roomName: string) {
-  const result = await db.execute(sql`
+  // Find the room
+  const roomResult = await db.execute(sql`
     SELECT r.id, r.name, r.host_name, r.status, r.created_at, r.invite_code
     FROM rooms r
     JOIN room_members rm ON rm.room_id = r.id
     WHERE rm.user_id = ${userId}
       AND (r.name ILIKE ${'%' + roomName + '%'} OR r.host_name ILIKE ${'%' + roomName + '%'})
     ORDER BY r.created_at DESC
-    LIMIT 3
+    LIMIT 1
   `)
-  if (result.rows.length === 0) return { found: false, message: "No room found matching that name." }
+  if (roomResult.rows.length === 0) return { found: false, message: "No room found matching that name." }
 
+  const room = roomResult.rows[0];
+  const roomId = String(room.id);
+
+  // Get items
+  const itemsResult = await db.execute(sql`
+    SELECT rbi.name, rbi.quantity, rbi.unit_price::numeric as price
+    FROM room_bill_items rbi
+    WHERE rbi.room_id = ${roomId}
+    ORDER BY rbi.sort_order
+  `)
+
+  // Get members + their payments
+  const membersResult = await db.execute(sql`
+    SELECT rm.display_name, rm.is_host, rp.amount::numeric as amount, rp.status as payment_status
+    FROM room_members rm
+    LEFT JOIN room_payments rp ON rp.member_id = rm.id AND rp.room_id = ${roomId}
+    WHERE rm.room_id = ${roomId}
+  `)
+
+  const result = roomResult;
   const rooms = result.rows.map(r => ({
     name: String(r.name || `${r.host_name}'s Split`),
     status: String(r.status),
     date: new Date(String(r.created_at)).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }),
     code: String(r.invite_code),
+    items: itemsResult.rows.map(item => ({
+      name: String(item.name),
+      quantity: parseInt(String(item.quantity)),
+      price: parseFloat(String(item.price)),
+    })),
+    members: membersResult.rows.map(m => ({
+      name: String(m.display_name),
+      isHost: Boolean(m.is_host),
+      amount: m.amount ? parseFloat(String(m.amount)) : null,
+      paymentStatus: m.payment_status ? String(m.payment_status) : null,
+    })),
   }))
   return { found: true, rooms }
 }
