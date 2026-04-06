@@ -10,9 +10,9 @@ export function ChatBubble() {
 
   return (
     <>
-      {/* Floating bubble — draggable */}
-      {!open && (
-        <motion.button
+      {/* Floating bubble — draggable, hidden (not unmounted) when overlay is open */}
+      <motion.button
+          style={{ display: open ? "none" : "flex" }}
           type="button"
           drag
           dragMomentum={false}
