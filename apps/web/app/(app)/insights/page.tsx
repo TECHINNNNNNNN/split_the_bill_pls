@@ -290,7 +290,7 @@ export default function InsightsPage() {
           if (!lastAssistant) return null;
           return (
             <div className="mt-3 rounded-2xl border border-brand-100 bg-cream-light p-4">
-              <div className="font-serif text-sm italic leading-relaxed text-brand-600">
+              <div className="animate-fade-in-text font-serif text-sm italic leading-relaxed text-brand-600">
                 {lastAssistant.parts?.map((part, i) =>
                   part.type === "text" && part.text ? (
                     <span key={i} dangerouslySetInnerHTML={{
