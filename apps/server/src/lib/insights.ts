@@ -16,7 +16,7 @@ export interface InsightsData {
     mostExpensiveItem: { name: string; price: number; roomName: string } | null
     mostCommonDay: { dayName: string; percentage: number } | null
   }
-  recentActivity: Array<{ roomName: string; amount: number; date: string; status: string }>
+  recentActivity: Array<{ roomName: string; amount: number; date: string; direction: "paid" | "collected" }>
   // Raw payment records for client-side time range filtering
   allPayments: Array<{ roomName: string; amount: number; date: string; isHost: boolean; memberNames: string[] }>
 }
@@ -196,22 +196,34 @@ async function aggregateInsights(userId: string): Promise<InsightsData> {
     ? { dayName: topDay.dayName, percentage: Math.round((topDay.count / totalDays) * 100) }
     : null
 
-  // ── Recent activity ──
+  // ── Recent activity (both paid and collected) ──
   const recentResult = await db.execute(sql`
-    SELECT r.name, r.host_name, rp.amount, rp.confirmed_at, rp.status
-    FROM room_payments rp
-    JOIN rooms r ON rp.room_id = r.id
-    JOIN room_members rm ON rp.member_id = rm.id
-    WHERE rm.user_id = ${userId}
-      AND rp.status = 'confirmed'
-    ORDER BY rp.confirmed_at DESC
+    (
+      SELECT r.name, r.host_name, rp.amount, rp.confirmed_at, 'paid' as direction
+      FROM room_payments rp
+      JOIN rooms r ON rp.room_id = r.id
+      JOIN room_members rm ON rp.member_id = rm.id
+      WHERE rm.user_id = ${userId}
+        AND rm.is_host = false
+        AND rp.status = 'confirmed'
+    )
+    UNION ALL
+    (
+      SELECT r.name, r.host_name, rp.amount, rp.confirmed_at, 'collected' as direction
+      FROM room_payments rp
+      JOIN rooms r ON rp.room_id = r.id
+      JOIN room_members rm_host ON rm_host.room_id = r.id AND rm_host.is_host = true
+      WHERE rm_host.user_id = ${userId}
+        AND rp.status = 'confirmed'
+    )
+    ORDER BY confirmed_at DESC
     LIMIT 10
   `)
   const recentActivity = recentResult.rows.map((r) => ({
     roomName: String(r.name || `${r.host_name}'s Split`),
     amount: parseFloat(String(r.amount)),
     date: String(r.confirmed_at),
-    status: String(r.status),
+    direction: String(r.direction) as "paid" | "collected",
   }))
 
   return {
