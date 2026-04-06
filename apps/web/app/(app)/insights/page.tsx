@@ -284,29 +284,33 @@ export default function InsightsPage() {
           ))}
         </div>
 
-        {/* AI Response */}
-        {chatMessages.filter(m => m.role === "assistant").length > 0 && (
-          <div className="mt-3 space-y-2">
-            {chatMessages.filter(m => m.role === "assistant").map((m) => (
-              <div key={m.id} className="rounded-2xl border border-brand-100 bg-cream-light p-4">
-                <div className="font-serif text-sm italic leading-relaxed text-brand-600">
-                  {m.parts?.map((part, i) =>
-                    part.type === "text" && part.text ? (
-                      <span key={i}>{part.text}</span>
-                    ) : part.type?.startsWith("tool-") ? (
-                      <span key={i} className="mr-1 inline-flex items-center gap-1 rounded-full bg-brand-50 px-2 py-0.5 text-xs not-italic text-brand-400">
-                        {"state" in part && (part.state === "output-available" || part.state === "done")
-                          ? "✓ Found data"
-                          : <><div className="h-2 w-2 animate-spin rounded-full border border-brand-300 border-t-brand-500" /> Looking up...</>
-                        }
-                      </span>
-                    ) : null
-                  )}
-                </div>
+        {/* AI Response — only show the LAST assistant message */}
+        {(() => {
+          const lastAssistant = chatMessages.filter(m => m.role === "assistant").slice(-1)[0];
+          if (!lastAssistant) return null;
+          return (
+            <div className="mt-3 rounded-2xl border border-brand-100 bg-cream-light p-4">
+              <div className="font-serif text-sm italic leading-relaxed text-brand-600">
+                {lastAssistant.parts?.map((part, i) =>
+                  part.type === "text" && part.text ? (
+                    <span key={i} dangerouslySetInnerHTML={{
+                      __html: part.text
+                        .replace(/\*\*(.+?)\*\*/g, '<strong class="font-bold not-italic">$1</strong>')
+                        .replace(/\n/g, '<br />')
+                    }} />
+                  ) : part.type?.startsWith("tool-") ? (
+                    <span key={i} className="mr-1 inline-flex items-center gap-1 rounded-full bg-brand-50 px-2 py-0.5 text-xs not-italic text-brand-400">
+                      {"state" in part && (part.state === "output-available" || part.state === "done")
+                        ? "✓ Found data"
+                        : <><div className="h-2 w-2 animate-spin rounded-full border border-brand-300 border-t-brand-500" /> Looking up...</>
+                      }
+                    </span>
+                  ) : null
+                )}
               </div>
-            ))}
-          </div>
-        )}
+            </div>
+          );
+        })()}
       </motion.div>
 
       {/* Time range toggle pills */}
