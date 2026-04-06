@@ -120,6 +120,47 @@ export async function getTopFriends(userId: string, limit: number = 5) {
   }))
 }
 
+export async function getPersonSpending(userId: string, personName: string) {
+  const result = await db.execute(sql`
+    SELECT
+      rm_other.display_name,
+      r.name as room_name, r.host_name,
+      rp.amount::numeric as amount,
+      rp.status,
+      r.created_at
+    FROM room_payments rp
+    JOIN rooms r ON rp.room_id = r.id
+    JOIN room_members rm_me ON rm_me.room_id = r.id AND rm_me.user_id = ${userId}
+    JOIN room_members rm_other ON rp.member_id = rm_other.id
+    WHERE rm_other.display_name ILIKE ${'%' + personName + '%'}
+      AND r.status IN ('payment', 'settled')
+    ORDER BY r.created_at DESC
+    LIMIT 20
+  `)
+
+  if (result.rows.length === 0) return { found: false, message: `No bills found with "${personName}".` }
+
+  const rows = result.rows.map(r => ({
+    roomName: String(r.room_name || `${r.host_name}'s Split`),
+    amount: parseFloat(String(r.amount)),
+    status: String(r.status),
+    date: new Date(String(r.created_at)).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }),
+  }))
+
+  const totalSpent = rows.reduce((s, r) => s + r.amount, 0)
+  const confirmedTotal = rows.filter(r => r.status === "confirmed").reduce((s, r) => s + r.amount, 0)
+  const name = String(result.rows[0].display_name)
+
+  return {
+    found: true,
+    name,
+    totalOwed: totalSpent,
+    totalPaid: confirmedTotal,
+    billCount: rows.length,
+    bills: rows,
+  }
+}
+
 export async function getRoomsList(userId: string, sortBy: string = "biggest", limit: number = 5) {
   const orderClause = sortBy === "recent" ? sql`r.created_at DESC` : sql`total DESC`;
   const result = await db.execute(sql`

@@ -8,6 +8,7 @@ import {
   getBalances,
   getPendingPayments,
   getTopFriends,
+  getPersonSpending,
   getRoomsList,
   getRoomDetails,
 } from "../lib/ai-tools.js"
@@ -59,6 +60,13 @@ Rules:
             limit: z.number().min(1).max(10).default(5).describe("How many friends to return"),
           }),
           execute: async ({ limit }: { limit: number }) => getTopFriends(user.id, limit),
+        },
+        get_person_spending: {
+          description: "Look up a specific person's spending across all shared rooms. Use when the user asks about how much someone (e.g. Opal, Boom) has spent or owes in total.",
+          inputSchema: z.object({
+            person_name: z.string().describe("The name of the person to look up"),
+          }),
+          execute: async ({ person_name }: { person_name: string }) => getPersonSpending(user.id, person_name),
         },
         get_rooms_list: {
           description: "Get a list of the user's bill-splitting rooms, sorted by total amount (biggest first) or most recent. Use when asking about biggest bill, most expensive dinner, cheapest split, recent splits, or any ranking of bills.",
