@@ -233,7 +233,15 @@ export default function InsightsPage() {
         transition={{ delay: 0.05 }}
         className="mb-4"
       >
-        <form onSubmit={handleSubmit} className="relative">
+        <form
+          onSubmit={(e) => {
+            e.preventDefault();
+            if (!chatInput.trim() || chatLoading) return;
+            sendMessage({ prompt: chatInput });
+            setChatInput("");
+          }}
+          className="relative"
+        >
           {/* Catfish icon */}
           <svg className="absolute left-3.5 top-1/2 h-5 w-7 -translate-y-1/2 text-brand-300" viewBox="0 0 340 160" fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round">
             <g transform="translate(170, 80)">
@@ -249,8 +257,8 @@ export default function InsightsPage() {
             </g>
           </svg>
           <input
-            value={input}
-            onChange={handleInputChange}
+            value={chatInput}
+            onChange={(e) => setChatInput(e.target.value)}
             placeholder="Ask about your spending..."
             className="w-full rounded-2xl border border-brand-200 bg-cream-light py-3 pl-14 pr-4 text-sm text-brand-700 placeholder-brand-300 shadow-sm outline-none transition-all focus:border-brand-400 focus:shadow-md"
           />
@@ -267,7 +275,7 @@ export default function InsightsPage() {
             <button
               key={chip}
               type="button"
-              onClick={() => { setInput(chip); handleSubmit(new Event("submit") as unknown as React.FormEvent<HTMLFormElement>); }}
+              onClick={() => { sendMessage({ prompt: chip }); }}
               className="shrink-0 rounded-full border border-brand-100 px-3 py-1 text-xs text-brand-400 transition-all hover:border-brand-300 hover:bg-cream-light"
             >
               {chip}
@@ -283,12 +291,12 @@ export default function InsightsPage() {
                 {m.parts?.map((part, i) =>
                   part.type === "text" ? (
                     <span key={i}>{part.text}</span>
-                  ) : part.type === "tool-invocation" ? (
+                  ) : part.type?.startsWith("tool-") ? (
                     <span key={i} className="mr-1 inline-flex items-center gap-1 rounded-full bg-brand-50 px-2 py-0.5 text-xs not-italic text-brand-400">
-                      {part.toolInvocation.state === "call" && (
-                        <><div className="h-2 w-2 animate-spin rounded-full border border-brand-300 border-t-brand-500" /> Looking up...</>
-                      )}
-                      {part.toolInvocation.state === "result" && "✓ Found data"}
+                      {"state" in part && part.state === "result"
+                        ? "✓ Found data"
+                        : <><div className="h-2 w-2 animate-spin rounded-full border border-brand-300 border-t-brand-500" /> Looking up...</>
+                      }
                     </span>
                   ) : null
                 )}
