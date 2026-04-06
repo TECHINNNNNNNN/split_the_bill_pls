@@ -15,7 +15,13 @@ import {
 const aiRoutes = new Hono()
   .post("/chat", requireAuth, async (c) => {
     const user = c.get("user")
-    const { messages } = await c.req.json()
+    const { messages: rawMessages } = await c.req.json()
+
+    // Convert UI messages (from @ai-sdk/react) to model messages (for streamText)
+    const messages = (rawMessages as Array<{ role: string; parts?: Array<{ type: string; text?: string }>; content?: string }>).map((m) => ({
+      role: m.role as "user" | "assistant" | "system",
+      content: m.content || m.parts?.filter((p) => p.type === "text").map((p) => p.text).join("") || "",
+    }))
 
     const result = streamText({
       model: anthropic("claude-haiku-4-5-20251001"),
