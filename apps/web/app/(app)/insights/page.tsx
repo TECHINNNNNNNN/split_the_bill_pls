@@ -84,10 +84,15 @@ export default function InsightsPage() {
 
   // AI search bar
   const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001";
-  const { messages, input, handleInputChange, handleSubmit, isLoading: chatLoading, setInput } = useChat({
-    api: `${apiUrl}/api/ai/chat`,
-    credentials: "include" as RequestCredentials,
+  const { messages, sendMessage, status } = useChat({
+    transport: {
+      type: "fetch" as const,
+      url: `${apiUrl}/api/ai/chat`,
+      credentials: "include" as RequestCredentials,
+    },
   });
+  const [chatInput, setChatInput] = useState("");
+  const chatLoading = status === "streaming" || status === "submitted";
 
   const ranges = [
     { key: "week", label: "Week", days: 7 },
