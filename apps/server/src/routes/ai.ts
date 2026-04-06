@@ -60,6 +60,14 @@ Rules:
           }),
           execute: async ({ limit }: { limit: number }) => getTopFriends(user.id, limit),
         },
+        get_rooms_list: {
+          description: "Get a list of the user's bill-splitting rooms, sorted by total amount (biggest first) or most recent. Use when asking about biggest bill, most expensive dinner, cheapest split, recent splits, or any ranking of bills.",
+          inputSchema: z.object({
+            sort_by: z.enum(["biggest", "recent"]).default("biggest").describe("Sort order: 'biggest' for highest amount first, 'recent' for newest first"),
+            limit: z.number().min(1).max(10).default(5).describe("How many rooms to return"),
+          }),
+          execute: async ({ sort_by, limit }: { sort_by: string; limit: number }) => getRoomsList(user.id, sort_by, limit),
+        },
         get_room_details: {
           description: "Search for a specific room/bill by name. Use when the user mentions a specific dinner, event, or room name.",
           inputSchema: z.object({
