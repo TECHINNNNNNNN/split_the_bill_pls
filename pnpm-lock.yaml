@@ -126,6 +126,9 @@ importers:
       '@visx/tooltip':
         specifier: ^3.12.0
         version: 3.12.0(react-dom@19.2.3(react@19.2.3))(react@19.2.3)
+      ai:
+        specifier: ^6.0.146
+        version: 6.0.146(zod@4.3.6)
       barcode-detector:
         specifier: ^3.1.1
         version: 3.1.1(@types/emscripten@1.41.5)
