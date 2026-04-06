@@ -6,7 +6,7 @@ import { ChatOverlay } from "./chat-overlay";
 
 export function ChatBubble() {
   const [open, setOpen] = useState(false);
-  const isDragging = useRef(false);
+  const [dragging, setDragging] = useState(false);
 
   return (
     <>
@@ -17,9 +17,9 @@ export function ChatBubble() {
           drag
           dragMomentum={false}
           dragElastic={0.1}
-          onDragStart={() => { isDragging.current = true; }}
-          onDragEnd={() => { setTimeout(() => { isDragging.current = false; }, 50); }}
-          onClick={() => { if (!isDragging.current) setOpen(true); }}
+          onDragStart={() => setDragging(true)}
+          onDragEnd={() => setTimeout(() => setDragging(false), 50)}
+          onClick={() => { if (!dragging) setOpen(true); }}
           whileDrag={{ scale: 1.1 }}
           whileTap={{ scale: 0.95 }}
           className="fixed bottom-6 right-6 z-40 flex h-14 w-14 cursor-grab items-center justify-center rounded-full bg-brand-700 shadow-lg transition-colors hover:bg-brand-800 hover:shadow-xl active:cursor-grabbing"
