@@ -4,6 +4,7 @@ import { useSession } from "@/lib/auth-client";
 import { useRouter } from "next/navigation";
 import { useEffect } from "react";
 import { Skeleton } from "@/components/skeleton";
+import { ChatBubble } from "@/components/insights/chat-bubble";
 
 export default function AppLayout({ children }: { children: React.ReactNode }) {
   const { data: session, isPending } = useSession();
@@ -44,6 +45,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   return (
     <main className="mx-auto min-h-screen max-w-lg px-4 py-6">
       {children}
+      <ChatBubble />
     </main>
   );
 }

@@ -81,6 +81,7 @@ export default function InsightsPage() {
   const { data, isLoading } = useQuery(settlementQueries.insights());
   const [activeRange, setActiveRange] = useState<string>("all");
 
+
   const ranges = [
     { key: "week", label: "Week", days: 7 },
     { key: "month", label: "Month", days: 30 },
@@ -238,18 +239,42 @@ export default function InsightsPage() {
 
       {/* Bento Stats Grid */}
       <div className="grid grid-cols-2 gap-3">
-        {/* Hero: Total Spent (2x1) */}
+        {/* Hero: Total Spent (2x1) — warm gradient card */}
         <motion.div
           initial={{ opacity: 0, y: 16 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.1 }}
-          className="col-span-2 rounded-2xl border border-brand-200 bg-cream-light p-5"
+          className="col-span-2 relative overflow-hidden rounded-2xl p-6"
+          style={{ background: "linear-gradient(135deg, #5c3d2e 0%, #8b6144 100%)" }}
         >
-          <p className="text-xs font-bold uppercase tracking-[3px] text-brand-300">Total Spent</p>
-          <p className="mt-1 font-caveat text-4xl font-bold text-brand-800">
+          {/* Catfish watermark */}
+          <svg className="absolute -right-4 -bottom-4 h-28 w-36 text-cream-light/6" viewBox="0 0 340 160" fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round">
+            <g transform="translate(170, 80)">
+              <path d="M -65 -8 C -60 -40, -20 -50, 25 -46 C 60 -42, 95 -28, 118 -6" strokeWidth="3.2" />
+              <path d="M -65 8 C -55 42, -5 55, 40 48 C 72 42, 98 26, 118 6" strokeWidth="2.8" />
+              <path d="M -65 -8 C -72 -4, -72 4, -65 8" strokeWidth="3" />
+              <path d="M 116 -4 C 138 -32, 158 -38, 170 -24" strokeWidth="3" />
+              <path d="M 116 4 C 138 32, 158 38, 170 24" strokeWidth="3" />
+              <path d="M -68 2 C -100 -8, -138 -4, -168 -14" strokeWidth="3.2" />
+              <path d="M -68 6 C -98 14, -135 18, -162 12" strokeWidth="2.5" />
+              <path d="M -66 9 C -88 28, -118 34, -150 36" strokeWidth="1.8" />
+              <circle cx="-35" cy="-6" r="6.5" fill="currentColor" stroke="none" />
+            </g>
+          </svg>
+          {/* Corner ornament */}
+          <svg className="absolute top-3 left-3 h-6 w-6" viewBox="0 0 65 65" fill="none">
+            <path d="M 0 32 L 0 0 L 32 0" stroke="rgba(232,213,191,0.2)" strokeWidth="1.5" />
+            <circle cx="3" cy="3" r="1.5" fill="rgba(232,213,191,0.2)" />
+          </svg>
+          <p className="text-xs font-bold uppercase tracking-[3px] text-cream-light/60">Total Spent</p>
+          <p className="mt-2 font-caveat text-5xl font-bold text-cream-light">
             <AnimatedBaht value={filteredSpent} />
           </p>
-          <p className="mt-1 text-xs text-brand-300">across {filteredRoomCount} splits</p>
+          <p className="mt-2 text-xs text-cream-light/50">across {filteredRoomCount} splits</p>
+          {/* Decorative underline */}
+          <svg className="mt-3 h-2 w-20" viewBox="0 0 80 8" fill="none">
+            <path d="M 2 5 C 18 2, 35 7, 50 4 S 70 6, 78 3" stroke="rgba(196,149,106,0.4)" strokeWidth="1.5" strokeLinecap="round" />
+          </svg>
         </motion.div>
 
         {/* Split Count */}
@@ -257,10 +282,16 @@ export default function InsightsPage() {
           initial={{ opacity: 0, y: 16 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.2 }}
-          className="rounded-2xl border border-brand-100 bg-cream-light p-4"
+          className="rounded-2xl border border-brand-100 bg-cream-light p-5"
         >
-          <p className="text-xs font-bold uppercase tracking-[3px] text-brand-300">Splits</p>
-          <p className="mt-1 font-caveat text-2xl font-bold text-brand-700">{filteredSplitCount}</p>
+          <div className="flex items-center gap-2">
+            <svg className="h-4 w-4 text-brand-300" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M17 21V19C17 16.79 14.76 15 12 15C9.24 15 7 16.79 7 19V21" />
+              <circle cx="12" cy="10" r="4" />
+            </svg>
+            <p className="text-xs font-bold uppercase tracking-[3px] text-brand-300">Splits</p>
+          </div>
+          <p className="mt-2 font-caveat text-3xl font-bold text-brand-700">{filteredSplitCount}</p>
         </motion.div>
 
         {/* Average */}
@@ -268,13 +299,25 @@ export default function InsightsPage() {
           initial={{ opacity: 0, y: 16 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.3 }}
-          className="rounded-2xl border border-brand-100 bg-cream-light p-4"
+          className="rounded-2xl border border-brand-100 bg-cream-light p-5"
         >
-          <p className="text-xs font-bold uppercase tracking-[3px] text-brand-300">Avg / Bill</p>
-          <p className="mt-1 font-caveat text-2xl font-bold text-brand-700">
+          <div className="flex items-center gap-2">
+            <svg className="h-4 w-4 text-brand-300" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M12 2V22M17 5H9.5C8.57 5 7.68 5.37 7.02 6.02C6.37 6.68 6 7.57 6 8.5C6 9.43 6.37 10.32 7.02 10.98C7.68 11.63 8.57 12 9.5 12H14.5C15.43 12 16.32 12.37 16.98 13.02C17.63 13.68 18 14.57 18 15.5C18 16.43 17.63 17.32 16.98 17.98C16.32 18.63 15.43 19 14.5 19H6" />
+            </svg>
+            <p className="text-xs font-bold uppercase tracking-[3px] text-brand-300">Avg / Bill</p>
+          </div>
+          <p className="mt-2 font-caveat text-3xl font-bold text-brand-700">
             ฿{filteredAvg.toFixed(0)}
           </p>
         </motion.div>
+      </div>
+
+      {/* Decorative divider */}
+      <div className="my-6 flex items-center justify-center">
+        <svg className="h-2 w-20" viewBox="0 0 80 8" fill="none">
+          <path d="M 2 4 C 15 1, 30 7, 45 4 S 65 6, 78 3" stroke="#C4956A" strokeWidth="1.2" strokeLinecap="round" opacity="0.3" />
+        </svg>
       </div>
 
       {/* Spending Trend — visx chart */}
@@ -283,11 +326,17 @@ export default function InsightsPage() {
           initial={{ opacity: 0, y: 16 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.4 }}
-          className="mt-6 rounded-2xl border border-brand-100 bg-cream-light p-5"
+          className="rounded-2xl border border-brand-100 bg-cream-light p-5"
         >
-          <p className="mb-2 text-xs font-bold uppercase tracking-[3px] text-brand-300">
-            {activeRange === "week" ? "Daily" : activeRange === "month" ? "Weekly" : "Monthly"} Trend
-          </p>
+          <div className="mb-3 flex items-center gap-2">
+            <svg className="h-4 w-4 text-brand-300" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M3 3V21H21" />
+              <path d="M7 16L12 11L15 14L21 8" />
+            </svg>
+            <p className="text-xs font-bold uppercase tracking-[3px] text-brand-300">
+              {activeRange === "week" ? "Daily" : activeRange === "month" ? "Weekly" : "Monthly"} Trend
+            </p>
+          </div>
           <TrendChart data={trendData} />
         </motion.div>
       )}
@@ -300,7 +349,14 @@ export default function InsightsPage() {
           transition={{ delay: 0.5 }}
           className="mt-6 rounded-2xl border border-brand-100 bg-cream-light p-5"
         >
-          <p className="text-xs font-bold uppercase tracking-[3px] text-brand-300">Top Friends</p>
+          <div className="flex items-center gap-2">
+            <svg className="h-4 w-4 text-brand-300" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M16 21V19C16 16.79 13.76 15 11 15H5C2.24 15 0 16.79 0 19V21" />
+              <circle cx="8" cy="7" r="4" />
+              <path d="M20 8V14M23 11H17" />
+            </svg>
+            <p className="text-xs font-bold uppercase tracking-[3px] text-brand-300">Top Friends</p>
+          </div>
           <div className="mt-3 flex flex-col gap-3">
             {filteredFriends.map((f, i) => (
               <div key={f.name} className="flex items-center gap-3">
@@ -330,7 +386,12 @@ export default function InsightsPage() {
         transition={{ delay: 0.6 }}
         className="mt-6 flex flex-col gap-3"
       >
-        <p className="text-xs font-bold uppercase tracking-[3px] text-brand-300">Fun Stats</p>
+        <div className="flex items-center gap-2">
+          <svg className="h-4 w-4 text-brand-300" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M12 2L15.09 8.26L22 9.27L17 14.14L18.18 21.02L12 17.77L5.82 21.02L7 14.14L2 9.27L8.91 8.26L12 2Z" />
+          </svg>
+          <p className="text-xs font-bold uppercase tracking-[3px] text-brand-300">Fun Stats</p>
+        </div>
 
         {data.biggestBill && (
           <div className="flex items-center gap-3 rounded-2xl border border-brand-100 bg-cream-light p-4">
@@ -389,15 +450,32 @@ export default function InsightsPage() {
           transition={{ delay: 0.7 }}
           className="mt-6 rounded-2xl border border-brand-100 bg-cream-light p-5"
         >
-          <p className="text-xs font-bold uppercase tracking-[3px] text-brand-300">Recent Activity</p>
+          <div className="flex items-center gap-2">
+            <svg className="h-4 w-4 text-brand-300" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+              <circle cx="12" cy="12" r="10" />
+              <path d="M12 6V12L16 14" />
+            </svg>
+            <p className="text-xs font-bold uppercase tracking-[3px] text-brand-300">Recent Activity</p>
+          </div>
           <div className="mt-3 flex flex-col">
-            {data.recentActivity.map((a: { roomName: string; amount: number; date: string }, i: number) => (
+            {data.recentActivity.map((a: { roomName: string; amount: number; date: string; direction: string }, i: number) => (
               <div key={i} className={`flex items-center gap-3 py-2.5 ${i < data.recentActivity.length - 1 ? "border-b border-brand-50" : ""}`}>
-                <div className="h-2 w-2 rounded-full bg-brand-300" />
+                {/* Direction indicator */}
+                <div className={`flex h-5 w-5 shrink-0 items-center justify-center rounded-full ${a.direction === "collected" ? "bg-green-50" : "bg-brand-50"}`}>
+                  <svg className={`h-3 w-3 ${a.direction === "collected" ? "text-green-500" : "text-brand-400"}`} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                    {a.direction === "collected"
+                      ? <path d="M12 19V5M5 12l7-7 7 7" />
+                      : <path d="M12 5V19M19 12l-7 7-7-7" />
+                    }
+                  </svg>
+                </div>
                 <div className="flex-1">
                   <span className="text-sm font-medium text-brand-700">{a.roomName}</span>
+                  <span className="ml-1.5 text-[10px] text-brand-300">{a.direction === "collected" ? "received" : "paid"}</span>
                 </div>
-                <span className="text-sm font-bold text-brand-600">฿{a.amount.toFixed(0)}</span>
+                <span className={`text-sm font-bold ${a.direction === "collected" ? "text-green-600" : "text-brand-600"}`}>
+                  {a.direction === "collected" ? "+" : "-"}฿{a.amount.toFixed(0)}
+                </span>
                 <span className="font-serif text-xs italic text-brand-300">
                   {new Date(a.date).toLocaleDateString("en-US", { month: "short", day: "numeric" })}
                 </span>
@@ -407,29 +485,7 @@ export default function InsightsPage() {
         </motion.div>
       )}
 
-      {/* AI Coach Teaser */}
-      <motion.div
-        initial={{ opacity: 0, y: 16 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.8 }}
-        className="mt-6 mb-8 rounded-2xl border border-dashed border-brand-200 p-5 text-center"
-      >
-        <svg className="mx-auto h-10 w-14 text-brand-200" viewBox="0 0 340 160" fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" style={{ opacity: 0.4 }}>
-          <g transform="translate(170, 80)">
-            <path d="M -65 -8 C -60 -40, -20 -50, 25 -46 C 60 -42, 95 -28, 118 -6" strokeWidth="3.2" />
-            <path d="M -65 8 C -55 42, -5 55, 40 48 C 72 42, 98 26, 118 6" strokeWidth="2.8" />
-            <path d="M -65 -8 C -72 -4, -72 4, -65 8" strokeWidth="3" />
-            <path d="M 116 -4 C 138 -32, 158 -38, 170 -24" strokeWidth="3" />
-            <path d="M 116 4 C 138 32, 158 38, 170 24" strokeWidth="3" />
-            <path d="M -68 2 C -100 -8, -138 -4, -168 -14" strokeWidth="3.2" />
-            <path d="M -68 6 C -98 14, -135 18, -162 12" strokeWidth="2.5" />
-            <path d="M -66 9 C -88 28, -118 34, -150 36" strokeWidth="1.8" />
-            <circle cx="-35" cy="-6" r="6.5" fill="currentColor" stroke="none" />
-          </g>
-        </svg>
-        <p className="mt-3 font-caveat text-lg font-bold text-brand-400">AI Money Coach</p>
-        <p className="mt-1 text-xs text-brand-300">Chat with your personal financial advisor — coming soon</p>
-      </motion.div>
+      <div className="mb-8" />
     </div>
   );
 }

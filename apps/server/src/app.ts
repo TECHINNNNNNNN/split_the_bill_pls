@@ -8,6 +8,7 @@ import { auth } from "./lib/auth.js";
 import groupRoutes from "./routes/groups.js"
 import roomRoutes from "./routes/rooms.js"
 import settlementRoutes from "./routes/settlements.js"
+import aiRoutes from "./routes/ai.js"
 
 
 const app = new Hono().basePath("/api")
@@ -40,6 +41,7 @@ const routes = app.get("/health", async (c) => {
 }).route("/groups", groupRoutes)
 .route("/rooms", roomRoutes)
 .route("/settlements", settlementRoutes)
+.route("/ai", aiRoutes)
 
 export type AppType = typeof routes
 export default app;
