@@ -8,6 +8,7 @@ import { TrendChart } from "@/components/insights/trend-chart";
 import { motion } from "motion/react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useChat } from "@ai-sdk/react";
+import { DefaultChatTransport } from "ai";
 
 // ─── Animated counter hook ───
 
@@ -84,15 +85,15 @@ export default function InsightsPage() {
 
   // AI search bar
   const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001";
-  const { messages, sendMessage, status } = useChat({
-    transport: {
-      type: "fetch" as const,
-      url: `${apiUrl}/api/ai/chat`,
-      credentials: "include" as RequestCredentials,
-    },
+  const chatTransport = useMemo(() => new DefaultChatTransport({
+    api: `${apiUrl}/api/ai/chat`,
+    credentials: "include" as RequestCredentials,
+  }), [apiUrl]);
+  const { messages: chatMessages, sendMessage, status: chatStatus } = useChat({
+    transport: chatTransport,
   });
   const [chatInput, setChatInput] = useState("");
-  const chatLoading = status === "streaming" || status === "submitted";
+  const chatLoading = chatStatus === "streaming" || chatStatus === "submitted";
 
   const ranges = [
     { key: "week", label: "Week", days: 7 },
