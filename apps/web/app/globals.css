@@ -134,6 +134,15 @@ body::after {
   animation: float 3s ease-in-out infinite;
 }
 
+/* AI streaming text — soft appearance */
+.animate-fade-in-text {
+  animation: textFadeIn 0.3s ease-out;
+}
+@keyframes textFadeIn {
+  from { opacity: 0.4; filter: blur(1px); }
+  to { opacity: 1; filter: blur(0); }
+}
+
 /* Skeleton shimmer — warm cream gradient sweep */
 @keyframes shimmer {
   0% { background-position: -200% 0; }
