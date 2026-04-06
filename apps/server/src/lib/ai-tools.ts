@@ -120,6 +120,31 @@ export async function getTopFriends(userId: string, limit: number = 5) {
   }))
 }
 
+export async function getRoomsList(userId: string, sortBy: string = "biggest", limit: number = 5) {
+  const orderClause = sortBy === "recent" ? sql`r.created_at DESC` : sql`total DESC`;
+  const result = await db.execute(sql`
+    SELECT
+      r.name, r.host_name, r.status, r.created_at, r.invite_code,
+      SUM(rp.amount::numeric) as total,
+      COUNT(DISTINCT rm_all.id) as member_count
+    FROM rooms r
+    JOIN room_members rm ON rm.room_id = r.id AND rm.user_id = ${userId}
+    LEFT JOIN room_payments rp ON rp.room_id = r.id
+    LEFT JOIN room_members rm_all ON rm_all.room_id = r.id
+    WHERE r.status IN ('payment', 'settled')
+    GROUP BY r.id, r.name, r.host_name, r.status, r.created_at, r.invite_code
+    ORDER BY ${orderClause}
+    LIMIT ${limit}
+  `)
+  return result.rows.map(r => ({
+    name: String(r.name || `${r.host_name}'s Split`),
+    total: parseFloat(String(r.total ?? "0")),
+    memberCount: parseInt(String(r.member_count)),
+    status: String(r.status),
+    date: new Date(String(r.created_at)).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }),
+  }))
+}
+
 export async function getRoomDetails(userId: string, roomName: string) {
   const result = await db.execute(sql`
     SELECT r.id, r.name, r.host_name, r.status, r.created_at, r.invite_code

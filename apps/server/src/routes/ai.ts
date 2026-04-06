@@ -8,6 +8,7 @@ import {
   getBalances,
   getPendingPayments,
   getTopFriends,
+  getRoomsList,
   getRoomDetails,
 } from "../lib/ai-tools.js"
 
