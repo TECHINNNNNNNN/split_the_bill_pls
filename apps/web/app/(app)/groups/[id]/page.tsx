@@ -9,6 +9,9 @@ import { useDeleteGroupMember, useDeleteGroup, useStartGroupSplit } from "@/lib/
 import { useGroupSocket } from "@/lib/hooks/use-group-socket";
 import { toast } from "sonner";
 import { Skeleton } from "@/components/skeleton";
+import { motion } from "motion/react";
+
+const COLORS = ["#8B6914", "#B08A56", "#6D8B5E", "#C49A3C", "#9B7A6E", "#6A8BA0", "#C47A5A", "#A06B7A"];
 
 export default function GroupDetailPage() {
   const { id } = useParams<{ id: string }>();
@@ -30,13 +33,11 @@ export default function GroupDetailPage() {
     return (
       <div>
         <Skeleton className="h-4 w-16" />
-        <Skeleton className="mt-3 h-9 w-40" />
-        <Skeleton className="mt-2 h-4 w-24" />
-        <Skeleton className="mt-6 h-14 rounded-2xl" />
-        <Skeleton className="mt-3 h-14 rounded-2xl" />
+        <Skeleton className="mt-4 h-32 rounded-2xl" />
+        <Skeleton className="mt-4 h-14 rounded-2xl" />
         <Skeleton className="mt-6 h-6 w-24" />
-        <Skeleton className="mt-3 h-14 rounded-2xl" />
-        <Skeleton className="mt-2 h-14 rounded-2xl" />
+        <Skeleton className="mt-3 h-16 rounded-2xl" />
+        <Skeleton className="mt-2 h-16 rounded-2xl" />
       </div>
     );
   }
@@ -119,98 +120,142 @@ export default function GroupDetailPage() {
 
   return (
     <div>
-      {/* Header */}
-      <div className="mb-6">
-        <div className="mb-2 flex items-center justify-between">
+      {/* Back + Settings */}
+      <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="mb-4 flex items-center justify-between">
+        <button
+          onClick={() => router.push("/home")}
+          className="flex items-center gap-1 text-sm text-brand-400 hover:text-brand-700"
+        >
+          <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+            <path d="M15 18L9 12L15 6" />
+          </svg>
+          Back
+        </button>
+        {isCreator && (
           <button
-            onClick={() => router.push("/home")}
+            onClick={() => setShowSettings(!showSettings)}
             className="flex items-center gap-1 text-sm text-brand-400 hover:text-brand-700"
           >
-            <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+            <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round">
+              <path d="M12 15a3 3 0 100-6 3 3 0 000 6z" />
+              <path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 112.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z" />
             </svg>
-            Back
+            {showSettings ? "Done" : "Settings"}
           </button>
-          {isCreator && (
-            <button
-              onClick={() => setShowSettings(!showSettings)}
-              className="text-sm text-brand-400 hover:text-brand-700"
-            >
-              {showSettings ? "Done" : "Settings"}
-            </button>
-          )}
+        )}
+      </motion.div>
+
+      {/* Group identity — minimal, typographic */}
+      <motion.div
+        initial={{ opacity: 0, y: 12 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.05 }}
+        className="mb-6"
+      >
+        {/* Name + avatars on same line */}
+        <div className="flex items-center gap-3">
+          <h1 className="font-caveat text-4xl font-bold">{group.name}</h1>
+          <div className="flex -space-x-1.5">
+            {group.members.slice(0, 4).map((m, i) => (
+              <div
+                key={m.id}
+                className="flex h-7 w-7 items-center justify-center rounded-full border-2 border-cream text-[10px] font-bold text-cream-light"
+                style={{ backgroundColor: COLORS[i % COLORS.length] }}
+              >
+                {m.displayName.charAt(0).toUpperCase()}
+              </div>
+            ))}
+            {group.members.length > 4 && (
+              <div className="flex h-7 w-7 items-center justify-center rounded-full border-2 border-cream bg-brand-200 text-[10px] font-bold text-brand-500">
+                +{group.members.length - 4}
+              </div>
+            )}
+          </div>
         </div>
-        <h1 className="font-caveat text-3xl font-bold">{group.name}</h1>
-        <p className="text-sm text-brand-400">
-          {group.members.length} member{group.members.length !== 1 && "s"}
-        </p>
-      </div>
+
+        {/* Organic underline */}
+        <svg className="mt-1 h-2 w-24" viewBox="0 0 100 8" fill="none">
+          <path d="M 2 5 C 20 2, 45 7, 60 4 S 85 6, 98 3" stroke="#C4956A" strokeWidth="1.8" strokeLinecap="round" opacity="0.4" />
+        </svg>
+
+        {/* Subtitle + invite code */}
+        <div className="mt-3 flex items-center gap-3">
+          <p className="font-serif text-sm italic text-brand-400">
+            {group.members.length} member{group.members.length !== 1 && "s"}
+          </p>
+          <span className="text-brand-200">·</span>
+          <button
+            onClick={handleShareLink}
+            className="flex items-center gap-1 text-xs text-brand-300 transition-all hover:text-brand-500"
+          >
+            <svg className="h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round">
+              <path d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
+            </svg>
+            {group.inviteCode}
+          </button>
+        </div>
+      </motion.div>
 
       {/* Settings Panel */}
       {showSettings && isCreator && (
-        <div className="mb-6 rounded-2xl border border-brand-200 bg-cream-light p-4 shadow-sm">
-          <h3 className="font-caveat text-lg font-semibold">Group Settings</h3>
-          <div className="mt-3 rounded-xl border border-red-200 bg-red-50 p-3">
-            <p className="mb-2 text-sm text-red-700">
-              Deleting this group will permanently remove all members, bills, and payment records.
-            </p>
-            <button
-              onClick={handleDeleteGroup}
-              disabled={deleteGroup.isPending}
-              className="rounded-xl bg-red-100 px-4 py-2 text-sm font-medium text-red-700 transition-all hover:bg-red-200 active:scale-[0.97] disabled:opacity-40"
-            >
-              {deleteGroup.isPending ? "Deleting..." : "Delete Group"}
-            </button>
-          </div>
-        </div>
+        <motion.div
+          initial={{ opacity: 0, height: 0 }}
+          animate={{ opacity: 1, height: "auto" }}
+          className="mb-4 overflow-hidden rounded-2xl border border-red-200 bg-red-50 p-4"
+        >
+          <p className="text-xs font-bold uppercase tracking-[2px] text-red-400">Danger Zone</p>
+          <p className="mt-2 text-sm text-red-600">
+            This will permanently delete the group and all its data.
+          </p>
+          <button
+            onClick={handleDeleteGroup}
+            disabled={deleteGroup.isPending}
+            className="mt-3 rounded-full bg-red-100 px-5 py-2 text-sm font-medium text-red-700 transition-all hover:bg-red-200 active:scale-[0.97] disabled:opacity-40"
+          >
+            {deleteGroup.isPending ? "Deleting..." : "Delete Group"}
+          </button>
+        </motion.div>
       )}
-
-      {/* Share invite link */}
-      <button
-        onClick={handleShareLink}
-        className="mb-4 flex w-full items-center justify-center gap-2 rounded-2xl border border-dashed border-brand-300 bg-cream-light py-4 text-sm text-brand-500 shadow-sm transition-all hover:border-brand-400 hover:bg-cream active:scale-[0.99]"
-      >
-        <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
-        </svg>
-        Share invite link · Code: {group.inviteCode}
-      </button>
 
       {/* Start Split CTA */}
       {!showSplitPicker && group.members.length > 1 && (
-        <button
+        <motion.button
+          initial={{ opacity: 0, y: 8 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.1 }}
           onClick={() => {
             setSelectedIds(new Set(group.members.map(m => m.id)));
             setShowSplitPicker(true);
           }}
           className="mb-6 flex w-full items-center justify-center gap-2 rounded-2xl bg-brand-700 py-4 font-caveat text-xl font-medium text-cream-light shadow-md transition-all hover:bg-brand-800 active:scale-[0.98]"
         >
-          <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+          <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round">
+            <path d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
           </svg>
           Start a Split
-        </button>
+        </motion.button>
       )}
 
       {/* Member Picker for Split */}
       {showSplitPicker && (
-        <div className="mb-6 rounded-2xl border border-brand-200 bg-cream-light p-4 shadow-sm">
+        <motion.div
+          initial={{ opacity: 0, y: 8 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="mb-6 rounded-2xl border border-brand-200 bg-cream-light p-4 shadow-sm"
+        >
           <div className="mb-3 flex items-center justify-between">
             <h3 className="font-caveat text-lg font-semibold">Who&apos;s splitting?</h3>
-            <button
-              onClick={toggleAll}
-              className="text-sm text-brand-400 hover:text-brand-600"
-            >
+            <button onClick={toggleAll} className="text-sm text-brand-400 hover:text-brand-600">
               {selectedIds.size === group.members.length ? "Deselect all" : "Select all"}
             </button>
           </div>
 
           <p className="mb-3 font-serif text-xs italic text-brand-300">
-            Selected members will be invited to join the split room.
+            Selected members will be invited to join the split.
           </p>
 
           <ul className="mb-4 space-y-1">
-            {group.members.map((member) => (
+            {group.members.map((member, i) => (
               <li key={member.id}>
                 <label className="flex cursor-pointer items-center gap-3 rounded-xl px-3 py-2.5 transition-colors hover:bg-cream">
                   <input
@@ -219,6 +264,12 @@ export default function GroupDetailPage() {
                     onChange={() => toggleMember(member.id)}
                     className="h-4 w-4 rounded border-brand-300 accent-brand-700"
                   />
+                  <div
+                    className="flex h-7 w-7 items-center justify-center rounded-full text-xs font-bold text-cream-light"
+                    style={{ backgroundColor: COLORS[i % COLORS.length] }}
+                  >
+                    {member.displayName.charAt(0).toUpperCase()}
+                  </div>
                   <span className="text-sm">{member.displayName}</span>
                 </label>
               </li>
@@ -240,31 +291,52 @@ export default function GroupDetailPage() {
               Cancel
             </button>
           </div>
-        </div>
+        </motion.div>
       )}
 
       {/* Members */}
-      <section className="mb-8">
-        <h2 className="font-caveat text-xl font-semibold mb-3">Members</h2>
+      <motion.section
+        initial={{ opacity: 0, y: 12 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.15 }}
+        className="mb-8"
+      >
+        <div className="mb-3 flex items-center gap-2">
+          <svg className="h-4 w-4 text-brand-300" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M16 21V19C16 16.79 13.76 15 11 15H5C2.24 15 0 16.79 0 19V21" />
+            <circle cx="8" cy="7" r="4" />
+            <path d="M20 8V14M23 11H17" />
+          </svg>
+          <h2 className="text-xs font-bold uppercase tracking-[3px] text-brand-300">Members</h2>
+        </div>
 
         {group.members.length === 0 ? (
           <p className="font-serif text-sm italic text-brand-300">
             No members yet. Share the invite link above.
           </p>
         ) : (
-          <div className="rounded-2xl border border-brand-200 bg-cream-light shadow-sm overflow-hidden">
+          <div className="flex flex-col gap-2">
             {group.members.map((member, i) => (
               <div
                 key={member.id}
-                className={`flex items-center justify-between px-4 py-3 ${i < group.members.length - 1 ? "border-b border-brand-100" : ""}`}
+                className="flex items-center gap-3 rounded-2xl border border-brand-100 bg-cream-light px-4 py-3 shadow-sm"
               >
-                <span className="text-sm font-medium">
-                  {member.displayName}
-                </span>
+                <div
+                  className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-sm font-bold text-cream-light"
+                  style={{ backgroundColor: COLORS[i % COLORS.length] }}
+                >
+                  {member.displayName.charAt(0).toUpperCase()}
+                </div>
+                <div className="flex-1">
+                  <p className="text-sm font-medium text-brand-700">{member.displayName}</p>
+                  {member.userId === session?.user.id && (
+                    <p className="text-[10px] text-brand-300">you</p>
+                  )}
+                </div>
                 {isCreator && member.userId !== session?.user.id && (
                   <button
                     onClick={() => handleDeleteMember(member.id, member.displayName)}
-                    className="text-xs text-brand-300 transition-colors hover:text-error"
+                    className="rounded-full px-3 py-1 text-xs text-brand-300 transition-all hover:bg-red-50 hover:text-red-500"
                   >
                     Remove
                   </button>
@@ -273,7 +345,14 @@ export default function GroupDetailPage() {
             ))}
           </div>
         )}
-      </section>
+      </motion.section>
+
+      {/* Footer tagline */}
+      <div className="flex justify-center pb-4">
+        <p className="font-caveat text-sm text-brand-300" style={{ opacity: 0.4 }}>
+          ~ PlaDukKhlongToei ~
+        </p>
+      </div>
     </div>
   );
 }
