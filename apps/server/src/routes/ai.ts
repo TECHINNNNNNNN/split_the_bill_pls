@@ -80,7 +80,7 @@ Rules:
       },
     })
 
-    return result.toTextStreamResponse()
+    return result.toUIMessageStreamResponse()
   })
 
 export default aiRoutes
