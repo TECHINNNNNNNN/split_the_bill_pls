@@ -66,13 +66,6 @@ Rules:
           }),
           execute: async ({ room_name }: { room_name: string }) => getRoomDetails(user.id, room_name),
         },
-        nudge_member: {
-          description: "Send a payment reminder to someone who owes money in the user's room. Only works if the user is the room host. Use when the user asks to remind or nudge someone.",
-          inputSchema: z.object({
-            member_name: z.string().describe("The name of the person to nudge"),
-          }),
-          execute: async ({ member_name }: { member_name: string }) => nudgeMember(user.id, member_name),
-        },
       },
       stopWhen: stepCountIs(5),
     })
