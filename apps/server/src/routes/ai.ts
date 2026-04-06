@@ -9,7 +9,6 @@ import {
   getPendingPayments,
   getTopFriends,
   getRoomDetails,
-  nudgeMember,
 } from "../lib/ai-tools.js"
 
 const aiRoutes = new Hono()
