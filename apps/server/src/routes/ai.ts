@@ -1,5 +1,5 @@
 import { Hono } from "hono"
-import { streamText, tool } from "ai"
+import { streamText } from "ai"
 import { anthropic } from "@ai-sdk/anthropic"
 import { z } from "zod"
 import { requireAuth } from "../lib/middleware.js"
@@ -33,49 +33,48 @@ Rules:
 - Never reveal internal IDs or technical details`,
       messages,
       tools: {
-        get_spending_summary: tool({
+        get_spending_summary: {
           description: "Get the user's spending statistics for a time period. Use this when the user asks about how much they spent, their spending habits, or financial overview.",
           parameters: z.object({
             period: z.enum(["week", "month", "quarter", "half", "year", "all"]).describe("Time period to analyze"),
           }),
-          execute: async ({ period }) => getSpendingSummary(user.id, period),
-        }),
-        get_balances: tool({
+          execute: async ({ period }: { period: string }) => getSpendingSummary(user.id, period),
+        },
+        get_balances: {
           description: "Get who owes the user money and who the user owes. Use this when the user asks about debts, balances, or 'who owes me'.",
           parameters: z.object({}),
           execute: async () => getBalances(user.id),
-        }),
-        get_pending_payments: tool({
+        },
+        get_pending_payments: {
           description: "Get all unpaid or claimed payments in rooms where the user is the host. Use when asking about pending payments or who hasn't paid yet.",
           parameters: z.object({}),
           execute: async () => getPendingPayments(user.id),
-        }),
-        get_top_friends: tool({
+        },
+        get_top_friends: {
           description: "Get the user's most frequent bill-splitting partners. Use when asking about who they split with most.",
           parameters: z.object({
             limit: z.number().min(1).max(10).default(5).describe("How many friends to return"),
           }),
-          execute: async ({ limit }) => getTopFriends(user.id, limit),
-        }),
-        get_room_details: tool({
+          execute: async ({ limit }: { limit: number }) => getTopFriends(user.id, limit),
+        },
+        get_room_details: {
           description: "Search for a specific room/bill by name. Use when the user mentions a specific dinner, event, or room name.",
           parameters: z.object({
             room_name: z.string().describe("The name or partial name of the room to search for"),
           }),
-          execute: async ({ room_name }) => getRoomDetails(user.id, room_name),
-        }),
-        nudge_member: tool({
+          execute: async ({ room_name }: { room_name: string }) => getRoomDetails(user.id, room_name),
+        },
+        nudge_member: {
           description: "Send a payment reminder to someone who owes money in the user's room. Only works if the user is the room host. Use when the user asks to remind or nudge someone.",
           parameters: z.object({
             member_name: z.string().describe("The name of the person to nudge"),
           }),
-          execute: async ({ member_name }) => nudgeMember(user.id, member_name),
-        }),
+          execute: async ({ member_name }: { member_name: string }) => nudgeMember(user.id, member_name),
+        },
       },
-      maxSteps: 5,
     })
 
-    return result.toDataStreamResponse()
+    return result.toTextStreamResponse()
   })
 
 export default aiRoutes
