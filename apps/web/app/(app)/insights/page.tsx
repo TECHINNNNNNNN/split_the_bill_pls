@@ -487,29 +487,7 @@ export default function InsightsPage() {
         </motion.div>
       )}
 
-      {/* AI Coach Teaser */}
-      <motion.div
-        initial={{ opacity: 0, y: 16 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.8 }}
-        className="mt-6 mb-8 rounded-2xl border border-dashed border-brand-200 p-5 text-center"
-      >
-        <svg className="mx-auto h-10 w-14 text-brand-200" viewBox="0 0 340 160" fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" style={{ opacity: 0.4 }}>
-          <g transform="translate(170, 80)">
-            <path d="M -65 -8 C -60 -40, -20 -50, 25 -46 C 60 -42, 95 -28, 118 -6" strokeWidth="3.2" />
-            <path d="M -65 8 C -55 42, -5 55, 40 48 C 72 42, 98 26, 118 6" strokeWidth="2.8" />
-            <path d="M -65 -8 C -72 -4, -72 4, -65 8" strokeWidth="3" />
-            <path d="M 116 -4 C 138 -32, 158 -38, 170 -24" strokeWidth="3" />
-            <path d="M 116 4 C 138 32, 158 38, 170 24" strokeWidth="3" />
-            <path d="M -68 2 C -100 -8, -138 -4, -168 -14" strokeWidth="3.2" />
-            <path d="M -68 6 C -98 14, -135 18, -162 12" strokeWidth="2.5" />
-            <path d="M -66 9 C -88 28, -118 34, -150 36" strokeWidth="1.8" />
-            <circle cx="-35" cy="-6" r="6.5" fill="currentColor" stroke="none" />
-          </g>
-        </svg>
-        <p className="mt-3 font-caveat text-lg font-bold text-brand-400">AI Money Coach</p>
-        <p className="mt-1 text-xs text-brand-300">Chat with your personal financial advisor — coming soon</p>
-      </motion.div>
+      <div className="mb-8" />
     </div>
   );
 }
