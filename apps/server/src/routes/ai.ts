@@ -1,5 +1,5 @@
 import { Hono } from "hono"
-import { streamText } from "ai"
+import { streamText, stepCountIs } from "ai"
 import { anthropic } from "@ai-sdk/anthropic"
 import { z } from "zod"
 import { requireAuth } from "../lib/middleware.js"
@@ -78,6 +78,7 @@ Rules:
           execute: async ({ member_name }: { member_name: string }) => nudgeMember(user.id, member_name),
         },
       },
+      stopWhen: stepCountIs(5),
     })
 
     return result.toUIMessageStreamResponse()
