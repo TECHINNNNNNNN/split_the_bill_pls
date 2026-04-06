@@ -38,7 +38,6 @@ export function ChatBubble() {
             </g>
           </svg>
         </motion.button>
-      )}
 
       {/* Chat overlay */}
       <ChatOverlay open={open} onClose={() => setOpen(false)} />
