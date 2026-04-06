@@ -238,7 +238,7 @@ export default function InsightsPage() {
           onSubmit={(e) => {
             e.preventDefault();
             if (!chatInput.trim() || chatLoading) return;
-            sendMessage({ prompt: chatInput });
+            sendMessage({ text: chatInput });
             setChatInput("");
           }}
           className="relative"
@@ -276,7 +276,7 @@ export default function InsightsPage() {
             <button
               key={chip}
               type="button"
-              onClick={() => { sendMessage({ prompt: chip }); }}
+              onClick={() => { sendMessage({ text: chip }); }}
               className="shrink-0 rounded-full border border-brand-100 px-3 py-1 text-xs text-brand-400 transition-all hover:border-brand-300 hover:bg-cream-light"
             >
               {chip}
@@ -285,16 +285,16 @@ export default function InsightsPage() {
         </div>
 
         {/* AI Response */}
-        {messages.length > 0 && (
+        {chatMessages.length > 0 && (
           <div className="mt-3 rounded-2xl border border-brand-100 bg-cream-light p-4">
-            {messages.filter(m => m.role === "assistant").slice(-1).map((m) => (
+            {chatMessages.filter(m => m.role === "assistant").slice(-1).map((m) => (
               <div key={m.id} className="font-serif text-sm italic leading-relaxed text-brand-600">
                 {m.parts?.map((part, i) =>
                   part.type === "text" ? (
                     <span key={i}>{part.text}</span>
                   ) : part.type?.startsWith("tool-") ? (
                     <span key={i} className="mr-1 inline-flex items-center gap-1 rounded-full bg-brand-50 px-2 py-0.5 text-xs not-italic text-brand-400">
-                      {"state" in part && part.state === "result"
+                      {"state" in part && (part.state === "output-available" || part.state === "done")
                         ? "✓ Found data"
                         : <><div className="h-2 w-2 animate-spin rounded-full border border-brand-300 border-t-brand-500" /> Looking up...</>
                       }
