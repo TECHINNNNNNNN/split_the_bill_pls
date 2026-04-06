@@ -1,19 +1,28 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
+import { motion } from "motion/react";
 import { ChatOverlay } from "./chat-overlay";
 
 export function ChatBubble() {
   const [open, setOpen] = useState(false);
+  const isDragging = useRef(false);
 
   return (
     <>
-      {/* Floating bubble */}
+      {/* Floating bubble — draggable */}
       {!open && (
-        <button
+        <motion.button
           type="button"
-          onClick={() => setOpen(true)}
-          className="fixed bottom-6 right-6 z-40 flex h-14 w-14 items-center justify-center rounded-full bg-brand-700 shadow-lg transition-all hover:bg-brand-800 hover:shadow-xl active:scale-95"
+          drag
+          dragMomentum={false}
+          dragElastic={0.1}
+          onDragStart={() => { isDragging.current = true; }}
+          onDragEnd={() => { setTimeout(() => { isDragging.current = false; }, 50); }}
+          onClick={() => { if (!isDragging.current) setOpen(true); }}
+          whileDrag={{ scale: 1.1 }}
+          whileTap={{ scale: 0.95 }}
+          className="fixed bottom-6 right-6 z-40 flex h-14 w-14 cursor-grab items-center justify-center rounded-full bg-brand-700 shadow-lg transition-colors hover:bg-brand-800 hover:shadow-xl active:cursor-grabbing"
         >
           <svg className="h-7 w-9 text-cream-light" viewBox="0 0 340 160" fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round">
             <g transform="translate(170, 80)">
@@ -28,7 +37,7 @@ export function ChatBubble() {
               <circle cx="-35" cy="-6" r="8" fill="currentColor" stroke="none" />
             </g>
           </svg>
-        </button>
+        </motion.button>
       )}
 
       {/* Chat overlay */}
