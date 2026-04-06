@@ -7,6 +7,7 @@ import { Skeleton } from "@/components/skeleton";
 import { TrendChart } from "@/components/insights/trend-chart";
 import { motion } from "motion/react";
 import { useEffect, useMemo, useRef, useState } from "react";
+import { useChat } from "@ai-sdk/react";
 
 // ─── Animated counter hook ───
 
