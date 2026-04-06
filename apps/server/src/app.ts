@@ -41,6 +41,7 @@ const routes = app.get("/health", async (c) => {
 }).route("/groups", groupRoutes)
 .route("/rooms", roomRoutes)
 .route("/settlements", settlementRoutes)
+.route("/ai", aiRoutes)
 
 export type AppType = typeof routes
 export default app;
