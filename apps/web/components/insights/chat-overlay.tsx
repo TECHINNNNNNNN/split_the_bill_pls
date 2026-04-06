@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useEffect, useState } from "react";
+import { useMemo, useRef, useEffect, useState } from "react";
 import { useChat } from "@ai-sdk/react";
 import { DefaultChatTransport } from "ai";
 import { motion, AnimatePresence } from "motion/react";
@@ -19,10 +19,10 @@ const SUGGESTED_CHIPS = [
 
 export function ChatOverlay({ open, onClose }: ChatOverlayProps) {
   const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001";
-  const transport = useRef(new DefaultChatTransport({
+  const transport = useMemo(() => new DefaultChatTransport({
     api: `${apiUrl}/api/ai/chat`,
     credentials: "include" as RequestCredentials,
-  })).current;
+  }), [apiUrl]);
 
   const { messages, sendMessage, status } = useChat({ transport });
   const [input, setInput] = useState("");
