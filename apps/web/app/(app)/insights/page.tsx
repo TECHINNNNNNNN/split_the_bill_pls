@@ -81,17 +81,6 @@ export default function InsightsPage() {
   const { data, isLoading } = useQuery(settlementQueries.insights());
   const [activeRange, setActiveRange] = useState<string>("all");
 
-  // AI search bar
-  const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001";
-  const chatTransport = useMemo(() => new DefaultChatTransport({
-    api: `${apiUrl}/api/ai/chat`,
-    credentials: "include" as RequestCredentials,
-  }), [apiUrl]);
-  const { messages: chatMessages, sendMessage, status: chatStatus } = useChat({
-    transport: chatTransport,
-  });
-  const [chatInput, setChatInput] = useState("");
-  const chatLoading = chatStatus === "streaming" || chatStatus === "submitted";
 
   const ranges = [
     { key: "week", label: "Week", days: 7 },
