@@ -1,5 +1,5 @@
 import { Hono } from "hono"
-import { streamText, stepCountIs } from "ai"
+import { streamText, stepCountIs, convertToModelMessages } from "ai"
 import { anthropic } from "@ai-sdk/anthropic"
 import { z } from "zod"
 import { requireAuth } from "../lib/middleware.js"
@@ -15,13 +15,10 @@ import {
 const aiRoutes = new Hono()
   .post("/chat", requireAuth, async (c) => {
     const user = c.get("user")
-    const { messages: rawMessages } = await c.req.json()
+    const { messages: uiMessages } = await c.req.json()
 
     // Convert UI messages (from @ai-sdk/react) to model messages (for streamText)
-    const messages = (rawMessages as Array<{ role: string; parts?: Array<{ type: string; text?: string }>; content?: string }>).map((m) => ({
-      role: m.role as "user" | "assistant" | "system",
-      content: m.content || m.parts?.filter((p) => p.type === "text").map((p) => p.text).join("") || "",
-    }))
+    const messages = await convertToModelMessages(uiMessages)
 
     const result = streamText({
       model: anthropic("claude-haiku-4-5-20251001"),
