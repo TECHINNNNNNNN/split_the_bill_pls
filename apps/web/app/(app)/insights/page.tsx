@@ -272,7 +272,7 @@ export default function InsightsPage() {
 
         {/* Suggested chips */}
         <div className="mt-2 flex gap-1.5 overflow-x-auto scrollbar-hidden">
-          {["Who owes me?", "This month", "Top friends", "Nudge everyone"].map((chip) => (
+          {["Who owes me?", "This month", "Top friends", "My biggest bill"].map((chip) => (
             <button
               key={chip}
               type="button"
