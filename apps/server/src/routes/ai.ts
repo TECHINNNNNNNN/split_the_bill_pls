@@ -38,7 +38,7 @@ Rules:
       messages,
       tools: {
         get_spending_summary: {
-          description: "Get the user's spending statistics for a time period. Use this when the user asks about how much they spent, their spending habits, or financial overview.",
+          description: "Get the user's spending statistics for a time period AND the previous period for comparison. Returns current.totalSpent, previous.totalSpent, and comparison.changePercent. Use when the user asks about how much they spent, spending habits, financial overview, or comparing this period vs last period.",
           inputSchema: z.object({
             period: z.enum(["week", "month", "quarter", "half", "year", "all"]).describe("Time period to analyze"),
           }),

@@ -5,29 +5,44 @@ export async function getSpendingSummary(userId: string, period: string) {
   const periodDays = { week: 7, month: 30, quarter: 90, half: 180, year: 365, all: 99999 }
   const days = periodDays[period as keyof typeof periodDays] ?? 99999
 
+  // Get current period AND previous period for comparison
   const result = await db.execute(sql`
     SELECT
-      COALESCE(SUM(CASE WHEN rm.is_host = false THEN rp.amount::numeric ELSE 0 END), 0) as total_spent,
-      COALESCE(SUM(CASE WHEN rm.is_host = true THEN rp.amount::numeric ELSE 0 END), 0) as total_collected,
-      COUNT(DISTINCT r.id) as room_count,
-      COUNT(rp.id) as payment_count
+      COALESCE(SUM(CASE WHEN rp.confirmed_at >= NOW() - ${days + ' days'}::interval AND rm.is_host = false THEN rp.amount::numeric ELSE 0 END), 0) as current_spent,
+      COALESCE(SUM(CASE WHEN rp.confirmed_at >= NOW() - ${days + ' days'}::interval AND rm.is_host = true THEN rp.amount::numeric ELSE 0 END), 0) as current_collected,
+      COUNT(DISTINCT CASE WHEN rp.confirmed_at >= NOW() - ${days + ' days'}::interval THEN r.id END) as current_room_count,
+      COUNT(CASE WHEN rp.confirmed_at >= NOW() - ${days + ' days'}::interval THEN rp.id END) as current_payment_count,
+      COALESCE(SUM(CASE WHEN rp.confirmed_at >= NOW() - ${(days * 2) + ' days'}::interval AND rp.confirmed_at < NOW() - ${days + ' days'}::interval AND rm.is_host = false THEN rp.amount::numeric ELSE 0 END), 0) as previous_spent,
+      COUNT(DISTINCT CASE WHEN rp.confirmed_at >= NOW() - ${(days * 2) + ' days'}::interval AND rp.confirmed_at < NOW() - ${days + ' days'}::interval THEN r.id END) as previous_room_count
     FROM room_payments rp
     JOIN rooms r ON rp.room_id = r.id
     JOIN room_members rm ON rm.room_id = r.id AND rm.user_id = ${userId}
     WHERE rp.status = 'confirmed'
       AND r.status IN ('payment', 'settled')
-      AND rp.confirmed_at >= NOW() - ${days + ' days'}::interval
   `)
   const row = result.rows[0]
-  const totalSpent = parseFloat(String(row?.total_spent ?? "0"))
-  const roomCount = parseInt(String(row?.room_count ?? "0"))
+  const currentSpent = parseFloat(String(row?.current_spent ?? "0"))
+  const previousSpent = parseFloat(String(row?.previous_spent ?? "0"))
+  const currentRoomCount = parseInt(String(row?.current_room_count ?? "0"))
+  const previousRoomCount = parseInt(String(row?.previous_room_count ?? "0"))
+  const changePercent = previousSpent > 0 ? Math.round(((currentSpent - previousSpent) / previousSpent) * 100) : null
+
   return {
-    totalSpent,
-    totalCollected: parseFloat(String(row?.total_collected ?? "0")),
-    roomCount,
-    paymentCount: parseInt(String(row?.payment_count ?? "0")),
-    averageBill: roomCount > 0 ? Math.round(totalSpent / roomCount) : 0,
     period,
+    current: {
+      totalSpent: currentSpent,
+      totalCollected: parseFloat(String(row?.current_collected ?? "0")),
+      roomCount: currentRoomCount,
+      paymentCount: parseInt(String(row?.current_payment_count ?? "0")),
+      averageBill: currentRoomCount > 0 ? Math.round(currentSpent / currentRoomCount) : 0,
+    },
+    previous: {
+      totalSpent: previousSpent,
+      roomCount: previousRoomCount,
+    },
+    comparison: changePercent !== null
+      ? { changePercent, direction: changePercent > 0 ? "more" as const : changePercent < 0 ? "less" as const : "same" as const }
+      : null,
   }
 }
 
