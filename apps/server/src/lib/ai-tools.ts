@@ -1,5 +1,77 @@
 import { db } from "../db/index.js"
 import { sql } from "drizzle-orm"
+import { runReadOnlyQuery } from "../db/ai-client.js"
+import { guardSql, SqlGuardError } from "./sql-guard.js"
+
+// ════════════════════════════════════════════
+// Text-to-SQL escape hatch
+// ════════════════════════════════════════════
+//
+// The 7 purpose-built tools below cover ~80% of user questions cleanly.
+// `runSql` is the escape hatch for novel question shapes (period-over-period
+// comparisons, day-of-week patterns, custom groupings) that we'd otherwise
+// need a dedicated tool for. The LLM only sees three views — see
+// drizzle/0002_ai_views.sql — and runs as the `ai_readonly` Postgres role
+// inside a READ ONLY transaction with statement_timeout=3s. user_id is
+// auto-injected via current_setting('app.user_id').
+
+export async function runSql(userId: string, query: string) {
+  console.log("[run_sql] input:", query)
+  let safeSql: string
+  try {
+    safeSql = guardSql(query)
+  } catch (err) {
+    console.log("[run_sql] guard rejected:", (err as Error).message)
+    if (err instanceof SqlGuardError) {
+      return { error: `Rejected: ${err.message}`, query }
+    }
+    return { error: `Validation failed: ${(err as Error).message}`, query }
+  }
+  console.log("[run_sql] safe:", safeSql)
+
+  try {
+    const result = await runReadOnlyQuery(userId, safeSql)
+    console.log("[run_sql] ok, rows:", result.rowCount)
+    return {
+      columns: result.columns,
+      rows: result.rows,
+      rowCount: result.rowCount,
+    }
+  } catch (err) {
+    console.log("[run_sql] db error:", (err as Error).message)
+    return { error: `SQL error: ${(err as Error).message}`, query: safeSql }
+  }
+}
+
+export async function searchRooms(userId: string, query: string) {
+  // pg_trgm fuzzy search across both room name and host name. Goes through
+  // v_room_summary so it auto-scopes to the user.
+  const safe = `
+    SELECT room_id, room_name, host_name, total_amount, created_at
+    FROM v_room_summary
+    WHERE room_name ILIKE '%' || $LITERAL$ || '%'
+       OR host_name ILIKE '%' || $LITERAL$ || '%'
+       OR similarity(room_name, $LITERAL$) > 0.2
+       OR similarity(host_name, $LITERAL$) > 0.2
+    ORDER BY GREATEST(similarity(room_name, $LITERAL$), similarity(host_name, $LITERAL$)) DESC
+    LIMIT 10
+  `
+  // Inline-escape the user query (single-quote it). This is a constant
+  // template — we never let the LLM inject raw SQL here.
+  const escaped = query.replace(/'/g, "''")
+  const finalSql = safe.replace(/\$LITERAL\$/g, `'${escaped}'`)
+
+  try {
+    const result = await runReadOnlyQuery(userId, finalSql)
+    return { rooms: result.rows, count: result.rowCount }
+  } catch (err) {
+    return { error: `Search failed: ${(err as Error).message}` }
+  }
+}
+
+// ════════════════════════════════════════════
+// Purpose-built fast-path tools (kept as-is)
+// ════════════════════════════════════════════
 
 export async function getSpendingSummary(userId: string, period: string) {
   const periodDays = { week: 7, month: 30, quarter: 90, half: 180, year: 365, all: 99999 }
