@@ -191,7 +191,7 @@ export default function InsightsPage() {
             <circle cx="-35" cy="-6" r="6.5" fill="currentColor" stroke="none" />
           </g>
         </svg>
-        <p className="mt-4 font-caveat text-xl font-bold text-brand-400">No splits yet!</p>
+        <p className="mt-4 font-heading text-xl font-bold text-brand-400">No splits yet!</p>
         <p className="mt-1 text-sm text-brand-300">Start splitting bills to see your insights.</p>
         <Link href="/quick-split" className="mt-6 rounded-full bg-brand-700 px-8 py-3 text-sm font-medium text-cream-light">
           Quick Split
@@ -210,8 +210,8 @@ export default function InsightsPage() {
           <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"><path d="M15 18L9 12L15 6" /></svg>
           Home
         </Link>
-        <h1 className="font-caveat text-3xl font-bold">Your Spending</h1>
-        <p className="mt-1 font-serif text-sm italic text-brand-400">~ PlaDukKhlongToei ~</p>
+        <h1 className="font-heading text-3xl font-bold">Your Spending</h1>
+        <p className="mt-1 font-heading text-sm text-brand-400">~ PlaDukKhlongToei ~</p>
       </motion.div>
 
       {/* Time range toggle pills */}
@@ -267,7 +267,7 @@ export default function InsightsPage() {
             <circle cx="3" cy="3" r="1.5" fill="rgba(232,213,191,0.2)" />
           </svg>
           <p className="text-xs font-bold uppercase tracking-[3px] text-cream-light/60">Total Spent</p>
-          <p className="mt-2 font-caveat text-5xl font-bold text-cream-light">
+          <p className="mt-2 font-heading text-5xl font-bold text-cream-light">
             <AnimatedBaht value={filteredSpent} />
           </p>
           <p className="mt-2 text-xs text-cream-light/50">across {filteredRoomCount} splits</p>
@@ -291,7 +291,7 @@ export default function InsightsPage() {
             </svg>
             <p className="text-xs font-bold uppercase tracking-[3px] text-brand-300">Splits</p>
           </div>
-          <p className="mt-2 font-caveat text-3xl font-bold text-brand-700">{filteredSplitCount}</p>
+          <p className="mt-2 font-heading text-3xl font-bold text-brand-700">{filteredSplitCount}</p>
         </motion.div>
 
         {/* Average */}
@@ -307,7 +307,7 @@ export default function InsightsPage() {
             </svg>
             <p className="text-xs font-bold uppercase tracking-[3px] text-brand-300">Avg / Bill</p>
           </div>
-          <p className="mt-2 font-caveat text-3xl font-bold text-brand-700">
+          <p className="mt-2 font-heading text-3xl font-bold text-brand-700">
             ฿{filteredAvg.toFixed(0)}
           </p>
         </motion.div>
@@ -400,7 +400,7 @@ export default function InsightsPage() {
             </div>
             <div>
               <p className="text-xs text-brand-300">Biggest Night</p>
-              <p className="text-sm font-bold text-brand-700">{data.biggestBill.roomName} <span className="font-caveat text-brand-400">฿{data.biggestBill.amount.toFixed(0)}</span></p>
+              <p className="text-sm font-bold text-brand-700">{data.biggestBill.roomName} <span className="font-heading text-brand-400">฿{data.biggestBill.amount.toFixed(0)}</span></p>
             </div>
           </div>
         )}
@@ -412,7 +412,7 @@ export default function InsightsPage() {
             </div>
             <div>
               <p className="text-xs text-brand-300">Fastest Payer</p>
-              <p className="text-sm font-bold text-brand-700">{data.funStats.fastestPayer.name} <span className="font-caveat text-brand-400">{data.funStats.fastestPayer.avgMinutes < 1 ? "instantly" : `avg ${data.funStats.fastestPayer.avgMinutes}min`}</span></p>
+              <p className="text-sm font-bold text-brand-700">{data.funStats.fastestPayer.name} <span className="font-heading text-brand-400">{data.funStats.fastestPayer.avgMinutes < 1 ? "instantly" : `avg ${data.funStats.fastestPayer.avgMinutes}min`}</span></p>
             </div>
           </div>
         )}
@@ -424,7 +424,7 @@ export default function InsightsPage() {
             </div>
             <div>
               <p className="text-xs text-brand-300">Your Day</p>
-              <p className="text-sm font-bold text-brand-700">{data.funStats.mostCommonDay.dayName} <span className="font-caveat text-brand-400">{data.funStats.mostCommonDay.percentage}% of bills</span></p>
+              <p className="text-sm font-bold text-brand-700">{data.funStats.mostCommonDay.dayName} <span className="font-heading text-brand-400">{data.funStats.mostCommonDay.percentage}% of bills</span></p>
             </div>
           </div>
         )}
@@ -436,7 +436,7 @@ export default function InsightsPage() {
             </div>
             <div>
               <p className="text-xs text-brand-300">Priciest Order</p>
-              <p className="text-sm font-bold text-brand-700">{data.funStats.mostExpensiveItem.name} <span className="font-caveat text-brand-400">฿{data.funStats.mostExpensiveItem.price.toFixed(0)}</span></p>
+              <p className="text-sm font-bold text-brand-700">{data.funStats.mostExpensiveItem.name} <span className="font-heading text-brand-400">฿{data.funStats.mostExpensiveItem.price.toFixed(0)}</span></p>
             </div>
           </div>
         )}
@@ -476,7 +476,7 @@ export default function InsightsPage() {
                 <span className={`text-sm font-bold ${a.direction === "collected" ? "text-green-600" : "text-brand-600"}`}>
                   {a.direction === "collected" ? "+" : "-"}฿{a.amount.toFixed(0)}
                 </span>
-                <span className="font-serif text-xs italic text-brand-300">
+                <span className="font-heading text-xs text-brand-300">
                   {new Date(a.date).toLocaleDateString("en-US", { month: "short", day: "numeric" })}
                 </span>
               </div>

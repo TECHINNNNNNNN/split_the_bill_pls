@@ -98,8 +98,8 @@ export default function HomePage() {
       {/* ─── Header ─── */}
       <div className="animate-section mb-8 flex items-center justify-between">
         <div>
-          <p className="font-serif text-sm italic text-brand-400">Welcome back,</p>
-          <h1 className="font-caveat text-3xl font-bold">
+          <p className="font-heading text-sm text-brand-400">Welcome back,</p>
+          <h1 className="font-heading text-3xl font-bold">
             {session?.user.name?.split(" ")[0]}
           </h1>
         </div>
@@ -115,7 +115,7 @@ export default function HomePage() {
               unoptimized
             />
           ) : (
-            <div className="flex h-10 w-10 items-center justify-center rounded-full border-2 border-brand-200 bg-brand-50 font-caveat text-base font-bold text-brand-600 transition-shadow group-hover:shadow-md">
+            <div className="flex h-10 w-10 items-center justify-center rounded-full border-2 border-brand-200 bg-brand-50 font-heading text-base font-bold text-brand-600 transition-shadow group-hover:shadow-md">
               {session?.user.name?.charAt(0).toUpperCase()}
             </div>
           )}
@@ -160,8 +160,8 @@ export default function HomePage() {
         </div>
 
         <div className="relative z-10">
-          <p className="font-caveat text-2xl font-semibold text-cream-light">Quick Split</p>
-          <p className="mt-0.5 font-serif text-sm italic text-brand-200">Tap to start splitting →</p>
+          <p className="font-heading text-2xl font-semibold text-cream-light">Quick Split</p>
+          <p className="mt-0.5 font-heading text-sm text-brand-200">Tap to start splitting →</p>
         </div>
 
         {/* Catfish icon button */}
@@ -202,7 +202,7 @@ export default function HomePage() {
           <div className="flex items-start justify-between">
             <div>
               <p className="text-xs font-bold uppercase tracking-[3px] text-brand-300">Your Spending</p>
-              <p className="mt-1 font-caveat text-2xl font-bold text-brand-800">
+              <p className="mt-1 font-heading text-2xl font-bold text-brand-800">
                 ฿{insightsData.totalSpent.toFixed(2)}
               </p>
               <p className="mt-0.5 text-xs text-brand-300">
@@ -210,7 +210,7 @@ export default function HomePage() {
                 {insightsData.topFriends?.[0] && ` · mostly with ${insightsData.topFriends[0].name}`}
               </p>
             </div>
-            <span className="font-serif text-xs italic text-brand-400">See insights →</span>
+            <span className="font-heading text-xs text-brand-400">See insights →</span>
           </div>
         </Link>
       )}
@@ -268,7 +268,7 @@ export default function HomePage() {
       {/* ─── Balances + Pending settlements (compact card) ─── */}
       {(balances.length > 0 || pending.length > 0) && (
         <section className="animate-section mb-8" style={{ animationDelay: balancesDelay }}>
-          <h2 className="font-caveat text-xl font-semibold mb-3">Balances</h2>
+          <h2 className="font-heading text-xl font-semibold mb-3">Balances</h2>
           <div className="rounded-2xl border border-brand-200 bg-cream-light shadow-sm overflow-hidden">
             {/* Pending settlements first */}
             {pending.map((s) => {
@@ -283,7 +283,7 @@ export default function HomePage() {
                     <span className="h-2 w-2 rounded-full bg-amber-400" />
                     <span className="text-sm">{payerName} claims paid</span>
                   </div>
-                  <span className="font-caveat text-base font-semibold text-warning">
+                  <span className="font-heading text-base font-semibold text-warning">
                     ฿{parseFloat(s.netAmount).toFixed(2)}
                   </span>
                 </Link>
@@ -324,7 +324,7 @@ export default function HomePage() {
 
       {/* ─── Recent splits (horizontal scroll) ─── */}
       <section className="animate-section mb-8" style={{ animationDelay: recentDelay }}>
-        <h2 className="font-caveat text-xl font-semibold mb-3">Recent</h2>
+        <h2 className="font-heading text-xl font-semibold mb-3">Recent</h2>
         {roomsLoading ? (
           <div className="flex gap-3">
             <Skeleton className="h-28 w-36 shrink-0 rounded-2xl" />
@@ -332,7 +332,7 @@ export default function HomePage() {
             <Skeleton className="h-28 w-36 shrink-0 rounded-2xl" />
           </div>
         ) : !myRooms?.length ? (
-          <p className="font-serif text-sm italic text-brand-300">No splits yet. Start one above!</p>
+          <p className="font-heading text-sm text-brand-300">No splits yet. Start one above!</p>
         ) : (
           <div className="scrollbar-hidden -mx-4 flex gap-3 overflow-x-auto px-4 pb-2">
             {myRooms.slice(0, 8).map((room) => (
@@ -364,7 +364,7 @@ export default function HomePage() {
       {/* ─── Groups (compact) ─── */}
       <section className="animate-section" style={{ animationDelay: groupsDelay }}>
         <div className="mb-3 flex items-center justify-between">
-          <h2 className="font-caveat text-xl font-semibold">
+          <h2 className="font-heading text-xl font-semibold">
             Groups {groups?.length ? <span className="text-brand-300">({groups.length})</span> : null}
           </h2>
           <div className="flex gap-2">
@@ -425,7 +425,7 @@ export default function HomePage() {
             onClick={() => setShowCreateGroup(true)}
             className="w-full rounded-2xl border-2 border-dashed border-brand-200 py-6 text-center transition-all hover:bg-cream-light active:scale-[0.99]"
           >
-            <p className="font-caveat text-base text-brand-300">Create your first group</p>
+            <p className="font-heading text-base text-brand-300">Create your first group</p>
           </button>
         ) : (
           <div className="rounded-2xl border border-brand-200 bg-cream-light shadow-sm overflow-hidden">
