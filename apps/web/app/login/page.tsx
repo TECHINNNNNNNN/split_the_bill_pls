@@ -4,14 +4,12 @@ import { Link } from "next-view-transitions";
 import { signIn, useSession } from "@/lib/auth-client";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
-import { HandwritingTitle } from "@/components/handwriting-title";
 import { Skeleton } from "@/components/skeleton";
 
 export default function LoginPage() {
   const { data: session, isPending } = useSession();
   const router = useRouter();
   const [loading, setLoading] = useState(false);
-  const [animDone, setAnimDone] = useState(false);
 
   useEffect(() => {
     if (!isPending && session) {
@@ -39,8 +37,7 @@ export default function LoginPage() {
     <div className="relative flex min-h-svh flex-col items-center justify-center overflow-hidden px-6">
       {/* Corner ornaments */}
       <svg
-        className="fixed left-6 top-6 h-16 w-16 transition-opacity duration-1000"
-        style={{ opacity: animDone ? 1 : 0 }}
+        className="fixed left-6 top-6 h-16 w-16"
         viewBox="0 0 65 65"
         fill="none"
       >
@@ -48,8 +45,7 @@ export default function LoginPage() {
         <circle cx="3" cy="3" r="1.5" fill="#E8D5BF" />
       </svg>
       <svg
-        className="fixed bottom-6 right-6 h-16 w-16 rotate-180 transition-opacity duration-1000"
-        style={{ opacity: animDone ? 1 : 0 }}
+        className="fixed bottom-6 right-6 h-16 w-16 rotate-180"
         viewBox="0 0 65 65"
         fill="none"
       >
@@ -58,50 +54,32 @@ export default function LoginPage() {
       </svg>
 
       {/* Decorative line */}
-      <div
-        className="mb-8 h-[1.5px] w-14 transition-all duration-700"
-        style={{
-          backgroundColor: "#C4956A",
-          opacity: animDone ? 1 : 0,
-          transform: animDone ? "scaleX(1)" : "scaleX(0)",
-        }}
-      />
+      <div className="mb-8 h-[1.5px] w-14" style={{ backgroundColor: "#C4956A" }} />
 
-      {/* Handwriting animation */}
-      <HandwritingTitle onComplete={() => setAnimDone(true)} />
+      {/* Title */}
+      <h1
+        className="font-heading text-5xl font-semibold tracking-tight md:text-6xl"
+        style={{ color: "#4A3C2A" }}
+      >
+        PlaDuk
+      </h1>
 
       {/* Subtitle + tagline */}
       <p
-        className="mt-5 font-serif text-sm tracking-[0.18em] italic transition-all duration-700 md:text-base"
-        style={{
-          color: "#C4956A",
-          opacity: animDone ? 1 : 0,
-          transform: animDone ? "translateY(0)" : "translateY(10px)",
-        }}
+        className="mt-5 font-heading text-sm tracking-[0.18em] md:text-base"
+        style={{ color: "#C4956A" }}
       >
         split bills, not friendships
       </p>
       <p
-        className="mt-2 font-caveat text-base font-medium transition-all duration-700 md:text-lg"
-        style={{
-          color: "#4A3C2A",
-          opacity: animDone ? 1 : 0,
-          transform: animDone ? "translateY(0)" : "translateY(8px)",
-          transitionDelay: "0.2s",
-        }}
+        className="mt-2 font-heading text-base font-medium md:text-lg"
+        style={{ color: "#4A3C2A" }}
       >
-        ~ PlaDukKhlongToei ~
+        PlaDukKhlongToei
       </p>
 
       {/* Action buttons */}
-      <div
-        className="mt-12 flex flex-col items-center gap-4 transition-all duration-700"
-        style={{
-          opacity: animDone ? 1 : 0,
-          transform: animDone ? "translateY(0)" : "translateY(12px)",
-          transitionDelay: "0.4s",
-        }}
-      >
+      <div className="mt-12 flex flex-col items-center gap-4">
         <Link
           href="/quick-split"
           className="rounded-full bg-brand-700 px-10 py-3 text-sm font-medium text-cream-light transition-all hover:bg-brand-800 active:scale-[0.98] md:text-base"
