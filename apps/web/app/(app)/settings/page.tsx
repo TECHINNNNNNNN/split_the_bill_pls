@@ -46,7 +46,7 @@ export default function SettingsPage() {
           </svg>
           Back
         </button>
-        <h1 className="mt-1 font-caveat text-3xl font-bold">Settings</h1>
+        <h1 className="mt-1 font-heading text-3xl font-bold">Settings</h1>
       </div>
 
       {/* Profile info */}
@@ -60,7 +60,7 @@ export default function SettingsPage() {
               className="h-12 w-12 rounded-full border-2 border-brand-200 object-cover"
             />
           ) : (
-            <div className="flex h-12 w-12 items-center justify-center rounded-full border-2 border-brand-200 bg-brand-50 font-caveat text-lg font-bold text-brand-600">
+            <div className="flex h-12 w-12 items-center justify-center rounded-full border-2 border-brand-200 bg-brand-50 font-heading text-lg font-bold text-brand-600">
               {user.name?.charAt(0).toUpperCase()}
             </div>
           )}
@@ -73,8 +73,8 @@ export default function SettingsPage() {
 
       {/* PromptPay settings */}
       <div className="rounded-2xl border border-brand-200 bg-cream-light p-4 shadow-sm">
-        <h2 className="font-caveat text-xl font-semibold">PromptPay</h2>
-        <p className="mt-1 font-serif text-xs italic text-brand-300">
+        <h2 className="font-heading text-xl font-semibold">PromptPay</h2>
+        <p className="mt-1 font-heading text-xs text-brand-300">
           Set your PromptPay ID so friends can pay you when you settle up.
         </p>
 
