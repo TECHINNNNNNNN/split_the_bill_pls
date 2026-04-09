@@ -60,16 +60,15 @@ export function SectionCard({
 }) {
   // Track known item IDs so we only animate newly added items (prevents flicker)
   const knownItemIds = useRef(new Set<string>());
-  const items = section.items;
   const newItemIds = new Set<string>();
-  for (const item of items) {
-    if (!knownItemIds.current.has(item.id)) {
-      newItemIds.add(item.id);
+  for (const si of section.items) {
+    if (!knownItemIds.current.has(si.id)) {
+      newItemIds.add(si.id);
     }
   }
   useEffect(() => {
-    for (const item of items) {
-      knownItemIds.current.add(item.id);
+    for (const si of section.items) {
+      knownItemIds.current.add(si.id);
     }
   });
 
@@ -258,6 +257,7 @@ export function SectionCard({
               onResetMemberShare={(memberId) => onResetMemberShare(item.id, memberId)}
               onSelectAll={() => onSelectAll(item.id)}
               waterfallIndex={-1}
+              isNew={newItemIds.has(item.id)}
             />
           );
         })}
