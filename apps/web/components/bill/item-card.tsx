@@ -17,6 +17,7 @@ export function ItemCard({
   onResetMemberShare,
   onSelectAll,
   waterfallIndex = -1,
+  isNew = false,
 }: {
   item: CollabItem;
   isLocked: boolean;
