@@ -169,6 +169,99 @@ describe("calculateSplit", () => {
     expect(result.splits[2].totalAmount).toBe(0)
   })
 
+  // ─── Weighted (ratio) split tests ───
+
+  it("splits by 2:1 ratio on a clean number (฿300)", () => {
+    const items = [{ id: "item1", name: "Beer", totalPrice: 300 }]
+    const claims = [
+      { billItemId: "item1", memberId: "alice", share: 2 },
+      { billItemId: "item1", memberId: "bob", share: 1 },
+    ]
+    const totals = {
+      subtotal: 300,
+      discountAmount: null,
+      vatAmount: null,
+      serviceChargeAmount: null,
+      totalAmount: 300,
+    }
+
+    const result = calculateSplit(items, claims, totals, ["alice", "bob"])
+
+    expect(result.splits[0].totalAmount).toBe(200) // alice: 2/3
+    expect(result.splits[1].totalAmount).toBe(100) // bob: 1/3
+    expect(result.splits[0].items[0].shareAmount).toBe(200)
+    expect(result.splits[1].items[0].shareAmount).toBe(100)
+  })
+
+  it("splits by 2:1 ratio with rounding remainder (฿100)", () => {
+    const items = [{ id: "item1", name: "Dinner", totalPrice: 100 }]
+    const claims = [
+      { billItemId: "item1", memberId: "alice", share: 2 },
+      { billItemId: "item1", memberId: "bob", share: 1 },
+    ]
+    const totals = {
+      subtotal: 100,
+      discountAmount: null,
+      vatAmount: null,
+      serviceChargeAmount: null,
+      totalAmount: 100,
+    }
+
+    const result = calculateSplit(items, claims, totals, ["alice", "bob"])
+
+    // alice: 100 * 2/3 = 66.666... → floor to 66.66
+    // bob: 100 - 66.66 = 33.34 (absorbs remainder)
+    expect(result.splits[0].totalAmount).toBe(66.66)
+    expect(result.splits[1].totalAmount).toBe(33.34)
+  })
+
+  it("treats missing share as 1 (backward compat)", () => {
+    const items = [{ id: "item1", name: "Pizza", totalPrice: 200 }]
+    const claims = [
+      { billItemId: "item1", memberId: "alice" }, // no share → defaults to 1
+      { billItemId: "item1", memberId: "bob" },
+    ]
+    const totals = {
+      subtotal: 200,
+      discountAmount: null,
+      vatAmount: null,
+      serviceChargeAmount: null,
+      totalAmount: 200,
+    }
+
+    const result = calculateSplit(items, claims, totals, ["alice", "bob"])
+
+    expect(result.splits[0].totalAmount).toBe(100)
+    expect(result.splits[1].totalAmount).toBe(100)
+  })
+
+  it("distributes VAT/discount proportionally with weighted shares", () => {
+    const items = [{ id: "item1", name: "Steak", totalPrice: 300 }]
+    const claims = [
+      { billItemId: "item1", memberId: "alice", share: 3 },
+      { billItemId: "item1", memberId: "bob", share: 1 },
+    ]
+    const totals = {
+      subtotal: 300,
+      discountAmount: 20,
+      vatAmount: 21, // 7%
+      serviceChargeAmount: 30, // 10%
+      totalAmount: 331, // 300 - 20 + 30 + 21
+    }
+
+    const result = calculateSplit(items, claims, totals, ["alice", "bob"])
+
+    // alice proportion: 225/300 = 0.75
+    expect(result.splits[0].proportion).toBe(0.75)
+    expect(result.splits[0].discountShare).toBe(15)
+    expect(result.splits[0].vatShare).toBe(15.75)
+    expect(result.splits[0].serviceChargeShare).toBe(22.5)
+    // alice total: 225 - 15 + 22.5 + 15.75 = 248.25 → floor 248.25
+    expect(result.splits[0].totalAmount).toBe(248.25)
+    // bob gets remainder: 331 - 248.25 = 82.75
+    expect(result.splits[1].totalAmount).toBe(82.75)
+  })
+
   it("skips unclaimed items", () => {
     const items = [
       { id: "item1", name: "Pizza", totalPrice: 200 },
