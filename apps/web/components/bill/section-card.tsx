@@ -58,6 +58,21 @@ export function SectionCard({
   onVoiceStop: () => Promise<Blob>;
   voiceAnalyser: React.RefObject<AnalyserNode | null>;
 }) {
+  // Track known item IDs so we only animate newly added items (prevents flicker)
+  const knownItemIds = useRef(new Set<string>());
+  const items = section.items;
+  const newItemIds = new Set<string>();
+  for (const item of items) {
+    if (!knownItemIds.current.has(item.id)) {
+      newItemIds.add(item.id);
+    }
+  }
+  useEffect(() => {
+    for (const item of items) {
+      knownItemIds.current.add(item.id);
+    }
+  });
+
   const [showForm, setShowForm] = useState(false);
   const [itemName, setItemName] = useState("");
   const [itemQty, setItemQty] = useState("1");
