@@ -12,7 +12,7 @@ export interface SectionBreakdown {
   sectionTotal: number;
   splits: MemberSplit[];
   roundingDifference: number;
-  itemClaimerCounts: Map<string, number>;
+  itemShareInfo: Map<string, { totalShares: number; memberShares: Record<string, number> }>;
 }
 
 export function BreakdownModal({
