@@ -41,7 +41,8 @@ type ClientMessage =
   | { type: "item:add"; data: { name: string; quantity: number; unitPrice: number; memberId: string; sectionId?: string } }
   | { type: "item:update"; data: { itemId: string; sectionId: string; name?: string; quantity?: number; unitPrice?: number } }
   | { type: "item:delete"; data: { itemId: string; sectionId: string; memberId: string; isHost: boolean } }
-  | { type: "item:toggle-member"; data: { itemId: string; sectionId: string; targetMemberId: string } }
+  | { type: "item:bump-member-share"; data: { itemId: string; sectionId: string; targetMemberId: string } }
+  | { type: "item:reset-member-share"; data: { itemId: string; sectionId: string; targetMemberId: string } }
   | { type: "item:select-all"; data: { itemId: string; sectionId: string; allMemberIds: string[] } }
   | { type: "extras:update"; data: Partial<BillExtras> & { sectionId?: string } }
   | { type: "state:request" }
