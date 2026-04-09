@@ -132,7 +132,7 @@ export function ItemCard({
 
   return (
     <div
-      className={`rounded-xl border border-brand-200 bg-cream-light p-3 transition-shadow hover:shadow-sm ${waterfallIndex >= 0 ? "animate-item-waterfall" : "animate-item-fade"}`}
+      className={`rounded-xl border border-brand-200 bg-cream-light p-3 transition-shadow hover:shadow-sm ${waterfallIndex >= 0 ? "animate-item-waterfall" : isNew ? "animate-item-fade" : ""}`}
       style={waterfallIndex >= 0 ? { animationDelay: `${waterfallIndex * 120}ms` } : undefined}
     >
       {/* Edit mode */}

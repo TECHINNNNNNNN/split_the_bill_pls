@@ -112,6 +112,8 @@ export function SectionCard({
   const vatAmount = (discountedSubtotal + serviceChargeAmount) * vRate;
   const sectionTotal = discountedSubtotal + serviceChargeAmount + vatAmount;
 
+  const nameInputRef = useRef<HTMLInputElement>(null);
+
   const handleAddItem = () => {
     const price = parseFloat(itemAmount);
     const qty = parseInt(itemQty) || 1;
@@ -120,7 +122,8 @@ export function SectionCard({
     setItemName("");
     setItemQty("1");
     setItemAmount("");
-    setShowForm(false);
+    // Keep form open for rapid-fire item entry — refocus the name input
+    requestAnimationFrame(() => nameInputRef.current?.focus());
   };
 
   return (
