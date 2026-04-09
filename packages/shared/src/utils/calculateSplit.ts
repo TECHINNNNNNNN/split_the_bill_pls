@@ -9,6 +9,8 @@ export interface CalcBillItem {
 export interface CalcItemClaim {
   billItemId: string
   memberId: string
+  /** Number of shares this member has of the item (default 1 = equal split). */
+  share?: number
 }
 
 export interface CalcBillTotals {
@@ -48,6 +50,11 @@ export interface SplitResult {
 /**
  * Calculate the bill split for all members.
  *
+ * Supports weighted (ratio) splitting: if a claim has `share > 1`, that
+ * member gets proportionally more of the item's cost. For example, if
+ * Alice has share=2 and Bob has share=1 on a ฿300 item, Alice pays ฿200
+ * and Bob pays ฿100.
+ *
  * Rounding strategy:
  * - Each person's total is floored to 2 decimal places (satang)
  * - The last person in the array absorbs the remainder
@@ -79,15 +86,15 @@ export function calculateSplit(
     }
   }
 
-  // Build lookup: itemId → list of claimer memberIds
-  const itemClaimersMap = new Map<string, string[]>()
+  // Build lookup: itemId → list of { memberId, share }
+  const itemClaimersMap = new Map<string, { memberId: string; share: number }[]>()
   for (const claim of claims) {
     const existing = itemClaimersMap.get(claim.billItemId) || []
-    existing.push(claim.memberId)
+    existing.push({ memberId: claim.memberId, share: claim.share ?? 1 })
     itemClaimersMap.set(claim.billItemId, existing)
   }
 
-  // Step 1: Calculate each member's item subtotal
+  // Step 1: Calculate each member's item subtotal (weighted by shares)
   const memberSubtotals = new Map<string, number>()
   const memberItems = new Map<string, MemberItemDetail[]>()
 
@@ -97,17 +104,18 @@ export function calculateSplit(
   }
 
   for (const item of items) {
-    const claimerIds = itemClaimersMap.get(item.id)
-    if (!claimerIds || claimerIds.length === 0) continue
+    const claimers = itemClaimersMap.get(item.id)
+    if (!claimers || claimers.length === 0) continue
 
-    const sharePerPerson = item.totalPrice / claimerIds.length
+    const totalShares = claimers.reduce((sum, c) => sum + c.share, 0)
 
-    for (const memberId of claimerIds) {
-      memberSubtotals.set(memberId, (memberSubtotals.get(memberId) || 0) + sharePerPerson)
-      memberItems.get(memberId)!.push({
+    for (const claimer of claimers) {
+      const shareAmount = item.totalPrice * (claimer.share / totalShares)
+      memberSubtotals.set(claimer.memberId, (memberSubtotals.get(claimer.memberId) || 0) + shareAmount)
+      memberItems.get(claimer.memberId)!.push({
         itemId: item.id,
         name: item.name,
-        shareAmount: sharePerPerson,
+        shareAmount,
       })
     }
   }
