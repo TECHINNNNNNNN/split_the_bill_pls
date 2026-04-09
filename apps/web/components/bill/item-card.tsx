@@ -104,22 +104,29 @@ export function ItemCard({
 
   // First-time inline hint: "tap a name again for ×2 share"
   const HINT_KEY = "pladuk_share_hint_shown";
-  const [showHint, setShowHint] = useState(() => {
+  const hintEligible = (() => {
     if (typeof window === "undefined") return false;
     try { return !localStorage.getItem(HINT_KEY); } catch { return false; }
-  });
+  })();
+  // Only show when hint hasn't been dismissed AND at least one chip is selected
+  const hintVisible = hintEligible && canEdit && selectedIds.length > 0;
+  const [hintDismissed, setHintDismissed] = useState(false);
 
   const dismissHint = useCallback(() => {
-    setShowHint(false);
+    setHintDismissed(true);
     try { localStorage.setItem(HINT_KEY, "1"); } catch {}
   }, []);
 
-  // Auto-dismiss after 8 seconds
+  // Auto-dismiss 8 seconds after first becoming visible
+  const hintTimerStarted = useRef(false);
   useEffect(() => {
-    if (!showHint) return;
+    if (!hintVisible || hintDismissed || hintTimerStarted.current) return;
+    hintTimerStarted.current = true;
     const timer = setTimeout(dismissHint, 8000);
     return () => clearTimeout(timer);
-  }, [showHint, dismissHint]);
+  }, [hintVisible, hintDismissed, dismissHint]);
+
+  const showHint = hintVisible && !hintDismissed;
 
   return (
     <div
