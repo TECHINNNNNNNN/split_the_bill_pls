@@ -231,9 +231,10 @@ export default function BillDetailsPage({
       }));
 
       const calcClaims = assignedItems.flatMap((item) =>
-        item.memberIds.map((mId) => ({
+        Object.entries(item.memberShares ?? {}).map(([mId, share]) => ({
           billItemId: item.id,
           memberId: mId,
+          share,
         }))
       );
 
