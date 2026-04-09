@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef, useCallback } from "react";
+import { useState, useRef, useCallback, useEffect } from "react";
 import type { CollabItem } from "@/lib/hooks/use-bill-collab";
 
 const LONG_PRESS_MS = 400;
@@ -101,6 +101,25 @@ export function ItemCard({
   const allEqualOne = selectedIds.length === members.length && selectedIds.every((id) => shares[id] === 1);
   const [expanded, setExpanded] = useState(false);
   const showCollapsed = allEqualOne && members.length > 3 && !expanded;
+
+  // First-time inline hint: "tap a name again for ×2 share"
+  const HINT_KEY = "pladuk_share_hint_shown";
+  const [showHint, setShowHint] = useState(() => {
+    if (typeof window === "undefined") return false;
+    try { return !localStorage.getItem(HINT_KEY); } catch { return false; }
+  });
+
+  const dismissHint = useCallback(() => {
+    setShowHint(false);
+    try { localStorage.setItem(HINT_KEY, "1"); } catch {}
+  }, []);
+
+  // Auto-dismiss after 8 seconds
+  useEffect(() => {
+    if (!showHint) return;
+    const timer = setTimeout(dismissHint, 8000);
+    return () => clearTimeout(timer);
+  }, [showHint, dismissHint]);
 
   return (
     <div
@@ -244,22 +263,29 @@ export function ItemCard({
                   </span>
                 );
               }
+              const isFirstSelected = isSelected && selectedIds[0] === member.id;
               return (
-                <button
-                  key={member.id}
-                  type="button"
-                  onClick={() => handleChipClick(member.id)}
-                  onPointerDown={() => handlePointerDown(member.id)}
-                  onPointerUp={handlePointerUpOrLeave}
-                  onPointerLeave={handlePointerUpOrLeave}
-                  onPointerCancel={handlePointerUpOrLeave}
-                  className={`select-none rounded-lg px-2.5 py-1 text-xs font-medium transition-colors active:scale-95 ${
-                    isSelected ? "bg-brand-700 text-cream-light" : "bg-brand-50 text-brand-300 hover:bg-brand-100"
-                  }`}
-                  aria-label={`${member.displayName}, ${share ?? 0} share${share === 1 ? "" : "s"}`}
-                >
-                  {label}
-                </button>
+                <span key={member.id} className="relative">
+                  <button
+                    type="button"
+                    onClick={() => { handleChipClick(member.id); dismissHint(); }}
+                    onPointerDown={() => handlePointerDown(member.id)}
+                    onPointerUp={handlePointerUpOrLeave}
+                    onPointerLeave={handlePointerUpOrLeave}
+                    onPointerCancel={handlePointerUpOrLeave}
+                    className={`select-none rounded-lg px-2.5 py-1 text-xs font-medium transition-colors active:scale-95 ${
+                      isSelected ? "bg-brand-700 text-cream-light" : "bg-brand-50 text-brand-300 hover:bg-brand-100"
+                    }`}
+                    aria-label={`${member.displayName}, ${share ?? 0} share${share === 1 ? "" : "s"}`}
+                  >
+                    {label}
+                  </button>
+                  {showHint && isFirstSelected && (
+                    <span className="absolute -top-8 left-1/2 z-10 -translate-x-1/2 whitespace-nowrap rounded-md bg-brand-800 px-2 py-1 text-[10px] text-cream-light shadow-lg animate-fade-in">
+                      tap again for ×2 share
+                    </span>
+                  )}
+                </span>
               );
             })
           )}
