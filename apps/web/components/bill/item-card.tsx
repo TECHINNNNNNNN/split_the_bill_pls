@@ -263,33 +263,31 @@ export function ItemCard({
                   </span>
                 );
               }
-              const isFirstSelected = isSelected && selectedIds[0] === member.id;
               return (
-                <span key={member.id} className="relative">
-                  <button
-                    type="button"
-                    onClick={() => { handleChipClick(member.id); dismissHint(); }}
-                    onPointerDown={() => handlePointerDown(member.id)}
-                    onPointerUp={handlePointerUpOrLeave}
-                    onPointerLeave={handlePointerUpOrLeave}
-                    onPointerCancel={handlePointerUpOrLeave}
-                    className={`select-none rounded-lg px-2.5 py-1 text-xs font-medium transition-colors active:scale-95 ${
-                      isSelected ? "bg-brand-700 text-cream-light" : "bg-brand-50 text-brand-300 hover:bg-brand-100"
-                    }`}
-                    aria-label={`${member.displayName}, ${share ?? 0} share${share === 1 ? "" : "s"}`}
-                  >
-                    {label}
-                  </button>
-                  {showHint && isFirstSelected && (
-                    <span className="absolute -top-8 left-1/2 z-10 -translate-x-1/2 whitespace-nowrap rounded-md bg-brand-800 px-2 py-1 text-[10px] text-cream-light shadow-lg animate-fade-in">
-                      tap again for ×2 share
-                    </span>
-                  )}
-                </span>
+                <button
+                  key={member.id}
+                  type="button"
+                  onClick={() => { handleChipClick(member.id); if (isSelected) dismissHint(); }}
+                  onPointerDown={() => handlePointerDown(member.id)}
+                  onPointerUp={handlePointerUpOrLeave}
+                  onPointerLeave={handlePointerUpOrLeave}
+                  onPointerCancel={handlePointerUpOrLeave}
+                  className={`select-none rounded-lg px-2.5 py-1 text-xs font-medium transition-colors active:scale-95 ${
+                    isSelected ? "bg-brand-700 text-cream-light" : "bg-brand-50 text-brand-300 hover:bg-brand-100"
+                  }`}
+                  aria-label={`${member.displayName}, ${share ?? 0} share${share === 1 ? "" : "s"}`}
+                >
+                  {label}
+                </button>
               );
             })
           )}
         </div>
+        {showHint && canEdit && selectedIds.length > 0 && (
+          <p className="mt-1.5 text-[11px] text-brand-300 transition-opacity duration-500">
+            tap a name again for ×2 share · hold to remove
+          </p>
+        )}
         {selectedIds.length === 0 && (
           <p className="mt-1 text-xs text-error">Select at least one person</p>
         )}
