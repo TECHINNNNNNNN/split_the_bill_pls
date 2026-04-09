@@ -11,7 +11,8 @@ export interface CollabItem {
   name: string;
   quantity: number;
   unitPrice: number;
-  memberIds: string[];
+  memberShares: Record<string, number>; // memberId → share count (1, 2, 3…)
+  memberIds: string[]; // backward-compat derived list (Object.keys(memberShares))
   addedBy: string;
 }
 
@@ -157,10 +158,20 @@ export function useBillCollab(
     [send, opts.currentMemberId, opts.isHost],
   );
 
-  const toggleMember = useCallback(
+  const bumpMemberShare = useCallback(
     (itemId: string, sectionId: string, memberId: string) => {
       send({
-        type: "item:toggle-member",
+        type: "item:bump-member-share",
+        data: { itemId, sectionId, targetMemberId: memberId },
+      });
+    },
+    [send],
+  );
+
+  const resetMemberShare = useCallback(
+    (itemId: string, sectionId: string, memberId: string) => {
+      send({
+        type: "item:reset-member-share",
         data: { itemId, sectionId, targetMemberId: memberId },
       });
     },
@@ -198,7 +209,8 @@ export function useBillCollab(
     addItem,
     updateItem,
     deleteItem,
-    toggleMember,
+    bumpMemberShare,
+    resetMemberShare,
     selectAll,
     updateExtras,
   };

@@ -173,6 +173,7 @@ export const roomItemSplits = pgTable("room_item_splits", {
   memberId: uuid("member_id")
     .references(() => roomMembers.id, { onDelete: "cascade" })
     .notNull(),
+  share: integer("share").notNull().default(1),
 }, (t) => [
   unique("room_item_splits_item_member_unique").on(t.itemId, t.memberId),
 ]);

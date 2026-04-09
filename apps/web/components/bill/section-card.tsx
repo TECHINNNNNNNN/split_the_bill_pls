@@ -15,7 +15,8 @@ export function SectionCard({
   onAddItem,
   onUpdateItem,
   onDeleteItem,
-  onToggleMember,
+  onBumpMemberShare,
+  onResetMemberShare,
   onSelectAll,
   onUpdateExtras,
   onDeleteSection,
@@ -40,7 +41,8 @@ export function SectionCard({
   onAddItem: (name: string, unitPrice: number, quantity?: number) => void;
   onUpdateItem: (itemId: string, updates: { name?: string; quantity?: number; unitPrice?: number }) => void;
   onDeleteItem: (itemId: string) => void;
-  onToggleMember: (itemId: string, memberId: string) => void;
+  onBumpMemberShare: (itemId: string, memberId: string) => void;
+  onResetMemberShare: (itemId: string, memberId: string) => void;
   onSelectAll: (itemId: string) => void;
   onUpdateExtras: (update: Partial<BillExtras>) => void;
   onDeleteSection: () => void;
@@ -237,7 +239,8 @@ export function SectionCard({
               members={members}
               onDelete={() => onDeleteItem(item.id)}
               onUpdate={(updates) => onUpdateItem(item.id, updates)}
-              onToggleMember={(memberId) => onToggleMember(item.id, memberId)}
+              onBumpMemberShare={(memberId) => onBumpMemberShare(item.id, memberId)}
+              onResetMemberShare={(memberId) => onResetMemberShare(item.id, memberId)}
               onSelectAll={() => onSelectAll(item.id)}
               waterfallIndex={-1}
             />

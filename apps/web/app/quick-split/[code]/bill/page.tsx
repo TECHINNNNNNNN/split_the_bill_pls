@@ -8,7 +8,7 @@ import imageCompression from "browser-image-compression";
 import { calculateSplit } from "@pladuk/shared/utils";
 import { roomQueries } from "@/lib/queries/rooms";
 import { useFinalizeRoom, useScanReceipt, useParseVoice } from "@/lib/mutations/rooms";
-import { useBillCollab } from "@/lib/hooks/use-bill-collab";
+import { useBillCollab, type CollabItem } from "@/lib/hooks/use-bill-collab";
 import { useVoiceInput } from "@/lib/hooks/use-voice-input";
 import { usePresence } from "@/lib/hooks/use-presence";
 import { SectionCard } from "@/components/bill/section-card";
@@ -57,7 +57,8 @@ export default function BillDetailsPage({
     addItem,
     updateItem,
     deleteItem,
-    toggleMember,
+    bumpMemberShare,
+    resetMemberShare,
     selectAll,
     updateExtras,
   } = useBillCollab(code, {
@@ -230,9 +231,10 @@ export default function BillDetailsPage({
       }));
 
       const calcClaims = assignedItems.flatMap((item) =>
-        item.memberIds.map((mId) => ({
+        Object.entries(item.memberShares ?? {}).map(([mId, share]) => ({
           billItemId: item.id,
           memberId: mId,
+          share,
         }))
       );
 
@@ -258,10 +260,12 @@ export default function BillDetailsPage({
 
       const result = calculateSplit(calcItems, calcClaims, calcTotals, splitMemberIds);
 
-      // Build item claimer counts for breakdown modal
-      const itemClaimerCounts = new Map<string, number>();
+      // Build item share info for breakdown modal
+      const itemShareInfo = new Map<string, { totalShares: number; memberShares: Record<string, number> }>();
       for (const item of assignedItems) {
-        itemClaimerCounts.set(item.id, item.memberIds.length);
+        const ms = item.memberShares ?? {};
+        const totalShares = Object.values(ms).reduce((sum, s) => sum + s, 0);
+        itemShareInfo.set(item.id, { totalShares, memberShares: ms });
       }
 
       breakdowns.push({
@@ -273,7 +277,7 @@ export default function BillDetailsPage({
         sectionTotal,
         splits: result.splits,
         roundingDifference: result.roundingDifference,
-        itemClaimerCounts,
+        itemShareInfo,
       });
 
       for (const split of result.splits) {
@@ -299,25 +303,28 @@ export default function BillDetailsPage({
   const handleFinalize = () => {
     // Validate: every item in every section must have at least 1 person
     for (const sec of sections) {
-      const hasEmpty = sec.items.some((item) => item.memberIds.length === 0);
+      const hasEmpty = sec.items.some((item) => Object.keys(item.memberShares ?? {}).length === 0);
       if (hasEmpty) {
         toast.error(`Every item needs at least one person assigned${isMultiSection && sec.name ? ` (${sec.name})` : ""} 🍽️`);
         return;
       }
     }
 
+    const mapItems = (items: CollabItem[]) =>
+      items.map((item) => ({
+        name: item.name,
+        quantity: item.quantity,
+        unitPrice: item.unitPrice,
+        memberShares: item.memberShares ?? {},
+        memberIds: item.memberIds, // backward compat
+      }));
+
     if (isMultiSection) {
-      // Send as sections
       finalizeRoom.mutate(
         {
           sections: sections.map((sec) => ({
             name: sec.name || "Untitled",
-            items: sec.items.map((item) => ({
-              name: item.name,
-              quantity: item.quantity,
-              unitPrice: item.unitPrice,
-              memberIds: item.memberIds,
-            })),
+            items: mapItems(sec.items),
             vatRate: sec.extras.vatRate,
             serviceChargeRate: sec.extras.serviceChargeRate,
             discountAmount: sec.extras.discountAmount,
@@ -329,17 +336,11 @@ export default function BillDetailsPage({
         },
       );
     } else {
-      // Single section: send as legacy flat format
       const sec = sections[0];
       if (!sec) return;
       finalizeRoom.mutate(
         {
-          items: sec.items.map((item) => ({
-            name: item.name,
-            quantity: item.quantity,
-            unitPrice: item.unitPrice,
-            memberIds: item.memberIds,
-          })),
+          items: mapItems(sec.items),
           vatRate: sec.extras.vatRate,
           serviceChargeRate: sec.extras.serviceChargeRate,
           discountAmount: sec.extras.discountAmount,
@@ -538,7 +539,8 @@ export default function BillDetailsPage({
             onAddItem={(name, unitPrice, quantity) => addItem(name, unitPrice, section.id, quantity)}
             onUpdateItem={(itemId, updates) => updateItem(itemId, section.id, updates)}
             onDeleteItem={(itemId) => deleteItem(itemId, section.id)}
-            onToggleMember={(itemId, memberId) => toggleMember(itemId, section.id, memberId)}
+            onBumpMemberShare={(itemId, memberId) => bumpMemberShare(itemId, section.id, memberId)}
+            onResetMemberShare={(itemId, memberId) => resetMemberShare(itemId, section.id, memberId)}
             onSelectAll={(itemId) => selectAll(itemId, section.id)}
             onUpdateExtras={(update) => updateExtras(update, section.id)}
             onDeleteSection={() => deleteSection(section.id)}
