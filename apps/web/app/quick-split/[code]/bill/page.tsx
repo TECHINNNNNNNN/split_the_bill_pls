@@ -539,7 +539,8 @@ export default function BillDetailsPage({
             onAddItem={(name, unitPrice, quantity) => addItem(name, unitPrice, section.id, quantity)}
             onUpdateItem={(itemId, updates) => updateItem(itemId, section.id, updates)}
             onDeleteItem={(itemId) => deleteItem(itemId, section.id)}
-            onToggleMember={(itemId, memberId) => toggleMember(itemId, section.id, memberId)}
+            onBumpMemberShare={(itemId, memberId) => bumpMemberShare(itemId, section.id, memberId)}
+            onResetMemberShare={(itemId, memberId) => resetMemberShare(itemId, section.id, memberId)}
             onSelectAll={(itemId) => selectAll(itemId, section.id)}
             onUpdateExtras={(update) => updateExtras(update, section.id)}
             onDeleteSection={() => deleteSection(section.id)}
