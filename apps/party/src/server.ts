@@ -27,10 +27,20 @@ interface CollabSection {
 }
 
 // Serialized format for broadcast
+interface CollabItemSerialized {
+  id: string
+  name: string
+  quantity: number
+  unitPrice: number
+  memberShares: Record<string, number>
+  memberIds: string[] // backward compat for consumers that just want the set
+  addedBy: string
+}
+
 interface CollabSectionSerialized {
   id: string
   name: string
-  items: CollabItem[]
+  items: CollabItemSerialized[]
   extras: BillExtras
 }
 
@@ -341,7 +351,10 @@ export default class RoomParty implements Party.Server {
     return Array.from(this.sections.values()).map((s) => ({
       id: s.id,
       name: s.name,
-      items: Array.from(s.items.values()),
+      items: Array.from(s.items.values()).map((item) => ({
+        ...item,
+        memberIds: Object.keys(item.memberShares),
+      })),
       extras: s.extras,
     }))
   }
