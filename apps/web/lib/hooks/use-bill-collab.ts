@@ -11,7 +11,8 @@ export interface CollabItem {
   name: string;
   quantity: number;
   unitPrice: number;
-  memberIds: string[];
+  memberShares: Record<string, number>; // memberId → share count (1, 2, 3…)
+  memberIds: string[]; // backward-compat derived list (Object.keys(memberShares))
   addedBy: string;
 }
 
