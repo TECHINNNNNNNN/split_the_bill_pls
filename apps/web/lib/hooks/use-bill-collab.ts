@@ -158,10 +158,20 @@ export function useBillCollab(
     [send, opts.currentMemberId, opts.isHost],
   );
 
-  const toggleMember = useCallback(
+  const bumpMemberShare = useCallback(
     (itemId: string, sectionId: string, memberId: string) => {
       send({
-        type: "item:toggle-member",
+        type: "item:bump-member-share",
+        data: { itemId, sectionId, targetMemberId: memberId },
+      });
+    },
+    [send],
+  );
+
+  const resetMemberShare = useCallback(
+    (itemId: string, sectionId: string, memberId: string) => {
+      send({
+        type: "item:reset-member-share",
         data: { itemId, sectionId, targetMemberId: memberId },
       });
     },
