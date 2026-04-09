@@ -845,16 +845,23 @@ const app = new Hono()
           sortOrder: i,
         }).returning()
 
-        if (ci.memberIds.length > 0) {
+        // Normalize: prefer memberShares, fall back to memberIds with share=1
+        const memberShares: Record<string, number> = ci.memberShares
+          ? ci.memberShares
+          : Object.fromEntries((ci.memberIds ?? []).map((id: string) => [id, 1]))
+
+        const entries = Object.entries(memberShares)
+        if (entries.length > 0) {
           await db.insert(roomItemSplits).values(
-            ci.memberIds.map((mId) => ({
+            entries.map(([mId, share]) => ({
               itemId: item.id,
               memberId: mId,
+              share: share ?? 1,
             }))
           )
         }
 
-        createdItems.push({ ...item, memberIds: ci.memberIds })
+        createdItems.push({ ...item, memberShares })
       }
 
       // Build inputs for calculateSplit() — per section
@@ -865,9 +872,10 @@ const app = new Hono()
       }))
 
       const calcClaims = createdItems.flatMap((item) =>
-        item.memberIds.map((mId) => ({
+        Object.entries(item.memberShares).map(([mId, share]) => ({
           billItemId: item.id,
           memberId: mId,
+          share,
         }))
       )
 

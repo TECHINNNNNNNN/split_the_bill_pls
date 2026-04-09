@@ -301,25 +301,28 @@ export default function BillDetailsPage({
   const handleFinalize = () => {
     // Validate: every item in every section must have at least 1 person
     for (const sec of sections) {
-      const hasEmpty = sec.items.some((item) => item.memberIds.length === 0);
+      const hasEmpty = sec.items.some((item) => Object.keys(item.memberShares ?? {}).length === 0);
       if (hasEmpty) {
         toast.error(`Every item needs at least one person assigned${isMultiSection && sec.name ? ` (${sec.name})` : ""} 🍽️`);
         return;
       }
     }
 
+    const mapItems = (items: CollabItem[]) =>
+      items.map((item) => ({
+        name: item.name,
+        quantity: item.quantity,
+        unitPrice: item.unitPrice,
+        memberShares: item.memberShares ?? {},
+        memberIds: item.memberIds, // backward compat
+      }));
+
     if (isMultiSection) {
-      // Send as sections
       finalizeRoom.mutate(
         {
           sections: sections.map((sec) => ({
             name: sec.name || "Untitled",
-            items: sec.items.map((item) => ({
-              name: item.name,
-              quantity: item.quantity,
-              unitPrice: item.unitPrice,
-              memberIds: item.memberIds,
-            })),
+            items: mapItems(sec.items),
             vatRate: sec.extras.vatRate,
             serviceChargeRate: sec.extras.serviceChargeRate,
             discountAmount: sec.extras.discountAmount,
@@ -331,17 +334,11 @@ export default function BillDetailsPage({
         },
       );
     } else {
-      // Single section: send as legacy flat format
       const sec = sections[0];
       if (!sec) return;
       finalizeRoom.mutate(
         {
-          items: sec.items.map((item) => ({
-            name: item.name,
-            quantity: item.quantity,
-            unitPrice: item.unitPrice,
-            memberIds: item.memberIds,
-          })),
+          items: mapItems(sec.items),
           vatRate: sec.extras.vatRate,
           serviceChargeRate: sec.extras.serviceChargeRate,
           discountAmount: sec.extras.discountAmount,
