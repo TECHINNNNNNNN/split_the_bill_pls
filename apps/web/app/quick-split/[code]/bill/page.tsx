@@ -57,7 +57,8 @@ export default function BillDetailsPage({
     addItem,
     updateItem,
     deleteItem,
-    toggleMember,
+    bumpMemberShare,
+    resetMemberShare,
     selectAll,
     updateExtras,
   } = useBillCollab(code, {
