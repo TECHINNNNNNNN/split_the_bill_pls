@@ -127,6 +127,10 @@ export function ItemCard({
   }, [hintVisible, hintDismissed, dismissHint]);
 
   const showHint = hintVisible && !hintDismissed;
+  // Debug — remove after testing
+  if (typeof window !== "undefined") {
+    console.log("[hint]", { hintEligible, canEdit, selectedCount: selectedIds.length, hintVisible, hintDismissed, showHint });
+  }
 
   return (
     <div
