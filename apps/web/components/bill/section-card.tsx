@@ -270,6 +270,7 @@ export function SectionCard({
           <div className="rounded-xl border border-brand-200 bg-cream p-3">
             <div className="space-y-2">
               <input
+                ref={nameInputRef}
                 type="text"
                 value={itemName}
                 onChange={(e) => setItemName(e.target.value)}
