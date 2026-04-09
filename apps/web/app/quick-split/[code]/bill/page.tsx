@@ -277,7 +277,7 @@ export default function BillDetailsPage({
         sectionTotal,
         splits: result.splits,
         roundingDifference: result.roundingDifference,
-        itemClaimerCounts,
+        itemShareInfo,
       });
 
       for (const split of result.splits) {
