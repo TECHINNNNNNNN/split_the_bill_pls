@@ -239,7 +239,8 @@ export function SectionCard({
               members={members}
               onDelete={() => onDeleteItem(item.id)}
               onUpdate={(updates) => onUpdateItem(item.id, updates)}
-              onToggleMember={(memberId) => onToggleMember(item.id, memberId)}
+              onBumpMemberShare={(memberId) => onBumpMemberShare(item.id, memberId)}
+              onResetMemberShare={(memberId) => onResetMemberShare(item.id, memberId)}
               onSelectAll={() => onSelectAll(item.id)}
               waterfallIndex={-1}
             />
