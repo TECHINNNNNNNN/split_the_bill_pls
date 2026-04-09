@@ -1,7 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef, useCallback } from "react";
 import type { CollabItem } from "@/lib/hooks/use-bill-collab";
+
+const LONG_PRESS_MS = 400;
 
 export function ItemCard({
   item,
@@ -11,7 +13,8 @@ export function ItemCard({
   members,
   onDelete,
   onUpdate,
-  onToggleMember,
+  onBumpMemberShare,
+  onResetMemberShare,
   onSelectAll,
   waterfallIndex = -1,
 }: {
@@ -22,7 +25,8 @@ export function ItemCard({
   members: { id: string; displayName: string }[];
   onDelete: () => void;
   onUpdate: (updates: { name?: string; quantity?: number; unitPrice?: number }) => void;
-  onToggleMember: (memberId: string) => void;
+  onBumpMemberShare: (memberId: string) => void;
+  onResetMemberShare: (memberId: string) => void;
   onSelectAll: () => void;
   waterfallIndex?: number;
 }) {
@@ -55,6 +59,48 @@ export function ItemCard({
     if (Object.keys(updates).length > 0) onUpdate(updates);
     setEditing(false);
   };
+
+  // Long-press support for resetting a member's share
+  const longPressTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const didLongPress = useRef(false);
+
+  const handlePointerDown = useCallback(
+    (memberId: string) => {
+      if (!canEdit) return;
+      didLongPress.current = false;
+      longPressTimer.current = setTimeout(() => {
+        didLongPress.current = true;
+        onResetMemberShare(memberId);
+      }, LONG_PRESS_MS);
+    },
+    [canEdit, onResetMemberShare],
+  );
+
+  const handlePointerUpOrLeave = useCallback(() => {
+    if (longPressTimer.current) {
+      clearTimeout(longPressTimer.current);
+      longPressTimer.current = null;
+    }
+  }, []);
+
+  const handleChipClick = useCallback(
+    (memberId: string) => {
+      if (!canEdit) return;
+      if (didLongPress.current) {
+        didLongPress.current = false;
+        return; // suppress click after long-press
+      }
+      onBumpMemberShare(memberId);
+    },
+    [canEdit, onBumpMemberShare],
+  );
+
+  // Derived: are all members selected with share=1? (for "Everyone" collapse)
+  const shares = item.memberShares ?? {};
+  const selectedIds = Object.keys(shares);
+  const allEqualOne = selectedIds.length === members.length && selectedIds.every((id) => shares[id] === 1);
+  const [expanded, setExpanded] = useState(false);
+  const showCollapsed = allEqualOne && members.length > 3 && !expanded;
 
   return (
     <div
@@ -160,7 +206,7 @@ export function ItemCard({
             <label className="flex cursor-pointer items-center gap-1.5 text-xs text-brand-300">
               <input
                 type="checkbox"
-                checked={item.memberIds.length === members.length}
+                checked={selectedIds.length === members.length}
                 onChange={onSelectAll}
                 className="h-3.5 w-3.5 rounded border-brand-300 accent-brand-700"
               />
@@ -169,35 +215,56 @@ export function ItemCard({
           )}
         </div>
         <div className="flex flex-wrap gap-1.5">
-          {members.map((member) => {
-            const isSelected = item.memberIds.includes(member.id);
-            if (!canEdit) {
+          {showCollapsed ? (
+            <button
+              type="button"
+              onClick={() => setExpanded(true)}
+              className="rounded-lg bg-brand-700 px-2.5 py-1 text-xs font-medium text-cream-light"
+            >
+              Everyone ({members.length})
+            </button>
+          ) : (
+            members.map((member) => {
+              const share = shares[member.id];
+              const isSelected = share != null;
+              const label = isSelected && share > 1
+                ? `${member.displayName} ×${share}`
+                : member.displayName;
+
+              if (!canEdit) {
+                return (
+                  <span
+                    key={member.id}
+                    className={`rounded-lg px-2.5 py-1 text-xs font-medium ${
+                      isSelected ? "bg-brand-700 text-cream-light" : "bg-brand-50 text-brand-300"
+                    }`}
+                    aria-label={`${member.displayName}, ${share ?? 0} share${share === 1 ? "" : "s"}`}
+                  >
+                    {label}
+                  </span>
+                );
+              }
               return (
-                <span
+                <button
                   key={member.id}
-                  className={`rounded-lg px-2.5 py-1 text-xs font-medium ${
-                    isSelected ? "bg-brand-700 text-cream-light" : "bg-brand-50 text-brand-300"
+                  type="button"
+                  onClick={() => handleChipClick(member.id)}
+                  onPointerDown={() => handlePointerDown(member.id)}
+                  onPointerUp={handlePointerUpOrLeave}
+                  onPointerLeave={handlePointerUpOrLeave}
+                  onPointerCancel={handlePointerUpOrLeave}
+                  className={`select-none rounded-lg px-2.5 py-1 text-xs font-medium transition-colors active:scale-95 ${
+                    isSelected ? "bg-brand-700 text-cream-light" : "bg-brand-50 text-brand-300 hover:bg-brand-100"
                   }`}
+                  aria-label={`${member.displayName}, ${share ?? 0} share${share === 1 ? "" : "s"}`}
                 >
-                  {member.displayName}
-                </span>
+                  {label}
+                </button>
               );
-            }
-            return (
-              <button
-                key={member.id}
-                type="button"
-                onClick={() => onToggleMember(member.id)}
-                className={`rounded-lg px-2.5 py-1 text-xs font-medium transition-colors active:scale-95 ${
-                  isSelected ? "bg-brand-700 text-cream-light" : "bg-brand-50 text-brand-300 hover:bg-brand-100"
-                }`}
-              >
-                {member.displayName}
-              </button>
-            );
-          })}
+            })
+          )}
         </div>
-        {item.memberIds.length === 0 && (
+        {selectedIds.length === 0 && (
           <p className="mt-1 text-xs text-error">Select at least one person</p>
         )}
       </div>
