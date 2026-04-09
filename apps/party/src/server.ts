@@ -203,7 +203,7 @@ export default class RoomParty implements Party.Server {
           name: name.trim(),
           quantity: quantity ?? 1,
           unitPrice,
-          memberIds: [],
+          memberShares: {},
           addedBy: memberId,
         })
         this.broadcastItems()
@@ -236,20 +236,35 @@ export default class RoomParty implements Party.Server {
         break
       }
 
-      case "item:toggle-member": {
+      case "item:bump-member-share": {
         const { itemId, sectionId, targetMemberId } = msg.data
         const section = this.sections.get(sectionId)
         if (!section) return
         const item = section.items.get(itemId)
         if (!item) return
-        const idx = item.memberIds.indexOf(targetMemberId)
-        if (idx >= 0) {
-          // Don't allow deselecting the last person
-          if (item.memberIds.length <= 1) return
-          item.memberIds.splice(idx, 1)
+        const current = item.memberShares[targetMemberId]
+        if (current == null) {
+          // Not selected yet → add at share 1
+          item.memberShares[targetMemberId] = 1
+        } else if (current < MAX_SHARE) {
+          item.memberShares[targetMemberId] = current + 1
         } else {
-          item.memberIds.push(targetMemberId)
+          // At max → wrap back to 1
+          item.memberShares[targetMemberId] = 1
         }
+        this.broadcastItems()
+        break
+      }
+
+      case "item:reset-member-share": {
+        const { itemId, sectionId, targetMemberId } = msg.data
+        const section = this.sections.get(sectionId)
+        if (!section) return
+        const item = section.items.get(itemId)
+        if (!item) return
+        // Don't allow removing the last person
+        if (Object.keys(item.memberShares).length <= 1 && targetMemberId in item.memberShares) return
+        delete item.memberShares[targetMemberId]
         this.broadcastItems()
         break
       }
@@ -260,7 +275,9 @@ export default class RoomParty implements Party.Server {
         if (!section) return
         const item = section.items.get(itemId)
         if (!item || !allMemberIds?.length) return
-        item.memberIds = [...allMemberIds]
+        const newShares: Record<string, number> = {}
+        for (const id of allMemberIds) newShares[id] = 1
+        item.memberShares = newShares
         this.broadcastItems()
         break
       }
