@@ -149,7 +149,7 @@ export function BreakdownModal({
                           {split.items.map((item) => {
                             const info = bd.itemShareInfo.get(item.itemId);
                             const totalShares = info?.totalShares ?? 1;
-                            const myShare = info?.memberShares[memberId] ?? 1;
+                            const myShare = info?.memberShares[member.id] ?? 1;
                             const itemTotal = totalShares > 0 ? item.shareAmount * (totalShares / myShare) : item.shareAmount;
                             const isOnlyMe = totalShares === myShare && Object.keys(info?.memberShares ?? {}).length === 1;
                             const isEqual = totalShares > myShare && myShare === 1 && Object.values(info?.memberShares ?? {}).every((s) => s === 1);
