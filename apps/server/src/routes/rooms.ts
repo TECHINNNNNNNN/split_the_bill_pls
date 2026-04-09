@@ -775,7 +775,7 @@ const app = new Hono()
     // Normalize: convert legacy flat format into a single-section array
     type SectionInput = {
       name: string
-      items: { name: string; quantity: number; unitPrice: number; memberIds: string[] }[]
+      items: { name: string; quantity: number; unitPrice: number; memberIds?: string[]; memberShares?: Record<string, number> }[]
       vatRate?: number | null
       serviceChargeRate?: number | null
       discountAmount?: number | null
