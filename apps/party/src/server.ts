@@ -2,12 +2,14 @@ import type * as Party from "partykit/server"
 
 // ─── Collaborative bill types ───
 
+const MAX_SHARE = 9
+
 interface CollabItem {
   id: string
   name: string
   quantity: number
   unitPrice: number
-  memberIds: string[]
+  memberShares: Record<string, number> // memberId → share count (1, 2, 3…)
   addedBy: string
 }
 
