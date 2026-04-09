@@ -8,7 +8,7 @@ import imageCompression from "browser-image-compression";
 import { calculateSplit } from "@pladuk/shared/utils";
 import { roomQueries } from "@/lib/queries/rooms";
 import { useFinalizeRoom, useScanReceipt, useParseVoice } from "@/lib/mutations/rooms";
-import { useBillCollab } from "@/lib/hooks/use-bill-collab";
+import { useBillCollab, type CollabItem } from "@/lib/hooks/use-bill-collab";
 import { useVoiceInput } from "@/lib/hooks/use-voice-input";
 import { usePresence } from "@/lib/hooks/use-presence";
 import { SectionCard } from "@/components/bill/section-card";
