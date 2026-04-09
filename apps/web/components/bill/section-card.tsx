@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { CollabSection, BillExtras } from "@/lib/hooks/use-bill-collab";
 import { ItemCard } from "./item-card";
 import { VoiceWaveform } from "@/components/voice-waveform";
@@ -58,6 +58,21 @@ export function SectionCard({
   onVoiceStop: () => Promise<Blob>;
   voiceAnalyser: React.RefObject<AnalyserNode | null>;
 }) {
+  // Track known item IDs so we only animate newly added items (prevents flicker)
+  const [knownItemIds, setKnownItemIds] = useState<Set<string>>(() => new Set(section.items.map((si) => si.id)));
+  const currentIds = section.items.map((si) => si.id);
+  const newItemIds = new Set(currentIds.filter((id) => !knownItemIds.has(id)));
+  useEffect(() => {
+    if (newItemIds.size > 0) {
+      setKnownItemIds((prev) => {
+        const next = new Set(prev);
+        for (const id of currentIds) next.add(id);
+        return next;
+      });
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentIds.join(",")]);
+
   const [showForm, setShowForm] = useState(false);
   const [itemName, setItemName] = useState("");
   const [itemQty, setItemQty] = useState("1");
@@ -98,6 +113,8 @@ export function SectionCard({
   const vatAmount = (discountedSubtotal + serviceChargeAmount) * vRate;
   const sectionTotal = discountedSubtotal + serviceChargeAmount + vatAmount;
 
+  const nameInputRef = useRef<HTMLInputElement>(null);
+
   const handleAddItem = () => {
     const price = parseFloat(itemAmount);
     const qty = parseInt(itemQty) || 1;
@@ -106,7 +123,8 @@ export function SectionCard({
     setItemName("");
     setItemQty("1");
     setItemAmount("");
-    setShowForm(false);
+    // Keep form open for rapid-fire item entry — refocus the name input
+    requestAnimationFrame(() => nameInputRef.current?.focus());
   };
 
   return (
@@ -243,6 +261,7 @@ export function SectionCard({
               onResetMemberShare={(memberId) => onResetMemberShare(item.id, memberId)}
               onSelectAll={() => onSelectAll(item.id)}
               waterfallIndex={-1}
+              isNew={newItemIds.has(item.id)}
             />
           );
         })}
@@ -252,6 +271,7 @@ export function SectionCard({
           <div className="rounded-xl border border-brand-200 bg-cream p-3">
             <div className="space-y-2">
               <input
+                ref={nameInputRef}
                 type="text"
                 value={itemName}
                 onChange={(e) => setItemName(e.target.value)}
