@@ -209,7 +209,8 @@ export function useBillCollab(
     addItem,
     updateItem,
     deleteItem,
-    toggleMember,
+    bumpMemberShare,
+    resetMemberShare,
     selectAll,
     updateExtras,
   };
