@@ -260,10 +260,12 @@ export default function BillDetailsPage({
 
       const result = calculateSplit(calcItems, calcClaims, calcTotals, splitMemberIds);
 
-      // Build item claimer counts for breakdown modal
-      const itemClaimerCounts = new Map<string, number>();
+      // Build item share info for breakdown modal
+      const itemShareInfo = new Map<string, { totalShares: number; memberShares: Record<string, number> }>();
       for (const item of assignedItems) {
-        itemClaimerCounts.set(item.id, item.memberIds.length);
+        const ms = item.memberShares ?? {};
+        const totalShares = Object.values(ms).reduce((sum, s) => sum + s, 0);
+        itemShareInfo.set(item.id, { totalShares, memberShares: ms });
       }
 
       breakdowns.push({

@@ -147,19 +147,30 @@ export function BreakdownModal({
                         {/* Items */}
                         <div className="space-y-1">
                           {split.items.map((item) => {
-                            const claimerCount = bd.itemClaimerCounts.get(item.itemId) ?? 1;
+                            const info = bd.itemShareInfo.get(item.itemId);
+                            const totalShares = info?.totalShares ?? 1;
+                            const myShare = info?.memberShares[memberId] ?? 1;
+                            const itemTotal = totalShares > 0 ? item.shareAmount * (totalShares / myShare) : item.shareAmount;
+                            const isOnlyMe = totalShares === myShare && Object.keys(info?.memberShares ?? {}).length === 1;
+                            const isEqual = totalShares > myShare && myShare === 1 && Object.values(info?.memberShares ?? {}).every((s) => s === 1);
                             return (
                               <div key={item.itemId} className="flex items-baseline justify-between gap-2">
                                 <div className="min-w-0 flex-1">
                                   <span className="text-xs">{item.name}</span>
                                   <span className="ml-1 text-[10px] text-brand-300">
-                                    {claimerCount === 1 ? "(only you)" : `(÷${claimerCount})`}
+                                    {isOnlyMe
+                                      ? "(only you)"
+                                      : isEqual
+                                        ? `(÷${Object.keys(info?.memberShares ?? {}).length})`
+                                        : `(×${myShare} of ${totalShares})`}
                                   </span>
                                 </div>
                                 <div className="shrink-0 text-right">
-                                  {claimerCount > 1 && (
+                                  {!isOnlyMe && (
                                     <span className="text-[10px] tabular-nums text-brand-300">
-                                      {fmt(item.shareAmount * claimerCount)} ÷ {claimerCount} ={" "}
+                                      {isEqual
+                                        ? `${fmt(itemTotal)} ÷ ${Object.keys(info?.memberShares ?? {}).length} = `
+                                        : `${fmt(itemTotal)} × ${myShare}/${totalShares} = `}
                                     </span>
                                   )}
                                   <span className="text-xs tabular-nums font-medium">
