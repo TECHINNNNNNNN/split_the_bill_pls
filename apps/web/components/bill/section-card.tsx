@@ -41,7 +41,8 @@ export function SectionCard({
   onAddItem: (name: string, unitPrice: number, quantity?: number) => void;
   onUpdateItem: (itemId: string, updates: { name?: string; quantity?: number; unitPrice?: number }) => void;
   onDeleteItem: (itemId: string) => void;
-  onToggleMember: (itemId: string, memberId: string) => void;
+  onBumpMemberShare: (itemId: string, memberId: string) => void;
+  onResetMemberShare: (itemId: string, memberId: string) => void;
   onSelectAll: (itemId: string) => void;
   onUpdateExtras: (update: Partial<BillExtras>) => void;
   onDeleteSection: () => void;
