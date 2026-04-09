@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { CollabSection, BillExtras } from "@/lib/hooks/use-bill-collab";
 import { ItemCard } from "./item-card";
 import { VoiceWaveform } from "@/components/voice-waveform";
