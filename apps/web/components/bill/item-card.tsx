@@ -30,6 +30,7 @@ export function ItemCard({
   onResetMemberShare: (memberId: string) => void;
   onSelectAll: () => void;
   waterfallIndex?: number;
+  isNew?: boolean;
 }) {
   const canEdit = !isLocked;
   const canDelete = canEdit && (item.addedBy === currentMemberId || isHost);
