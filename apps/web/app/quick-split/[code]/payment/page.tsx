@@ -1,6 +1,6 @@
 "use client";
 
-import { use, useEffect, useState } from "react";
+import { use, useEffect, useRef, useState } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import { getCorrectRoomPath } from "@/lib/utils/room-redirect";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
