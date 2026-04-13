@@ -40,6 +40,20 @@ export default function PaymentMethodPage({
   const [activeTab, setActiveTab] = useState<PaymentTab>("promptpay");
   const [promptpayId, setPromptpayId] = useState("");
 
+  const pathname = usePathname();
+  const currentMemberId = codeData?.currentMemberId ?? "";
+  const members = room?.members ?? [];
+  const isHost = members.find((m) => m.id === currentMemberId)?.isHost ?? false;
+
+  // Status guard: redirect if room is not in the right phase
+  useEffect(() => {
+    if (!room) return;
+    const correctPath = getCorrectRoomPath(code, room.status, isHost);
+    if (pathname !== correctPath) {
+      router.replace(correctPath);
+    }
+  }, [room, code, isHost, pathname, router]);
+
   const displayPromptpayId = promptpayId || userPromptpayId;
 
   const total = payments.reduce((sum, p) => sum + parseFloat(p.amount), 0);
@@ -94,7 +108,7 @@ export default function PaymentMethodPage({
       {/* Header */}
       <button
         type="button"
-        onClick={() => router.back()}
+        onClick={() => router.replace(`/quick-split/${code}/bill`)}
         className="self-start text-sm text-brand-400 hover:text-brand-700"
       >
         Back
