@@ -456,6 +456,38 @@ export default function BillDetailsPage({
         </div>
       </div>
 
+      {/* ─── Sticky "Your share" bar ─── */}
+      {!isLocked && (() => {
+        const myShare = liveSplits.find((s) => s.memberId === currentMemberId)?.total ?? 0;
+        const myItemCount = sections.reduce(
+          (count, sec) => count + sec.items.filter((item) => {
+            const shares = item.memberShares ?? {};
+            return currentMemberId in shares;
+          }).length,
+          0,
+        );
+        return (
+          <div className="sticky top-0 z-20 -mx-4 border-b border-brand-100 bg-cream/90 px-4 py-2.5 backdrop-blur-md shadow-[0_1px_8px_rgba(74,60,42,0.06)]">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <div className="flex h-6 w-6 items-center justify-center rounded-full bg-brand-700 text-[10px] font-bold text-cream-light">
+                  {myItemCount}
+                </div>
+                <span className="text-xs text-brand-400">
+                  {myItemCount === 0 ? "No items yet" : myItemCount === 1 ? "item on you" : "items on you"}
+                </span>
+              </div>
+              <div className="flex items-baseline gap-1">
+                <span className="text-[10px] font-medium uppercase tracking-wider text-brand-300">You pay</span>
+                <span className="font-heading text-xl font-bold tabular-nums text-brand-800">
+                  <Baht value={myShare} />
+                </span>
+              </div>
+            </div>
+          </div>
+        );
+      })()}
+
       {/* Voice waveform — single-section mode */}
       {voice.isRecording && !isMultiSection && (
         <VoiceWaveform analyser={voice.analyser} duration={voice.duration} />
