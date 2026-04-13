@@ -361,9 +361,8 @@ export default function BillDetailsPage({
         },
         {
           onSuccess: () => {
+            setIsNavigating(true);
             router.push(`/quick-split/${code}/payment`);
-            queryClient.invalidateQueries({ queryKey: ["rooms"] });
-            queryClient.invalidateQueries({ queryKey: ["room"] });
           },
           onError: () => {
             toast.error("Couldn't finalize — try again 😵");
@@ -384,9 +383,8 @@ export default function BillDetailsPage({
         },
         {
           onSuccess: () => {
+            setIsNavigating(true);
             router.push(`/quick-split/${code}/payment`);
-            queryClient.invalidateQueries({ queryKey: ["rooms"] });
-            queryClient.invalidateQueries({ queryKey: ["room"] });
           },
           onError: () => {
             toast.error("Couldn't finalize — try again 😵");
