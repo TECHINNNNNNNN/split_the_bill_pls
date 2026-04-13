@@ -46,6 +46,13 @@ export function useRoomSocket(
             options?.onStatusChanged?.(msg.data.status as string);
             break;
 
+          case "bill-unfinalized":
+            // Room went back to editing — invalidate so status guards redirect
+            queryClient.invalidateQueries({ queryKey: ["rooms"] });
+            queryClient.invalidateQueries({ queryKey: ["room"] });
+            options?.onStatusChanged?.("splitting");
+            break;
+
           case "payment-toggled":
           case "nudge-sent":
             queryClient.invalidateQueries({ queryKey: ["rooms"] });
