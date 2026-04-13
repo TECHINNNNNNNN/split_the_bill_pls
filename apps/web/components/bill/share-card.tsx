@@ -80,8 +80,8 @@ export function ShareCard({
           }}
           transition={{
             opacity: { duration: 0.15 },
-            scale: { type: "spring", stiffness: 400, damping: 30 },
-            height: { type: "spring", stiffness: 400, damping: 35 },
+            scale: { type: "spring", stiffness: 300, damping: 40 },
+            height: { type: "spring", stiffness: 300, damping: 40 },
           }}
           className="overflow-hidden"
         >
