@@ -334,6 +334,9 @@ export default class RoomParty implements Party.Server {
       if (parsed.type === "bill-finalized") {
         this.locked = true
       }
+      if (parsed.type === "bill-unfinalized") {
+        this.locked = false
+      }
       if (parsed.type === "status-changed" && parsed.data?.status === "payment") {
         this.sections.clear()
         this.locked = false
