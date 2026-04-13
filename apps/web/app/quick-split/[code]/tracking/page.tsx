@@ -1,7 +1,8 @@
 "use client";
 
 import { Suspense, use, useEffect, useRef, useState } from "react";
-import { useRouter, useSearchParams, usePathname } from "next/navigation";
+import { useTransitionRouter as useRouter } from "next-view-transitions";
+import { useSearchParams, usePathname } from "next/navigation";
 import { getCorrectRoomPath } from "@/lib/utils/room-redirect";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { QRCodeSVG } from "qrcode.react";

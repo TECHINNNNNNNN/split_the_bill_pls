@@ -1,7 +1,8 @@
 "use client";
 
 import { use, useEffect, useState } from "react";
-import { useRouter, usePathname } from "next/navigation";
+import { useTransitionRouter as useRouter } from "next-view-transitions";
+import { usePathname } from "next/navigation";
 import { getCorrectRoomPath } from "@/lib/utils/room-redirect";
 import { useQuery } from "@tanstack/react-query";
 import { toast } from "sonner";
