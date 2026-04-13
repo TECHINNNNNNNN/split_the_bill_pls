@@ -48,13 +48,14 @@ export default function PaymentMethodPage({
   const isHost = members.find((m) => m.id === currentMemberId)?.isHost ?? false;
 
   // Status guard: redirect if room is not in the right phase
+  // Skip while unfinalize is in flight — we handle navigation in onSuccess
   useEffect(() => {
-    if (!room) return;
+    if (!room || unfinalizeRoom.isPending || unfinalizeRoom.isSuccess) return;
     const correctPath = getCorrectRoomPath(code, room.status, isHost);
     if (pathname !== correctPath) {
       router.replace(correctPath);
     }
-  }, [room, code, isHost, pathname, router]);
+  }, [room, code, isHost, pathname, router, unfinalizeRoom.isPending, unfinalizeRoom.isSuccess]);
 
   const displayPromptpayId = promptpayId || userPromptpayId;
 
@@ -111,12 +112,12 @@ export default function PaymentMethodPage({
       <button
         type="button"
         disabled={unfinalizeRoom.isPending}
-        onClick={async () => {
+        onClick={() => {
           unfinalizeRoom.mutate(undefined, {
-            onSuccess: async () => {
-              await queryClient.invalidateQueries({ queryKey: ["rooms"] });
-              await queryClient.invalidateQueries({ queryKey: ["room"] });
+            onSuccess: () => {
               router.replace(`/quick-split/${code}/bill`);
+              queryClient.invalidateQueries({ queryKey: ["rooms"] });
+              queryClient.invalidateQueries({ queryKey: ["room"] });
             },
             onError: () => toast.error("Couldn't go back — try again"),
           });
