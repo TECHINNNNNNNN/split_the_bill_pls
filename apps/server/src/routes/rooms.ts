@@ -1146,6 +1146,12 @@ const app = new Hono()
       return c.json({ error: "Only the host can confirm payments" }, 403)
     }
 
+    // Status guard: room must be in payment phase
+    const currentRoom = await db.query.rooms.findFirst({ where: eq(rooms.id, roomId) })
+    if (!currentRoom || currentRoom.status !== "payment") {
+      return c.json({ error: "Room is not in payment phase" }, 400)
+    }
+
     const payment = await db.query.roomPayments.findFirst({
       where: and(eq(roomPayments.id, paymentId), eq(roomPayments.roomId, roomId)),
     })
