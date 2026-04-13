@@ -39,7 +39,7 @@ export default function BillDetailsPage({
   const roomId = codeData?.room?.id ?? "";
 
   // Fetch full room details (for members list)
-  const { data: detailData } = useQuery({
+  const { data: detailData, isFetching: isDetailFetching } = useQuery({
     ...roomQueries.detail(roomId),
     enabled: !!roomId,
   });
@@ -55,12 +55,12 @@ export default function BillDetailsPage({
   // Status guard: redirect if room has moved past splitting
   // Skip while navigating — prevents flash of wrong UI during transition
   useEffect(() => {
-    if (!room || isNavigating) return;
+    if (!room || isNavigating || isDetailFetching) return;
     const correctPath = getCorrectRoomPath(code, room.status, isHost);
     if (pathname !== correctPath) {
       router.replace(correctPath);
     }
-  }, [room, code, isHost, pathname, router, isNavigating]);
+  }, [room, code, isHost, pathname, router, isNavigating, isDetailFetching]);
 
   // Warn on accidental refresh/close
   useEffect(() => {

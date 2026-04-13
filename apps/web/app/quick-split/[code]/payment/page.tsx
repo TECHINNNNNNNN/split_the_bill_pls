@@ -23,7 +23,7 @@ export default function PaymentMethodPage({
   const { data: codeData } = useQuery(roomQueries.byCode(code));
   const roomId = codeData?.room?.id ?? "";
 
-  const { data: detailData } = useQuery({
+  const { data: detailData, isFetching: isDetailFetching } = useQuery({
     ...roomQueries.detail(roomId),
     enabled: !!roomId,
   });
@@ -51,12 +51,12 @@ export default function PaymentMethodPage({
   // Status guard: redirect if room is not in the right phase
   // Skip while navigating — prevents flash of wrong UI during transition
   useEffect(() => {
-    if (!room || isNavigating) return;
+    if (!room || isNavigating || isDetailFetching) return;
     const correctPath = getCorrectRoomPath(code, room.status, isHost);
     if (pathname !== correctPath) {
       router.replace(correctPath);
     }
-  }, [room, code, isHost, pathname, router, isNavigating]);
+  }, [room, code, isHost, pathname, router, isNavigating, isDetailFetching]);
 
   const displayPromptpayId = promptpayId || userPromptpayId;
 
