@@ -11,6 +11,7 @@
   },
   "dependencies": {
     "@ai-sdk/react": "^3.0.148",
+    "@gsap/react": "^2.1.2",
     "@line/liff": "^2.27.3",
     "@number-flow/react": "^0.6.0",
     "@pladuk/shared": "workspace:*",
@@ -29,6 +30,7 @@
     "browser-image-compression": "^2.0.2",
     "canvas-confetti": "^1.9.4",
     "clsx": "^2.1.1",
+    "gsap": "^3.14.2",
     "hono": "^4.12.3",
     "html2canvas": "^1.4.1",
     "motion": "^12.38.0",
