@@ -435,7 +435,7 @@ function PaymentTrackingContent({
       {/* Header */}
       <button
         type="button"
-        onClick={() => router.back()}
+        onClick={() => router.replace("/home")}
         className="self-start text-sm text-brand-400 hover:text-brand-700"
       >
         Back
