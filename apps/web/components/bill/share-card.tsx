@@ -33,9 +33,6 @@ export function ShareCard({
     const compact = compactRef.current;
     if (!wrapper || !card || !expanded || !compact) return;
 
-    // Measure the expanded height so we can animate to compact
-    const expandedHeight = expanded.offsetHeight;
-
     const tl = gsap.timeline({ paused: true });
 
     // Wrapper: shrink vertical padding to tighten around pill
