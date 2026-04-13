@@ -49,6 +49,7 @@ export default function BillDetailsPage({
   const members = room?.members ?? [];
   const isHost = members.find((m) => m.id === currentMemberId)?.isHost ?? false;
   const pathname = usePathname();
+  const finalizeRoom = useFinalizeRoom(roomId);
 
   // Status guard: redirect if room has moved past splitting
   // Skip while finalize is in flight — we handle navigation explicitly in onSuccess
@@ -116,9 +117,6 @@ export default function BillDetailsPage({
   // Breakdown modal state
   const [showBreakdown, setShowBreakdown] = useState(false);
 
-
-  // Finalize mutation
-  const finalizeRoom = useFinalizeRoom(roomId);
 
   // Receipt OCR scan
   const scanReceipt = useScanReceipt();
@@ -361,10 +359,10 @@ export default function BillDetailsPage({
           })),
         },
         {
-          onSuccess: async () => {
-            await queryClient.invalidateQueries({ queryKey: ["rooms"] });
-            await queryClient.invalidateQueries({ queryKey: ["room"] });
+          onSuccess: () => {
             router.push(`/quick-split/${code}/payment`);
+            queryClient.invalidateQueries({ queryKey: ["rooms"] });
+            queryClient.invalidateQueries({ queryKey: ["room"] });
           },
           onError: () => {
             toast.error("Couldn't finalize — try again 😵");
@@ -384,10 +382,10 @@ export default function BillDetailsPage({
           discountAmount: sec.extras.discountAmount,
         },
         {
-          onSuccess: async () => {
-            await queryClient.invalidateQueries({ queryKey: ["rooms"] });
-            await queryClient.invalidateQueries({ queryKey: ["room"] });
+          onSuccess: () => {
             router.push(`/quick-split/${code}/payment`);
+            queryClient.invalidateQueries({ queryKey: ["rooms"] });
+            queryClient.invalidateQueries({ queryKey: ["room"] });
           },
           onError: () => {
             toast.error("Couldn't finalize — try again 😵");
