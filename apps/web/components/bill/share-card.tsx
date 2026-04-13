@@ -42,9 +42,10 @@ export function ShareCard({
         }}
         transition={{
           type: "spring",
-          stiffness: 400,
-          damping: 35,
+          stiffness: 300,
+          damping: 40,
           mass: 0.8,
+          restDelta: 0.5,
         }}
       >
         {/* Organic corner accent — top left */}
