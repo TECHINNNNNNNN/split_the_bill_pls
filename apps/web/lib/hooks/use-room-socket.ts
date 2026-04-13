@@ -10,7 +10,8 @@ type PartyEvent = {
     | "member-removed"
     | "status-changed"
     | "payment-toggled"
-    | "nudge-sent";
+    | "nudge-sent"
+    | "bill-unfinalized";
   data: Record<string, unknown>;
 };
 
