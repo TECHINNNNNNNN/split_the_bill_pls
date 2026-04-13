@@ -117,9 +117,8 @@ export default function PaymentMethodPage({
         onClick={() => {
           unfinalizeRoom.mutate(undefined, {
             onSuccess: () => {
+              setIsNavigating(true);
               router.replace(`/quick-split/${code}/bill`);
-              queryClient.invalidateQueries({ queryKey: ["rooms"] });
-              queryClient.invalidateQueries({ queryKey: ["room"] });
             },
             onError: () => toast.error("Couldn't go back — try again"),
           });
