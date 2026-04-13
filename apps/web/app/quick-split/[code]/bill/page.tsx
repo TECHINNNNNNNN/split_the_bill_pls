@@ -51,13 +51,14 @@ export default function BillDetailsPage({
   const pathname = usePathname();
 
   // Status guard: redirect if room has moved past splitting
+  // Skip while finalize is in flight — we handle navigation explicitly in onSuccess
   useEffect(() => {
-    if (!room) return;
+    if (!room || finalizeRoom.isPending || finalizeRoom.isSuccess) return;
     const correctPath = getCorrectRoomPath(code, room.status, isHost);
     if (pathname !== correctPath) {
       router.replace(correctPath);
     }
-  }, [room, code, isHost, pathname, router]);
+  }, [room, code, isHost, pathname, router, finalizeRoom.isPending, finalizeRoom.isSuccess]);
 
   // Warn on accidental refresh/close
   useEffect(() => {
