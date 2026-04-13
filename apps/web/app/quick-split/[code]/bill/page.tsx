@@ -398,17 +398,6 @@ export default function BillDetailsPage({
     }
   };
 
-  // Show a transition screen while finalize is in flight or just completed
-  if (finalizeRoom.isPending || finalizeRoom.isSuccess) {
-    return (
-      <div className="flex min-h-svh flex-col items-center justify-center gap-3 px-6">
-        <div className="h-8 w-8 animate-spin rounded-full border-2 border-brand-200 border-t-brand-700" />
-        <p className="font-heading text-lg font-medium text-brand-600">Calculating splits...</p>
-        <p className="text-sm text-brand-300">Setting up payment</p>
-      </div>
-    );
-  }
-
   if (!room) {
     return (
       <div className="flex min-h-svh items-center justify-center">
