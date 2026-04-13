@@ -4,7 +4,7 @@ import { use, useEffect, useMemo, useRef, useState } from "react";
 import { ShareCard } from "@/components/bill/share-card";
 import { useRouter, usePathname } from "next/navigation";
 import { getCorrectRoomPath } from "@/lib/utils/room-redirect";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import imageCompression from "browser-image-compression";
 import { calculateSplit } from "@pladuk/shared/utils";
@@ -32,6 +32,7 @@ export default function BillDetailsPage({
 }) {
   const { code } = use(params);
   const router = useRouter();
+  const queryClient = useQueryClient();
 
   // Fetch room by code to get the room ID + members
   const { data: codeData } = useQuery(roomQueries.byCode(code));
@@ -360,7 +361,11 @@ export default function BillDetailsPage({
         },
         {
           onSuccess: () => router.push(`/quick-split/${code}/payment`),
-          onError: () => toast.error("Couldn't finalize — try again 😵"),
+          onError: () => {
+            toast.error("Couldn't finalize — try again 😵");
+            // Room may have already advanced — refetch to trigger status guard redirect
+            queryClient.invalidateQueries({ queryKey: ["room"] });
+          },
         },
       );
     } else {
@@ -375,7 +380,11 @@ export default function BillDetailsPage({
         },
         {
           onSuccess: () => router.push(`/quick-split/${code}/payment`),
-          onError: () => toast.error("Couldn't finalize — try again 😵"),
+          onError: () => {
+            toast.error("Couldn't finalize — try again 😵");
+            // Room may have already advanced — refetch to trigger status guard redirect
+            queryClient.invalidateQueries({ queryKey: ["room"] });
+          },
         },
       );
     }
