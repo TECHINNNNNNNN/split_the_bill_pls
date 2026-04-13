@@ -49,6 +49,16 @@ export default function RoomLobbyPage({
 
   const liff = useLiff();
   useWakeLock(isHost && !!room);
+  const pathname = usePathname();
+
+  // Status guard: redirect to the correct page if room has advanced
+  useEffect(() => {
+    if (!room) return;
+    const correctPath = getCorrectRoomPath(code, room.status, isHost);
+    if (pathname !== correctPath) {
+      router.replace(correctPath);
+    }
+  }, [room, code, isHost, pathname, router]);
 
   const handleAddPlaceholder = () => {
     if (!placeholderName.trim()) return;
