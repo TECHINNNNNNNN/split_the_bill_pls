@@ -104,7 +104,7 @@ function PaymentTrackingContent({
       });
   }, [identifyParam, code, currentMemberId, queryClient]);
 
-  const { data: detailData } = useQuery({
+  const { data: detailData, isFetching: isDetailFetching } = useQuery({
     ...roomQueries.detail(roomId),
     enabled: !!roomId && !!currentMemberId,
     retry: false,
@@ -118,13 +118,14 @@ function PaymentTrackingContent({
   const pathname = usePathname();
 
   // Status guard: redirect if room is not in payment/settled
+  // Skip while fetching — prevents redirect based on stale cache
   useEffect(() => {
-    if (!room) return;
+    if (!room || isDetailFetching) return;
     const correctPath = getCorrectRoomPath(code, room.status, isHost);
     if (pathname !== correctPath) {
       router.replace(correctPath);
     }
-  }, [room, code, isHost, pathname, router]);
+  }, [room, code, isHost, pathname, router, isDetailFetching]);
 
   const claimPayment = useClaimPayment(roomId);
   const confirmPayment = useConfirmPayment(roomId);
