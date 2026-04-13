@@ -546,63 +546,56 @@ export default function BillDetailsPage({
         return (
           <div className="sticky top-0 z-20 -mx-4 mt-4 px-4 pb-3 pt-1 pointer-events-none *:pointer-events-auto">
             <div
-              className={`relative overflow-hidden transition-all duration-300 ease-out ${
-                isCompact
-                  ? "mx-auto max-w-fit rounded-full px-5 py-2 shadow-md"
-                  : "rounded-[20px] px-5 py-4"
-              }`}
-              style={{ background: isCompact
-                ? "linear-gradient(140deg, #f0e6da 0%, #e8d5bf 100%)"
-                : "linear-gradient(140deg, #f5ede4 0%, #ede0d0 50%, #e8d5bf 100%)"
-              }}
+              ref={shareCardRef}
+              className="relative overflow-hidden rounded-[20px] px-5 py-4 shadow-sm"
+              style={{ background: "linear-gradient(140deg, #f5ede4 0%, #ede0d0 50%, #e8d5bf 100%)" }}
             >
-              {/* Organic accents — only in expanded */}
-              <svg className={`absolute top-0 left-0 h-16 w-16 transition-opacity duration-300 ${isCompact ? "opacity-0" : "opacity-[0.12]"}`} viewBox="0 0 64 64" fill="none">
+              {/* Organic corner accent — top left */}
+              <svg ref={shareAccent1Ref} className="absolute top-0 left-0 h-16 w-16 opacity-[0.12]" viewBox="0 0 64 64" fill="none">
                 <path d="M 0 48 Q 8 8, 48 0" stroke="#8b6144" strokeWidth="1.2" />
                 <path d="M 0 32 Q 12 12, 32 0" stroke="#8b6144" strokeWidth="0.8" />
               </svg>
-              <svg className={`absolute bottom-0 right-0 h-12 w-12 transition-opacity duration-300 ${isCompact ? "opacity-0" : "opacity-[0.08]"}`} viewBox="0 0 48 48" fill="none">
+              {/* Organic accent — bottom right */}
+              <svg ref={shareAccent2Ref} className="absolute bottom-0 right-0 h-12 w-12 opacity-[0.08]" viewBox="0 0 48 48" fill="none">
                 <circle cx="48" cy="48" r="32" stroke="#8b6144" strokeWidth="0.8" />
                 <circle cx="48" cy="48" r="20" stroke="#8b6144" strokeWidth="0.6" />
               </svg>
 
-              {isCompact ? (
-                /* ── Compact pill ── */
-                <div className="flex items-center justify-center gap-2">
-                  <span className="text-xs font-medium text-brand-500">{myName}</span>
-                  <span className="text-brand-300">·</span>
-                  <span className="font-heading text-sm font-bold tabular-nums text-brand-800">
-                    <Baht value={myShare} />
-                  </span>
-                  <span className="text-brand-300">·</span>
-                  <span className="text-xs tabular-nums text-brand-400">
-                    {myItemCount} {myItemCount === 1 ? "item" : "items"}
-                  </span>
-                </div>
-              ) : (
-                /* ── Expanded card ── */
-                <>
-                  <div className="flex items-end justify-between">
-                    <div>
-                      <p className="text-[10px] font-medium tracking-[0.2em] text-brand-400/70">
-                        {myName}&apos;s share
-                      </p>
-                      <p className="mt-1 font-heading text-[28px] font-bold leading-none tabular-nums text-brand-800">
-                        <Baht value={myShare} />
-                      </p>
-                    </div>
-                    <div className="flex items-center gap-1 rounded-full border border-brand-200/60 bg-cream-light/80 px-3 py-1.5 backdrop-blur-sm">
-                      <span className="text-sm font-semibold tabular-nums text-brand-600">{myItemCount}</span>
-                      <span className="text-[10px] text-brand-400">
-                        {myItemCount === 1 ? "item" : "items"}
-                      </span>
-                    </div>
+              {/* ── Expanded content (visible initially, fades out on scroll) ── */}
+              <div ref={shareExpandedRef}>
+                <div className="flex items-end justify-between">
+                  <div>
+                    <p className="text-[10px] font-medium tracking-[0.2em] text-brand-400/70">
+                      {myName}&apos;s share
+                    </p>
+                    <p className="mt-1 font-heading text-[28px] font-bold leading-none tabular-nums text-brand-800">
+                      <Baht value={myShare} />
+                    </p>
                   </div>
-                  <svg className="mt-2.5 h-[3px] w-16" viewBox="0 0 64 3" fill="none">
-                    <path d="M 1 1.5 C 12 0.5, 28 2.5, 40 1 S 56 2, 63 1.5" stroke="#C4956A" strokeWidth="1" strokeLinecap="round" opacity="0.35" />
-                  </svg>
-                </>
-              )}
+                  <div className="flex items-center gap-1 rounded-full border border-brand-200/60 bg-cream-light/80 px-3 py-1.5 backdrop-blur-sm">
+                    <span className="text-sm font-semibold tabular-nums text-brand-600">{myItemCount}</span>
+                    <span className="text-[10px] text-brand-400">
+                      {myItemCount === 1 ? "item" : "items"}
+                    </span>
+                  </div>
+                </div>
+                <svg ref={shareUnderlineRef} className="mt-2.5 h-[3px] w-16" viewBox="0 0 64 3" fill="none">
+                  <path d="M 1 1.5 C 12 0.5, 28 2.5, 40 1 S 56 2, 63 1.5" stroke="#C4956A" strokeWidth="1" strokeLinecap="round" opacity="0.35" />
+                </svg>
+              </div>
+
+              {/* ── Compact content (hidden initially, fades in on scroll) ── */}
+              <div ref={shareCompactRef} className="absolute inset-0 flex items-center justify-center gap-2 opacity-0 px-5">
+                <span className="text-xs font-semibold text-brand-500">{myName}</span>
+                <span className="text-brand-300/60">·</span>
+                <span className="font-heading text-sm font-bold tabular-nums text-brand-800">
+                  <Baht value={myShare} />
+                </span>
+                <span className="text-brand-300/60">·</span>
+                <span className="text-xs tabular-nums text-brand-400">
+                  {myItemCount} {myItemCount === 1 ? "item" : "items"}
+                </span>
+              </div>
             </div>
           </div>
         );
