@@ -2,6 +2,11 @@
 
 import { use, useEffect, useMemo, useRef, useState } from "react";
 import gsap from "gsap";
+import { ScrollTrigger } from "gsap/ScrollTrigger";
+
+if (typeof window !== "undefined") {
+  gsap.registerPlugin(ScrollTrigger);
+}
 import { useRouter } from "next/navigation";
 import { useQuery } from "@tanstack/react-query";
 import { toast } from "sonner";
@@ -301,82 +306,6 @@ export default function BillDetailsPage({
     return { liveSplits, sectionBreakdowns: breakdowns };
   }, [sections, members, totalItems]);
 
-  // GSAP share card morph refs
-  const shareCardRef = useRef<HTMLDivElement>(null);
-  const shareExpandedRef = useRef<HTMLDivElement>(null);
-  const shareCompactRef = useRef<HTMLDivElement>(null);
-  const shareAccent1Ref = useRef<SVGSVGElement>(null);
-  const shareAccent2Ref = useRef<SVGSVGElement>(null);
-  const shareUnderlineRef = useRef<SVGSVGElement>(null);
-
-  useEffect(() => {
-    if (!shareCardRef.current || !shareExpandedRef.current || !shareCompactRef.current) return;
-
-    const card = shareCardRef.current;
-    const expanded = shareExpandedRef.current;
-    const compact = shareCompactRef.current;
-    const accent1 = shareAccent1Ref.current;
-    const accent2 = shareAccent2Ref.current;
-    const underline = shareUnderlineRef.current;
-
-    const tl = gsap.timeline({ paused: true });
-
-    // Card shape: wide rounded rect → compact centered pill
-    tl.to(card, {
-      paddingTop: 8,
-      paddingBottom: 8,
-      paddingLeft: 20,
-      paddingRight: 20,
-      borderRadius: 999,
-      maxWidth: 320,
-      marginLeft: "auto",
-      marginRight: "auto",
-      duration: 0.4,
-      ease: "power3.inOut",
-    }, 0);
-
-    // Expanded content fades out + slides up
-    tl.to(expanded, {
-      opacity: 0,
-      y: -10,
-      scale: 0.92,
-      duration: 0.35,
-      ease: "power2.in",
-    }, 0);
-
-    // Compact content fades in
-    tl.fromTo(compact, {
-      opacity: 0,
-      y: 6,
-      scale: 0.96,
-    }, {
-      opacity: 1,
-      y: 0,
-      scale: 1,
-      duration: 0.35,
-      ease: "power2.out",
-    }, 0.08);
-
-    // Organic accents fade + shrink
-    if (accent1) tl.to(accent1, { opacity: 0, scale: 0.3, duration: 0.25, ease: "power2.in" }, 0);
-    if (accent2) tl.to(accent2, { opacity: 0, scale: 0.3, duration: 0.25, ease: "power2.in" }, 0);
-    if (underline) tl.to(underline, { opacity: 0, scaleX: 0, duration: 0.2, ease: "power2.in" }, 0);
-
-    // Scrub timeline based on scroll position
-    const onScroll = () => {
-      const y = window.scrollY;
-      const progress = Math.min(1, Math.max(0, (y - 60) / 80));
-      tl.progress(progress);
-    };
-
-    window.addEventListener("scroll", onScroll, { passive: true });
-    onScroll();
-
-    return () => {
-      window.removeEventListener("scroll", onScroll);
-      tl.kill();
-    };
-  });
 
   const handleFinalize = () => {
     // Validate: every item in every section must have at least 1 person
