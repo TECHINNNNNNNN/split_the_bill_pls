@@ -3,7 +3,7 @@
 import { use, useEffect, useState } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import { getCorrectRoomPath } from "@/lib/utils/room-redirect";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { useSession } from "@/lib/auth-client";
 import { roomQueries } from "@/lib/queries/rooms";
@@ -34,6 +34,7 @@ export default function PaymentMethodPage({
   const setPaymentMethod = useSetPaymentMethod(roomId);
   const advanceStatus = useAdvanceRoomStatus(roomId);
   const unfinalizeRoom = useUnfinalizeRoom(roomId);
+  const queryClient = useQueryClient();
 
   const { data: session } = useSession();
   const userPromptpayId = (session?.user as { promptpayId?: string | null })?.promptpayId ?? "";
