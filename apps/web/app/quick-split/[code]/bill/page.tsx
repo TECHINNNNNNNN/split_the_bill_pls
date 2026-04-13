@@ -47,6 +47,23 @@ export default function BillDetailsPage({
   const currentMemberId = codeData?.currentMemberId ?? "";
   const members = room?.members ?? [];
   const isHost = members.find((m) => m.id === currentMemberId)?.isHost ?? false;
+  const pathname = usePathname();
+
+  // Status guard: redirect if room has moved past splitting
+  useEffect(() => {
+    if (!room) return;
+    const correctPath = getCorrectRoomPath(code, room.status, isHost);
+    if (pathname !== correctPath) {
+      router.replace(correctPath);
+    }
+  }, [room, code, isHost, pathname, router]);
+
+  // Warn on accidental refresh/close
+  useEffect(() => {
+    const handler = (e: BeforeUnloadEvent) => { e.preventDefault(); };
+    window.addEventListener("beforeunload", handler);
+    return () => window.removeEventListener("beforeunload", handler);
+  }, []);
 
   // ─── Collaborative editing via PartyKit WebSocket ───
   const {
