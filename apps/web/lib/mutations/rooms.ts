@@ -151,6 +151,24 @@ export function useFinalizeRoom(roomId: string) {
   });
 }
 
+export function useUnfinalizeRoom(roomId: string) {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async () => {
+      const res = await api.api.rooms[":id"].unfinalize.$post({
+        param: { id: roomId },
+      });
+      if (!res.ok) throw new Error("Failed to unfinalize");
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["rooms"] });
+      queryClient.invalidateQueries({ queryKey: ["room"] });
+    },
+  });
+}
+
 export function useSetPaymentMethod(roomId: string) {
   const queryClient = useQueryClient();
 
