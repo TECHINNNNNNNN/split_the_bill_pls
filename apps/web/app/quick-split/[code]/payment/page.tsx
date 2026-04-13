@@ -7,7 +7,7 @@ import { useQuery } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { useSession } from "@/lib/auth-client";
 import { roomQueries } from "@/lib/queries/rooms";
-import { useSetPaymentMethod, useAdvanceRoomStatus } from "@/lib/mutations/rooms";
+import { useSetPaymentMethod, useAdvanceRoomStatus, useUnfinalizeRoom } from "@/lib/mutations/rooms";
 import { Skeleton } from "@/components/skeleton";
 
 type PaymentTab = "promptpay" | "bank" | "other";
