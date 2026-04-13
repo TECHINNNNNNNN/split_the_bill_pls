@@ -305,13 +305,76 @@ export default function BillDetailsPage({
     return { liveSplits, sectionBreakdowns: breakdowns };
   }, [sections, members, totalItems]);
 
-  // Scroll-aware compact mode for the share card
-  const [isCompact, setIsCompact] = useState(false);
-  useEffect(() => {
-    const onScroll = () => setIsCompact(window.scrollY > 80);
-    window.addEventListener("scroll", onScroll, { passive: true });
-    return () => window.removeEventListener("scroll", onScroll);
-  }, []);
+  // GSAP share card morph refs
+  const shareCardRef = useRef<HTMLDivElement>(null);
+  const shareExpandedRef = useRef<HTMLDivElement>(null);
+  const shareCompactRef = useRef<HTMLDivElement>(null);
+  const shareAccent1Ref = useRef<SVGSVGElement>(null);
+  const shareAccent2Ref = useRef<SVGSVGElement>(null);
+  const shareUnderlineRef = useRef<SVGSVGElement>(null);
+
+  useGSAP(() => {
+    if (!shareCardRef.current) return;
+
+    const tl = gsap.timeline({
+      scrollTrigger: {
+        trigger: billContainerRef.current,
+        start: "top top-=80",
+        end: "top top-=120",
+        scrub: 0.3,
+      },
+    });
+
+    // Card shape: wide rounded rect → compact centered pill
+    tl.to(shareCardRef.current, {
+      paddingTop: 8,
+      paddingBottom: 8,
+      paddingLeft: 20,
+      paddingRight: 20,
+      borderRadius: 999,
+      maxWidth: 320,
+      marginLeft: "auto",
+      marginRight: "auto",
+      ease: "power2.inOut",
+    }, 0);
+
+    // Expanded content fades out + slides up
+    if (shareExpandedRef.current) {
+      tl.to(shareExpandedRef.current, {
+        opacity: 0,
+        y: -8,
+        scale: 0.95,
+        duration: 0.4,
+        ease: "power2.in",
+      }, 0);
+    }
+
+    // Compact content fades in + slides up into place
+    if (shareCompactRef.current) {
+      tl.fromTo(shareCompactRef.current, {
+        opacity: 0,
+        y: 8,
+        scale: 0.95,
+      }, {
+        opacity: 1,
+        y: 0,
+        scale: 1,
+        duration: 0.4,
+        ease: "power2.out",
+      }, 0.1);
+    }
+
+    // Organic accents fade out
+    if (shareAccent1Ref.current) {
+      tl.to(shareAccent1Ref.current, { opacity: 0, scale: 0.5, duration: 0.3 }, 0);
+    }
+    if (shareAccent2Ref.current) {
+      tl.to(shareAccent2Ref.current, { opacity: 0, scale: 0.5, duration: 0.3 }, 0);
+    }
+    if (shareUnderlineRef.current) {
+      tl.to(shareUnderlineRef.current, { opacity: 0, width: 0, duration: 0.3 }, 0);
+    }
+  }, { scope: billContainerRef });
 
   const handleFinalize = () => {
     // Validate: every item in every section must have at least 1 person
