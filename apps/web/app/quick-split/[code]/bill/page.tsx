@@ -1,6 +1,6 @@
 "use client";
 
-import { use, useEffect, useMemo, useRef, useState } from "react";
+import { use, useMemo, useRef, useState } from "react";
 import { ShareCard } from "@/components/bill/share-card";
 import { useRouter } from "next/navigation";
 import { useQuery } from "@tanstack/react-query";
