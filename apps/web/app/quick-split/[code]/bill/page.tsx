@@ -412,7 +412,7 @@ export default function BillDetailsPage({
       <div>
         <button
           type="button"
-          onClick={() => router.back()}
+          onClick={() => router.replace(`/quick-split/${code}`)}
           className="text-sm text-brand-400 hover:text-brand-700"
         >
           Back
