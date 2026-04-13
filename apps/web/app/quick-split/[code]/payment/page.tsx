@@ -47,15 +47,17 @@ export default function PaymentMethodPage({
   const members = room?.members ?? [];
   const isHost = members.find((m) => m.id === currentMemberId)?.isHost ?? false;
 
+  const [isNavigating, setIsNavigating] = useState(false);
+
   // Status guard: redirect if room is not in the right phase
-  // Skip while unfinalize is in flight — we handle navigation in onSuccess
+  // Skip while navigating — prevents flash of wrong UI during transition
   useEffect(() => {
-    if (!room || unfinalizeRoom.isPending || unfinalizeRoom.isSuccess) return;
+    if (!room || isNavigating) return;
     const correctPath = getCorrectRoomPath(code, room.status, isHost);
     if (pathname !== correctPath) {
       router.replace(correctPath);
     }
-  }, [room, code, isHost, pathname, router, unfinalizeRoom.isPending, unfinalizeRoom.isSuccess]);
+  }, [room, code, isHost, pathname, router, isNavigating]);
 
   const displayPromptpayId = promptpayId || userPromptpayId;
 
