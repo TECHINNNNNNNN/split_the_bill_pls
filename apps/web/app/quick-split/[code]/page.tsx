@@ -52,13 +52,14 @@ export default function RoomLobbyPage({
   const pathname = usePathname();
 
   // Status guard: redirect to the correct page if room has advanced
+  // Skip while fetching — prevents redirect based on stale cache
   useEffect(() => {
-    if (!room) return;
+    if (!room || isFetching) return;
     const correctPath = getCorrectRoomPath(code, room.status, isHost);
     if (pathname !== correctPath) {
       router.replace(correctPath);
     }
-  }, [room, code, isHost, pathname, router]);
+  }, [room, code, isHost, pathname, router, isFetching]);
 
   const handleAddPlaceholder = () => {
     if (!placeholderName.trim()) return;
