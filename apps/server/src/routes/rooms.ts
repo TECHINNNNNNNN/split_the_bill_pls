@@ -770,6 +770,15 @@ const app = new Hono()
       return c.json({ error: "Only the host can finalize" }, 403)
     }
 
+    // Idempotency + status guard
+    const currentRoom = await db.query.rooms.findFirst({ where: eq(rooms.id, roomId) })
+    if (currentRoom?.finalizedAt) {
+      return c.json({ error: "Already finalized" }, 409)
+    }
+    if (currentRoom?.status !== "splitting") {
+      return c.json({ error: "Room must be in splitting status to finalize" }, 400)
+    }
+
     const body = c.req.valid("json")
 
     // Normalize: convert legacy flat format into a single-section array
