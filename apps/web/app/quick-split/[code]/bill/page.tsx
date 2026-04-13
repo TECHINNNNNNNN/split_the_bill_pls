@@ -1,8 +1,9 @@
 "use client";
 
-import { use, useMemo, useRef, useState } from "react";
+import { use, useEffect, useMemo, useRef, useState } from "react";
 import { ShareCard } from "@/components/bill/share-card";
-import { useRouter } from "next/navigation";
+import { useRouter, usePathname } from "next/navigation";
+import { getCorrectRoomPath } from "@/lib/utils/room-redirect";
 import { useQuery } from "@tanstack/react-query";
 import { toast } from "sonner";
 import imageCompression from "browser-image-compression";
