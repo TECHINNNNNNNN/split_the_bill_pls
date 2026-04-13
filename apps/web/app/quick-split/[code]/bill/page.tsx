@@ -316,14 +316,7 @@ export default function BillDetailsPage({
   useGSAP(() => {
     if (!shareCardRef.current) return;
 
-    const tl = gsap.timeline({
-      scrollTrigger: {
-        trigger: billContainerRef.current,
-        start: "top top-=80",
-        end: "top top-=120",
-        scrub: 0.3,
-      },
-    });
+    const tl = gsap.timeline({ paused: true });
 
     // Card shape: wide rounded rect → compact centered pill
     tl.to(shareCardRef.current, {
@@ -335,45 +328,60 @@ export default function BillDetailsPage({
       maxWidth: 320,
       marginLeft: "auto",
       marginRight: "auto",
-      ease: "power2.inOut",
+      duration: 0.4,
+      ease: "power3.inOut",
     }, 0);
 
     // Expanded content fades out + slides up
     if (shareExpandedRef.current) {
       tl.to(shareExpandedRef.current, {
         opacity: 0,
-        y: -8,
-        scale: 0.95,
-        duration: 0.4,
+        y: -10,
+        scale: 0.92,
+        duration: 0.35,
         ease: "power2.in",
       }, 0);
     }
 
-    // Compact content fades in + slides up into place
+    // Compact content fades in
     if (shareCompactRef.current) {
       tl.fromTo(shareCompactRef.current, {
         opacity: 0,
-        y: 8,
-        scale: 0.95,
+        y: 6,
+        scale: 0.96,
       }, {
         opacity: 1,
         y: 0,
         scale: 1,
-        duration: 0.4,
+        duration: 0.35,
         ease: "power2.out",
-      }, 0.1);
+      }, 0.08);
     }
 
-    // Organic accents fade out
+    // Organic accents fade + shrink
     if (shareAccent1Ref.current) {
-      tl.to(shareAccent1Ref.current, { opacity: 0, scale: 0.5, duration: 0.3 }, 0);
+      tl.to(shareAccent1Ref.current, { opacity: 0, scale: 0.3, duration: 0.25, ease: "power2.in" }, 0);
     }
     if (shareAccent2Ref.current) {
-      tl.to(shareAccent2Ref.current, { opacity: 0, scale: 0.5, duration: 0.3 }, 0);
+      tl.to(shareAccent2Ref.current, { opacity: 0, scale: 0.3, duration: 0.25, ease: "power2.in" }, 0);
     }
     if (shareUnderlineRef.current) {
-      tl.to(shareUnderlineRef.current, { opacity: 0, width: 0, duration: 0.3 }, 0);
+      tl.to(shareUnderlineRef.current, { opacity: 0, scaleX: 0, duration: 0.2, ease: "power2.in" }, 0);
     }
+
+    // Scroll listener: smoothly scrub the timeline based on scroll position
+    const onScroll = () => {
+      const y = window.scrollY;
+      const start = 60;
+      const end = 140;
+      const progress = Math.min(1, Math.max(0, (y - start) / (end - start)));
+      tl.progress(progress);
+    };
+
+    window.addEventListener("scroll", onScroll, { passive: true });
+    onScroll(); // set initial state
+
+    return () => window.removeEventListener("scroll", onScroll);
   }, { scope: billContainerRef });
 
   const handleFinalize = () => {
