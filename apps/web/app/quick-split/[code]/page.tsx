@@ -1,7 +1,8 @@
 "use client";
 
-import { use, useState } from "react";
-import { useRouter } from "next/navigation";
+import { use, useEffect, useState } from "react";
+import { useRouter, usePathname } from "next/navigation";
+import { getCorrectRoomPath } from "@/lib/utils/room-redirect";
 import { useQuery } from "@tanstack/react-query";
 import { QRCodeSVG } from "qrcode.react";
 import { toast } from "sonner";
