@@ -123,7 +123,7 @@ export function ShareCard({
           }}
           transition={{
             opacity: { duration: 0.2, delay: isCompact ? 0.12 : 0 },
-            height: { type: "spring", stiffness: 400, damping: 35 },
+            height: { type: "spring", stiffness: 300, damping: 40 },
           }}
           style={{ overflow: "hidden" }}
         >
