@@ -111,9 +111,13 @@ export default function PaymentMethodPage({
       <button
         type="button"
         disabled={unfinalizeRoom.isPending}
-        onClick={() => {
+        onClick={async () => {
           unfinalizeRoom.mutate(undefined, {
-            onSuccess: () => router.replace(`/quick-split/${code}/bill`),
+            onSuccess: async () => {
+              await queryClient.invalidateQueries({ queryKey: ["rooms"] });
+              await queryClient.invalidateQueries({ queryKey: ["room"] });
+              router.replace(`/quick-split/${code}/bill`);
+            },
             onError: () => toast.error("Couldn't go back — try again"),
           });
         }}
