@@ -313,13 +313,20 @@ export default function BillDetailsPage({
   const shareAccent2Ref = useRef<SVGSVGElement>(null);
   const shareUnderlineRef = useRef<SVGSVGElement>(null);
 
-  useGSAP(() => {
-    if (!shareCardRef.current) return;
+  useEffect(() => {
+    if (!shareCardRef.current || !shareExpandedRef.current || !shareCompactRef.current) return;
+
+    const card = shareCardRef.current;
+    const expanded = shareExpandedRef.current;
+    const compact = shareCompactRef.current;
+    const accent1 = shareAccent1Ref.current;
+    const accent2 = shareAccent2Ref.current;
+    const underline = shareUnderlineRef.current;
 
     const tl = gsap.timeline({ paused: true });
 
     // Card shape: wide rounded rect → compact centered pill
-    tl.to(shareCardRef.current, {
+    tl.to(card, {
       paddingTop: 8,
       paddingBottom: 8,
       paddingLeft: 20,
@@ -333,56 +340,47 @@ export default function BillDetailsPage({
     }, 0);
 
     // Expanded content fades out + slides up
-    if (shareExpandedRef.current) {
-      tl.to(shareExpandedRef.current, {
-        opacity: 0,
-        y: -10,
-        scale: 0.92,
-        duration: 0.35,
-        ease: "power2.in",
-      }, 0);
-    }
+    tl.to(expanded, {
+      opacity: 0,
+      y: -10,
+      scale: 0.92,
+      duration: 0.35,
+      ease: "power2.in",
+    }, 0);
 
     // Compact content fades in
-    if (shareCompactRef.current) {
-      tl.fromTo(shareCompactRef.current, {
-        opacity: 0,
-        y: 6,
-        scale: 0.96,
-      }, {
-        opacity: 1,
-        y: 0,
-        scale: 1,
-        duration: 0.35,
-        ease: "power2.out",
-      }, 0.08);
-    }
+    tl.fromTo(compact, {
+      opacity: 0,
+      y: 6,
+      scale: 0.96,
+    }, {
+      opacity: 1,
+      y: 0,
+      scale: 1,
+      duration: 0.35,
+      ease: "power2.out",
+    }, 0.08);
 
     // Organic accents fade + shrink
-    if (shareAccent1Ref.current) {
-      tl.to(shareAccent1Ref.current, { opacity: 0, scale: 0.3, duration: 0.25, ease: "power2.in" }, 0);
-    }
-    if (shareAccent2Ref.current) {
-      tl.to(shareAccent2Ref.current, { opacity: 0, scale: 0.3, duration: 0.25, ease: "power2.in" }, 0);
-    }
-    if (shareUnderlineRef.current) {
-      tl.to(shareUnderlineRef.current, { opacity: 0, scaleX: 0, duration: 0.2, ease: "power2.in" }, 0);
-    }
+    if (accent1) tl.to(accent1, { opacity: 0, scale: 0.3, duration: 0.25, ease: "power2.in" }, 0);
+    if (accent2) tl.to(accent2, { opacity: 0, scale: 0.3, duration: 0.25, ease: "power2.in" }, 0);
+    if (underline) tl.to(underline, { opacity: 0, scaleX: 0, duration: 0.2, ease: "power2.in" }, 0);
 
-    // Scroll listener: smoothly scrub the timeline based on scroll position
+    // Scrub timeline based on scroll position
     const onScroll = () => {
       const y = window.scrollY;
-      const start = 60;
-      const end = 140;
-      const progress = Math.min(1, Math.max(0, (y - start) / (end - start)));
+      const progress = Math.min(1, Math.max(0, (y - 60) / 80));
       tl.progress(progress);
     };
 
     window.addEventListener("scroll", onScroll, { passive: true });
-    onScroll(); // set initial state
+    onScroll();
 
-    return () => window.removeEventListener("scroll", onScroll);
-  }, { scope: billContainerRef });
+    return () => {
+      window.removeEventListener("scroll", onScroll);
+      tl.kill();
+    };
+  });
 
   const handleFinalize = () => {
     // Validate: every item in every section must have at least 1 person
