@@ -468,7 +468,7 @@ export default function BillDetailsPage({
         );
         const myName = liveSplits.find((s) => s.memberId === currentMemberId)?.displayName?.split(" ")[0] ?? "You";
         return (
-          <div className="sticky top-0 z-20 -mx-4 mt-4 px-4 pb-3 pt-1 pointer-events-none [&>*]:pointer-events-auto">
+          <div className="sticky top-0 z-20 -mx-4 mt-4 px-4 pb-3 pt-1 pointer-events-none *:pointer-events-auto">
             <div
               className="relative overflow-hidden rounded-[20px] px-5 py-4"
               style={{ background: "linear-gradient(140deg, #f5ede4 0%, #ede0d0 50%, #e8d5bf 100%)" }}
