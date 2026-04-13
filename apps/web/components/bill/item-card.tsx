@@ -33,7 +33,7 @@ export function ItemCard({
   isNew?: boolean;
 }) {
   const canEdit = !isLocked;
-  const canDelete = canEdit && (item.addedBy === currentMemberId || isHost);
+  const canDelete = canEdit;
 
   const [editing, setEditing] = useState(false);
   const [nameDraft, setNameDraft] = useState(item.name);
