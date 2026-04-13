@@ -50,16 +50,17 @@ export default function BillDetailsPage({
   const isHost = members.find((m) => m.id === currentMemberId)?.isHost ?? false;
   const pathname = usePathname();
   const finalizeRoom = useFinalizeRoom(roomId);
+  const [isNavigating, setIsNavigating] = useState(false);
 
   // Status guard: redirect if room has moved past splitting
-  // Skip while finalize is in flight — we handle navigation explicitly in onSuccess
+  // Skip while navigating — prevents flash of wrong UI during transition
   useEffect(() => {
-    if (!room || finalizeRoom.isPending || finalizeRoom.isSuccess) return;
+    if (!room || isNavigating) return;
     const correctPath = getCorrectRoomPath(code, room.status, isHost);
     if (pathname !== correctPath) {
       router.replace(correctPath);
     }
-  }, [room, code, isHost, pathname, router, finalizeRoom.isPending, finalizeRoom.isSuccess]);
+  }, [room, code, isHost, pathname, router, isNavigating]);
 
   // Warn on accidental refresh/close
   useEffect(() => {
