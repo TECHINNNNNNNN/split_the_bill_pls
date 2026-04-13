@@ -70,6 +70,12 @@ export function useBillCollab(
             setIsLocked(true);
             break;
 
+          case "bill-unfinalized":
+            setIsLocked(false);
+            queryClient.invalidateQueries({ queryKey: ["rooms"] });
+            queryClient.invalidateQueries({ queryKey: ["room"] });
+            break;
+
           // Also handle the standard room events (same as useRoomSocket)
           case "member-joined":
           case "member-removed":
