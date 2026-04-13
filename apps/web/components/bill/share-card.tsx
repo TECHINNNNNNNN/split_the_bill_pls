@@ -1,7 +1,7 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
-import { motion, useScroll, useTransform, useMotionValueEvent } from "motion/react";
+import { useState } from "react";
+import { motion, useScroll, useMotionValueEvent } from "motion/react";
 import { Baht } from "@/components/baht";
 
 export function ShareCard({
