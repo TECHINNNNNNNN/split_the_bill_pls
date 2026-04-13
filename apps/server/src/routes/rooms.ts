@@ -979,6 +979,47 @@ const app = new Hono()
     return c.json({ splits: mergedSplits, totalAmount: grandTotal })
   })
 
+  // ─── POST /rooms/:id/unfinalize ─────────────
+  // Host goes back to editing. Deletes payments, resets status to splitting,
+  // clears finalizedAt, and unlocks PartyKit so everyone can edit again.
+  .post("/:id/unfinalize", optionalAuth, async (c) => {
+    const roomId = c.req.param("id")
+    const memberId = await resolveMemberId(c, roomId)
+
+    const member = await verifyRoomMember(roomId, memberId)
+    if (!member?.isHost) {
+      return c.json({ error: "Only the host can unfinalize" }, 403)
+    }
+
+    const currentRoom = await db.query.rooms.findFirst({ where: eq(rooms.id, roomId) })
+    if (!currentRoom || currentRoom.status !== "payment") {
+      return c.json({ error: "Can only unfinalize from payment status" }, 400)
+    }
+
+    // Delete payments (they'll be recalculated on next finalize)
+    await db.delete(roomPayments).where(eq(roomPayments.roomId, roomId))
+
+    // Delete DB bill items + splits (PartyKit is source of truth during editing)
+    const dbItems = await db.query.roomBillItems.findMany({ where: eq(roomBillItems.roomId, roomId) })
+    if (dbItems.length > 0) {
+      for (const item of dbItems) {
+        await db.delete(roomItemSplits).where(eq(roomItemSplits.itemId, item.id))
+      }
+      await db.delete(roomBillItems).where(eq(roomBillItems.roomId, roomId))
+    }
+    await db.delete(roomBillSections).where(eq(roomBillSections.roomId, roomId))
+
+    // Reset room state
+    await db.update(rooms)
+      .set({ status: "splitting", finalizedAt: null })
+      .where(eq(rooms.id, roomId))
+
+    // Unlock PartyKit
+    notifyPartyKit(currentRoom.inviteCode, "bill-unfinalized", {})
+
+    return c.json({ success: true })
+  })
+
   // ─── PATCH /rooms/:id/payment-method ─────────
   // Host enters their PromptPay details so friends
   // know where to send money.
