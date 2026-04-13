@@ -614,6 +614,12 @@ const app = new Hono()
       return c.json({ error: "Only the host can add items" }, 403)
     }
 
+    // Status guard: bill must be in splitting phase
+    const currentRoom = await db.query.rooms.findFirst({ where: eq(rooms.id, roomId) })
+    if (currentRoom?.status !== "splitting") {
+      return c.json({ error: "Bill is locked" }, 400)
+    }
+
     const { name, quantity, unitPrice } = c.req.valid("json")
 
     // Get current item count for sort order
