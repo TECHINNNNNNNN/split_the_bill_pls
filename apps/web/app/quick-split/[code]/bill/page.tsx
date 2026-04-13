@@ -360,7 +360,11 @@ export default function BillDetailsPage({
           })),
         },
         {
-          onSuccess: () => router.push(`/quick-split/${code}/payment`),
+          onSuccess: async () => {
+            await queryClient.invalidateQueries({ queryKey: ["rooms"] });
+            await queryClient.invalidateQueries({ queryKey: ["room"] });
+            router.push(`/quick-split/${code}/payment`);
+          },
           onError: () => {
             toast.error("Couldn't finalize — try again 😵");
             // Room may have already advanced — refetch to trigger status guard redirect
@@ -379,7 +383,11 @@ export default function BillDetailsPage({
           discountAmount: sec.extras.discountAmount,
         },
         {
-          onSuccess: () => router.push(`/quick-split/${code}/payment`),
+          onSuccess: async () => {
+            await queryClient.invalidateQueries({ queryKey: ["rooms"] });
+            await queryClient.invalidateQueries({ queryKey: ["room"] });
+            router.push(`/quick-split/${code}/payment`);
+          },
           onError: () => {
             toast.error("Couldn't finalize — try again 😵");
             // Room may have already advanced — refetch to trigger status guard redirect
