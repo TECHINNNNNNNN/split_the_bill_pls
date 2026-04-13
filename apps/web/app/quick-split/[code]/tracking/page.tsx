@@ -115,6 +115,16 @@ function PaymentTrackingContent({
   const payments = room?.payments ?? [];
   const isHost = members.find((m) => m.id === currentMemberId)?.isHost ?? false;
   const hostMember = members.find((m) => m.isHost);
+  const pathname = usePathname();
+
+  // Status guard: redirect if room is not in payment/settled
+  useEffect(() => {
+    if (!room) return;
+    const correctPath = getCorrectRoomPath(code, room.status, isHost);
+    if (pathname !== correctPath) {
+      router.replace(correctPath);
+    }
+  }, [room, code, isHost, pathname, router]);
 
   const claimPayment = useClaimPayment(roomId);
   const confirmPayment = useConfirmPayment(roomId);
