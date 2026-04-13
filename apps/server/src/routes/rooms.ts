@@ -969,8 +969,8 @@ const app = new Hono()
       )
     }
 
-    // Mark finalization time and lock collaborative editing
-    await db.update(rooms).set({ finalizedAt: new Date() }).where(eq(rooms.id, roomId))
+    // Mark finalization time, advance status, and lock collaborative editing
+    await db.update(rooms).set({ finalizedAt: new Date(), status: "payment" }).where(eq(rooms.id, roomId))
     const room = await db.query.rooms.findFirst({ where: eq(rooms.id, roomId) })
     if (room) {
       notifyPartyKit(room.inviteCode, "bill-finalized", {})
