@@ -33,6 +33,7 @@ export default function PaymentMethodPage({
 
   const setPaymentMethod = useSetPaymentMethod(roomId);
   const advanceStatus = useAdvanceRoomStatus(roomId);
+  const unfinalizeRoom = useUnfinalizeRoom(roomId);
 
   const { data: session } = useSession();
   const userPromptpayId = (session?.user as { promptpayId?: string | null })?.promptpayId ?? "";
@@ -108,10 +109,19 @@ export default function PaymentMethodPage({
       {/* Header */}
       <button
         type="button"
-        onClick={() => router.replace(`/quick-split/${code}/bill`)}
-        className="self-start text-sm text-brand-400 hover:text-brand-700"
+        disabled={unfinalizeRoom.isPending}
+        onClick={() => {
+          unfinalizeRoom.mutate(undefined, {
+            onSuccess: () => router.replace(`/quick-split/${code}/bill`),
+            onError: () => toast.error("Couldn't go back — try again"),
+          });
+        }}
+        className="flex items-center gap-1 self-start text-sm text-brand-400 hover:text-brand-700 disabled:opacity-40"
       >
-        Back
+        <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+        </svg>
+        {unfinalizeRoom.isPending ? "Going back..." : "Back to editing"}
       </button>
       <h1 className="mt-2 font-caveat text-3xl font-bold md:text-4xl">
         Payment Method
