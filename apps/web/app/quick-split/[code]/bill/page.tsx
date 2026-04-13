@@ -466,23 +466,47 @@ export default function BillDetailsPage({
           }).length,
           0,
         );
+        const myName = liveSplits.find((s) => s.memberId === currentMemberId)?.displayName?.split(" ")[0] ?? "You";
         return (
-          <div className="sticky top-0 z-20 -mx-4 border-b border-brand-100 bg-cream/90 px-4 py-2.5 backdrop-blur-md shadow-[0_1px_8px_rgba(74,60,42,0.06)]">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <div className="flex h-6 w-6 items-center justify-center rounded-full bg-brand-700 text-[10px] font-bold text-cream-light">
-                  {myItemCount}
+          <div className="sticky top-0 z-20 -mx-4 mt-4 bg-cream/60 px-4 pb-4 pt-1 backdrop-blur-xl">
+            <div
+              className="relative overflow-hidden rounded-[20px] px-5 py-4"
+              style={{ background: "linear-gradient(140deg, #f5ede4 0%, #ede0d0 50%, #e8d5bf 100%)" }}
+            >
+              {/* Organic corner accent — top left */}
+              <svg className="absolute top-0 left-0 h-16 w-16 opacity-[0.12]" viewBox="0 0 64 64" fill="none">
+                <path d="M 0 48 Q 8 8, 48 0" stroke="#8b6144" strokeWidth="1.2" />
+                <path d="M 0 32 Q 12 12, 32 0" stroke="#8b6144" strokeWidth="0.8" />
+              </svg>
+              {/* Organic accent — bottom right */}
+              <svg className="absolute bottom-0 right-0 h-12 w-12 opacity-[0.08]" viewBox="0 0 48 48" fill="none">
+                <circle cx="48" cy="48" r="32" stroke="#8b6144" strokeWidth="0.8" />
+                <circle cx="48" cy="48" r="20" stroke="#8b6144" strokeWidth="0.6" />
+              </svg>
+
+              <div className="flex items-end justify-between">
+                {/* Left — amount */}
+                <div>
+                  <p className="text-[10px] font-medium tracking-[0.2em] text-brand-400/70">
+                    {myName}&apos;s share
+                  </p>
+                  <p className="mt-1 font-heading text-[28px] font-bold leading-none tabular-nums text-brand-800">
+                    <Baht value={myShare} />
+                  </p>
                 </div>
-                <span className="text-xs text-brand-400">
-                  {myItemCount === 0 ? "No items yet" : myItemCount === 1 ? "item on you" : "items on you"}
-                </span>
+                {/* Right — item count pill */}
+                <div className="flex items-center gap-1 rounded-full border border-brand-200/60 bg-cream-light/80 px-3 py-1.5 backdrop-blur-sm">
+                  <span className="text-sm font-semibold tabular-nums text-brand-600">{myItemCount}</span>
+                  <span className="text-[10px] text-brand-400">
+                    {myItemCount === 1 ? "item" : "items"}
+                  </span>
+                </div>
               </div>
-              <div className="flex items-baseline gap-1">
-                <span className="text-[10px] font-medium uppercase tracking-wider text-brand-300">You pay</span>
-                <span className="font-heading text-xl font-bold tabular-nums text-brand-800">
-                  <Baht value={myShare} />
-                </span>
-              </div>
+
+              {/* Thin decorative line */}
+              <svg className="mt-2.5 h-[3px] w-16" viewBox="0 0 64 3" fill="none">
+                <path d="M 1 1.5 C 12 0.5, 28 2.5, 40 1 S 56 2, 63 1.5" stroke="#C4956A" strokeWidth="1" strokeLinecap="round" opacity="0.35" />
+              </svg>
             </div>
           </div>
         );
