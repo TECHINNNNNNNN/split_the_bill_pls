@@ -25,7 +25,7 @@ export default function RoomLobbyPage({
   const router = useRouter();
 
   // Fetch room data
-  const { data, isLoading, error } = useQuery(roomQueries.byCode(code));
+  const { data, isLoading, error, isFetching } = useQuery(roomQueries.byCode(code));
 
   // WebSocket: real-time updates via PartyKit
   useRoomSocket(code, {
