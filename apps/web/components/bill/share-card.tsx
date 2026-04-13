@@ -1,8 +1,12 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { motion, useScroll, useMotionValueEvent } from "motion/react";
 import { Baht } from "@/components/baht";
+
+// Easing: fast out, slow in — smooth deceleration, zero overshoot
+const EASE = [0.32, 0.72, 0, 1] as const;
+const DURATION = 0.45;
 
 export function ShareCard({
   name,
@@ -14,6 +18,7 @@ export function ShareCard({
   itemCount: number;
 }) {
   const [isCompact, setIsCompact] = useState(false);
+  const expandedRef = useRef<HTMLDivElement>(null);
   const { scrollY } = useScroll();
 
   useMotionValueEvent(scrollY, "change", (y) => {
@@ -23,14 +28,12 @@ export function ShareCard({
   return (
     <div className="sticky top-0 z-20 -mx-4 mt-4 flex justify-center px-4 pb-3 pt-1 pointer-events-none *:pointer-events-auto">
       <motion.div
-        layout
-        className="relative overflow-hidden"
+        className="relative overflow-hidden will-change-auto"
         style={{
           background: "linear-gradient(140deg, #f5ede4 0%, #ede0d0 50%, #e8d5bf 100%)",
         }}
         animate={{
-          width: isCompact ? "auto" : "100%",
-          height: isCompact ? 40 : "auto",
+          width: isCompact ? "fit-content" : "100%",
           borderRadius: isCompact ? 999 : 20,
           paddingLeft: isCompact ? 24 : 20,
           paddingRight: isCompact ? 24 : 20,
@@ -41,31 +44,27 @@ export function ShareCard({
             : "0 1px 4px rgba(74,60,42,0.04)",
         }}
         transition={{
-          type: "spring",
-          stiffness: 300,
-          damping: 40,
-          mass: 0.8,
-          restDelta: 0.5,
+          duration: DURATION,
+          ease: EASE,
         }}
       >
-        {/* Organic corner accent — top left */}
+        {/* Organic accents — tween fade, no spring */}
         <motion.svg
           className="absolute top-0 left-0 h-16 w-16"
           viewBox="0 0 64 64"
           fill="none"
-          animate={{ opacity: isCompact ? 0 : 0.12, scale: isCompact ? 0.5 : 1 }}
-          transition={{ duration: 0.2 }}
+          animate={{ opacity: isCompact ? 0 : 0.12 }}
+          transition={{ duration: 0.2, ease: EASE }}
         >
           <path d="M 0 48 Q 8 8, 48 0" stroke="#8b6144" strokeWidth="1.2" />
           <path d="M 0 32 Q 12 12, 32 0" stroke="#8b6144" strokeWidth="0.8" />
         </motion.svg>
-        {/* Organic accent — bottom right */}
         <motion.svg
           className="absolute bottom-0 right-0 h-12 w-12"
           viewBox="0 0 48 48"
           fill="none"
-          animate={{ opacity: isCompact ? 0 : 0.08, scale: isCompact ? 0.5 : 1 }}
-          transition={{ duration: 0.2 }}
+          animate={{ opacity: isCompact ? 0 : 0.08 }}
+          transition={{ duration: 0.2, ease: EASE }}
         >
           <circle cx="48" cy="48" r="32" stroke="#8b6144" strokeWidth="0.8" />
           <circle cx="48" cy="48" r="20" stroke="#8b6144" strokeWidth="0.6" />
@@ -73,15 +72,15 @@ export function ShareCard({
 
         {/* ── Expanded content ── */}
         <motion.div
+          ref={expandedRef}
           animate={{
             opacity: isCompact ? 0 : 1,
-            scale: isCompact ? 0.9 : 1,
             height: isCompact ? 0 : "auto",
           }}
           transition={{
-            opacity: { duration: 0.15 },
-            scale: { type: "spring", stiffness: 300, damping: 40 },
-            height: { type: "spring", stiffness: 300, damping: 40 },
+            height: { duration: DURATION, ease: EASE },
+            // Fade out fast on collapse; fade in slightly delayed on expand
+            opacity: { duration: 0.15, delay: isCompact ? 0 : 0.15 },
           }}
           className="overflow-hidden"
         >
@@ -116,16 +115,16 @@ export function ShareCard({
 
         {/* ── Compact content ── */}
         <motion.div
-          className="flex items-center justify-center gap-2.5 whitespace-nowrap"
+          className="flex items-center justify-center gap-2.5 whitespace-nowrap overflow-hidden"
           animate={{
             opacity: isCompact ? 1 : 0,
             height: isCompact ? "auto" : 0,
           }}
           transition={{
-            opacity: { duration: 0.2, delay: isCompact ? 0.12 : 0 },
-            height: { type: "spring", stiffness: 300, damping: 40 },
+            height: { duration: DURATION, ease: EASE },
+            // Fade in delayed on expand; fade out fast on collapse
+            opacity: { duration: 0.2, delay: isCompact ? 0.2 : 0 },
           }}
-          style={{ overflow: "hidden" }}
         >
           <span className="text-xs font-semibold text-brand-600">{name}</span>
           <span className="text-[10px] text-brand-300">·</span>
