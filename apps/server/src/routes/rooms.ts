@@ -685,6 +685,12 @@ const app = new Hono()
       return c.json({ error: "Only the host can change splits" }, 403)
     }
 
+    // Status guard: bill must be in splitting phase
+    const currentRoom = await db.query.rooms.findFirst({ where: eq(rooms.id, roomId) })
+    if (currentRoom?.status !== "splitting") {
+      return c.json({ error: "Bill is locked" }, 400)
+    }
+
     const { memberIds } = c.req.valid("json")
 
     // Verify the item belongs to this room
