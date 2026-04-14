@@ -612,7 +612,7 @@ export default function BillDetailsPage({
             onClick={() => addSection("")}
             className="self-center rounded-full border border-dashed border-brand-200 px-6 py-2 font-caveat text-base text-brand-400 transition-colors hover:border-brand-400 hover:bg-cream-light hover:text-brand-600"
           >
-            + Add Restaurant / Section
+            + Add Place / Category
           </button>
         )}
       </div>
