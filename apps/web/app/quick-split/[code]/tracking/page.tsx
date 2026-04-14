@@ -3,7 +3,7 @@
 import { Suspense, use, useEffect, useRef, useState } from "react";
 import { useTransitionRouter as useRouter } from "next-view-transitions";
 import { useSearchParams, usePathname } from "next/navigation";
-import { getCorrectRoomPath } from "@/lib/utils/room-redirect";
+import { getRoomRedirect } from "@/lib/utils/room-redirect";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { QRCodeSVG } from "qrcode.react";
 import { anyId } from "promptparse/generate";
@@ -122,10 +122,8 @@ function PaymentTrackingContent({
   // Skip while fetching — prevents redirect based on stale cache
   useEffect(() => {
     if (!room || isDetailFetching) return;
-    const correctPath = getCorrectRoomPath(code, room.status, isHost);
-    if (pathname !== correctPath) {
-      router.replace(correctPath);
-    }
+    const redirect = getRoomRedirect(code, room.status, isHost, pathname);
+    if (redirect) router.replace(redirect);
   }, [room, code, isHost, pathname, router, isDetailFetching]);
 
   const claimPayment = useClaimPayment(roomId);

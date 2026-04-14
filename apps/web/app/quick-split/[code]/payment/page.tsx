@@ -3,7 +3,7 @@
 import { use, useEffect, useState } from "react";
 import { useTransitionRouter as useRouter } from "next-view-transitions";
 import { usePathname } from "next/navigation";
-import { getCorrectRoomPath } from "@/lib/utils/room-redirect";
+import { getRoomRedirect } from "@/lib/utils/room-redirect";
 import { useQuery } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { useSession } from "@/lib/auth-client";
@@ -53,10 +53,8 @@ export default function PaymentMethodPage({
   // Skip while navigating — prevents flash of wrong UI during transition
   useEffect(() => {
     if (!room || isNavigating || isDetailFetching) return;
-    const correctPath = getCorrectRoomPath(code, room.status, isHost);
-    if (pathname !== correctPath) {
-      router.replace(correctPath);
-    }
+    const redirect = getRoomRedirect(code, room.status, isHost, pathname);
+    if (redirect) router.replace(redirect);
   }, [room, code, isHost, pathname, router, isNavigating, isDetailFetching]);
 
   const displayPromptpayId = promptpayId || userPromptpayId;

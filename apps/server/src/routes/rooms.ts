@@ -1032,7 +1032,7 @@ const app = new Hono()
       return c.json({ error: "Only the host can set payment method" }, 403)
     }
 
-    // Status guard: must be in splitting phase (transitioning to payment)
+    // Status guard: must be in splitting or payment phase
     const currentRoom = await db.query.rooms.findFirst({ where: eq(rooms.id, roomId) })
     if (!currentRoom || (currentRoom.status !== "splitting" && currentRoom.status !== "payment")) {
       return c.json({ error: "Cannot set payment method in current status" }, 400)
