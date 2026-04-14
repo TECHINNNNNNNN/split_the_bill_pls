@@ -33,18 +33,46 @@ export default function QuickSplitPage() {
 
   return (
     <div className="relative flex min-h-svh flex-col items-center justify-between px-6 py-16 md:justify-center md:py-0">
-      {/* Organic ambient accents — soft curves that feel like part of the page */}
-      <svg className="pointer-events-none absolute top-12 right-0 h-48 w-48 opacity-[0.03]" viewBox="0 0 200 200" fill="none">
-        <circle cx="200" cy="0" r="140" stroke="#8b6144" strokeWidth="0.8" />
-        <circle cx="200" cy="0" r="100" stroke="#8b6144" strokeWidth="0.5" />
-        <circle cx="200" cy="0" r="60" stroke="#8b6144" strokeWidth="0.3" />
+      {/* Corner ornaments */}
+      <svg className="pointer-events-none absolute left-6 top-6 h-12 w-12" viewBox="0 0 65 65" fill="none">
+        <path d="M 0 32 L 0 0 L 32 0" stroke="#E8D5BF" strokeWidth="1.2" />
+        <circle cx="3" cy="3" r="1.5" fill="#E8D5BF" />
       </svg>
-      <svg className="pointer-events-none absolute bottom-20 left-0 h-40 w-40 opacity-[0.03]" viewBox="0 0 200 200" fill="none">
-        <path d="M 0 100 Q 50 20, 120 60 T 200 40" stroke="#8b6144" strokeWidth="0.8" />
-        <path d="M 0 140 Q 60 60, 140 90 T 200 80" stroke="#8b6144" strokeWidth="0.5" />
+      <svg className="pointer-events-none absolute bottom-6 right-6 h-12 w-12 rotate-180" viewBox="0 0 65 65" fill="none">
+        <path d="M 0 32 L 0 0 L 32 0" stroke="#E8D5BF" strokeWidth="1.2" />
+        <circle cx="3" cy="3" r="1.5" fill="#E8D5BF" />
       </svg>
 
-      <div className="flex w-full max-w-sm flex-col items-center gap-12 md:gap-16">
+
+      <div className="relative flex w-full max-w-sm flex-col items-center gap-12 md:gap-16">
+        {/* Scattered decorations — positioned relative to the form container */}
+        {/* Organic swirl — right edge */}
+        <svg className="pointer-events-none absolute -right-2 top-[38%] h-24 w-16 opacity-[0.18]" viewBox="0 0 40 64" fill="none">
+          <path d="M 8 8 C 32 16, 32 48, 8 56" stroke="#C4956A" strokeWidth="1.5" strokeLinecap="round" />
+          <path d="M 14 16 C 28 22, 28 42, 14 48" stroke="#C4956A" strokeWidth="1" strokeLinecap="round" />
+        </svg>
+        {/* Dot cluster — left edge, upper */}
+        <svg className="pointer-events-none absolute -left-3 top-[25%] h-10 w-10 opacity-[0.22]" viewBox="0 0 24 24">
+          <circle cx="5" cy="12" r="2.5" fill="#C4956A" />
+          <circle cx="14" cy="6" r="2" fill="#C4956A" />
+          <circle cx="12" cy="17" r="1.5" fill="#C4956A" />
+        </svg>
+        {/* Cross — right edge, lower */}
+        <svg className="pointer-events-none absolute -right-1 top-[62%] h-8 w-8 opacity-[0.16]" viewBox="0 0 16 16" fill="none">
+          <path d="M 8 3 L 8 13 M 3 8 L 13 8" stroke="#C4956A" strokeWidth="1.2" strokeLinecap="round" />
+        </svg>
+        {/* Wavy line — left edge, lower */}
+        <svg className="pointer-events-none absolute -left-4 top-[55%] h-6 w-20 opacity-[0.16]" viewBox="0 0 56 12" fill="none">
+          <path d="M 4 6 C 12 2, 20 10, 28 6 S 44 2, 52 6" stroke="#C4956A" strokeWidth="1.5" strokeLinecap="round" />
+        </svg>
+        {/* Diamond — right edge, upper */}
+        <svg className="pointer-events-none absolute -right-3 top-[18%] h-8 w-8 opacity-[0.16]" viewBox="0 0 16 16" fill="none">
+          <path d="M 8 2 L 14 8 L 8 14 L 2 8 Z" stroke="#C4956A" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round" />
+        </svg>
+        {/* Arc — left edge, middle */}
+        <svg className="pointer-events-none absolute -left-2 top-[42%] h-8 w-14 opacity-[0.16]" viewBox="0 0 32 16" fill="none">
+          <path d="M 4 12 C 10 4, 22 4, 28 12" stroke="#C4956A" strokeWidth="1.2" strokeLinecap="round" />
+        </svg>
         {/* Your name */}
         <div className="flex w-full flex-col items-center gap-3">
           <label
@@ -95,7 +123,7 @@ export default function QuickSplitPage() {
             >
               −
             </button>
-            <div className="relative min-w-[3rem] overflow-hidden" style={{ height: "3rem" }}>
+            <div className="relative min-w-[4.5rem] overflow-hidden" style={{ height: "3.5rem" }}>
               <AnimatePresence mode="popLayout" custom={direction}>
                 <motion.span
                   key={splitters}
