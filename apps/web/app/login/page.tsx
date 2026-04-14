@@ -4,7 +4,15 @@ import { Link } from "next-view-transitions";
 import { signIn, useSession } from "@/lib/auth-client";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
+import { motion } from "motion/react";
 import { Skeleton } from "@/components/skeleton";
+
+const EASE: [number, number, number, number] = [0.25, 0.46, 0.45, 0.94];
+const stagger = (i: number) => ({
+  initial: { opacity: 0, y: 14 },
+  animate: { opacity: 1, y: 0 },
+  transition: { duration: 0.5, delay: 0.1 + i * 0.1, ease: EASE },
+});
 
 export default function LoginPage() {
   const { data: session, isPending } = useSession();
@@ -36,50 +44,108 @@ export default function LoginPage() {
   return (
     <div className="relative flex min-h-svh flex-col items-center justify-center overflow-hidden px-6">
       {/* Corner ornaments */}
-      <svg
+      <motion.svg
+        {...stagger(0)}
         className="fixed left-6 top-6 h-16 w-16"
         viewBox="0 0 65 65"
         fill="none"
       >
         <path d="M 0 32 L 0 0 L 32 0" stroke="#E8D5BF" strokeWidth="1.2" />
         <circle cx="3" cy="3" r="1.5" fill="#E8D5BF" />
-      </svg>
-      <svg
+      </motion.svg>
+      <motion.svg
+        {...stagger(0)}
         className="fixed bottom-6 right-6 h-16 w-16 rotate-180"
         viewBox="0 0 65 65"
         fill="none"
       >
         <path d="M 0 32 L 0 0 L 32 0" stroke="#E8D5BF" strokeWidth="1.2" />
         <circle cx="3" cy="3" r="1.5" fill="#E8D5BF" />
-      </svg>
+      </motion.svg>
+
+      {/* Content wrapper — decorations positioned relative to this */}
+      <div className="relative flex w-full max-w-sm flex-col items-center">
+        {/* Scattered decorations — inside the content boundary */}
+        {/* Receipt / bill — top right */}
+        <svg className="pointer-events-none absolute -right-2 top-[5%] h-14 w-10 opacity-[0.18]" viewBox="0 0 24 32" fill="none" stroke="#C4956A" strokeWidth="1.2" strokeLinecap="round">
+          <path d="M 4 2 L 4 28 L 7 26 L 10 28 L 13 26 L 16 28 L 19 26 L 19 2 Z" />
+          <path d="M 8 9 L 16 9" />
+          <path d="M 8 13 L 14 13" />
+          <path d="M 8 17 L 16 17" />
+        </svg>
+        {/* Baht coin — left side */}
+        <svg className="pointer-events-none absolute -left-3 top-[30%] h-12 w-12 opacity-[0.16]" viewBox="0 0 28 28" fill="none" stroke="#C4956A" strokeWidth="1.2">
+          <circle cx="14" cy="14" r="12" />
+          <text x="14" y="19" textAnchor="middle" fill="#C4956A" stroke="none" fontSize="13" fontWeight="bold">฿</text>
+        </svg>
+        {/* Two people — right side, lower */}
+        <svg className="pointer-events-none absolute -right-3 top-[55%] h-12 w-16 opacity-[0.14]" viewBox="0 0 36 28" fill="none" stroke="#C4956A" strokeWidth="1.2" strokeLinecap="round">
+          <circle cx="12" cy="8" r="4" />
+          <path d="M 4 24 C 4 18, 8 15, 12 15 S 20 18, 20 24" />
+          <circle cx="24" cy="8" r="4" />
+          <path d="M 16 24 C 16 18, 20 15, 24 15 S 32 18, 32 24" />
+        </svg>
+        {/* Fork + knife — left side, lower */}
+        <svg className="pointer-events-none absolute -left-2 top-[65%] h-14 w-10 opacity-[0.14]" viewBox="0 0 24 32" fill="none" stroke="#C4956A" strokeWidth="1.2" strokeLinecap="round">
+          <path d="M 8 4 L 8 14 C 8 16, 10 16, 10 14 L 10 4" />
+          <path d="M 9 14 L 9 28" />
+          <path d="M 16 4 C 16 10, 14 12, 14 16 L 14 28" />
+        </svg>
+        {/* Organic curve — top left */}
+        <svg className="pointer-events-none absolute -left-1 top-[12%] h-6 w-16 opacity-[0.16]" viewBox="0 0 40 16" fill="none">
+          <path d="M 4 10 C 12 4, 28 4, 36 10" stroke="#C4956A" strokeWidth="1.2" strokeLinecap="round" />
+        </svg>
+        {/* Three dots — bottom */}
+        <svg className="pointer-events-none absolute left-[15%] top-[85%] h-5 w-14 opacity-[0.14]" viewBox="0 0 32 12">
+          <circle cx="4" cy="6" r="2.5" fill="#C4956A" />
+          <circle cx="16" cy="6" r="2" fill="#C4956A" />
+          <circle cx="28" cy="6" r="2.5" fill="#C4956A" />
+        </svg>
 
       {/* Decorative line */}
-      <div className="mb-8 h-[1.5px] w-14" style={{ backgroundColor: "#C4956A" }} />
+      <motion.div
+        {...stagger(1)}
+        className="mb-8 h-[1.5px] w-14"
+        style={{ backgroundColor: "#C4956A" }}
+      />
 
       {/* Title */}
-      <h1
+      <motion.h1
+        {...stagger(2)}
         className="font-heading text-5xl font-semibold tracking-tight md:text-6xl"
         style={{ color: "#4A3C2A" }}
       >
         PlaDuk
-      </h1>
+      </motion.h1>
 
-      {/* Subtitle + tagline */}
-      <p
+      {/* Subtitle */}
+      <motion.p
+        {...stagger(3)}
         className="mt-5 font-heading text-sm tracking-[0.18em] md:text-base"
         style={{ color: "#C4956A" }}
       >
         split bills, not friendships
-      </p>
-      <p
-        className="mt-2 font-heading text-base font-medium md:text-lg"
+      </motion.p>
+
+      {/* Tagline */}
+      <motion.p
+        {...stagger(4)}
+        className="mt-2 font-caveat text-base font-medium md:text-lg"
         style={{ color: "#4A3C2A" }}
       >
-        PlaDukKhlongToei
-      </p>
+        ~ PlaDukKhlongToei ~
+      </motion.p>
+
+      {/* Organic underline under tagline */}
+      <motion.svg {...stagger(4)} className="mt-3 h-[3px] w-20" viewBox="0 0 80 3" fill="none">
+        <path d="M 2 1.5 C 14 0.5, 32 2.5, 48 1 S 66 2, 78 1.5" stroke="#C4956A" strokeWidth="1" strokeLinecap="round" opacity="0.35" />
+      </motion.svg>
 
       {/* Action buttons */}
-      <div className="mt-12 flex flex-col items-center gap-4">
+      <motion.div
+        {...stagger(5)}
+        className="mt-12 flex flex-col items-center gap-4"
+      >
         <Link
           href="/quick-split"
           className="rounded-full bg-brand-700 px-10 py-3 text-sm font-medium text-cream-light transition-all hover:bg-brand-800 active:scale-[0.98] md:text-base"
@@ -96,6 +162,7 @@ export default function LoginPage() {
           <GoogleIcon />
           {loading ? "Redirecting..." : "log in"}
         </button>
+      </motion.div>
       </div>
     </div>
   );
