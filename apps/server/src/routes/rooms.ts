@@ -1038,6 +1038,17 @@ const app = new Hono()
       return c.json({ error: "Cannot set payment method in current status" }, 400)
     }
 
+    // Safety guard: block PromptPay changes once anyone has started paying
+    const activeClaims = await db.query.roomPayments.findFirst({
+      where: and(
+        eq(roomPayments.roomId, roomId),
+        inArray(roomPayments.status, ["claimed", "confirmed"]),
+      ),
+    })
+    if (activeClaims) {
+      return c.json({ error: "Cannot change payment method — someone has already paid" }, 409)
+    }
+
     const { promptpayId, promptpayType } = c.req.valid("json")
 
     const [updated] = await db.update(rooms)

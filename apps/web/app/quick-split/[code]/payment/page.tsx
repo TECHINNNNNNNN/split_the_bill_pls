@@ -70,7 +70,7 @@ export default function PaymentMethodPage({
         },
         {
           onSuccess: () => {
-            router.push(`/quick-split/${code}/tracking`);
+            router.replace(`/quick-split/${code}/tracking`);
           },
           onError: () => {
             toast.error("Couldn't save PromptPay — check your number 🔢");
