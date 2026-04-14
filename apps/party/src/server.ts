@@ -337,7 +337,9 @@ export default class RoomParty implements Party.Server {
       if (parsed.type === "bill-unfinalized") {
         this.locked = false
       }
-      if (parsed.type === "status-changed" && parsed.data?.status === "payment") {
+      if (parsed.type === "status-changed" && parsed.data?.status === "settled") {
+        // Only clear sections when the room is fully settled — not during payment,
+        // because the host might unfinalize and go back to editing.
         this.sections.clear()
         this.locked = false
       }
