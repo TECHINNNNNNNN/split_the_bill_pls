@@ -11,6 +11,7 @@ export default function QuickSplitPage() {
   const [name, setName] = useState("");
   const [billName, setBillName] = useState("");
   const [splitters, setSplitters] = useState(1);
+  const [direction, setDirection] = useState(1); // 1 = up, -1 = down
   const createRoom = useCreateRoom();
   const [created, setCreated] = useState(false);
 
@@ -32,26 +33,15 @@ export default function QuickSplitPage() {
 
   return (
     <div className="relative flex min-h-svh flex-col items-center justify-between px-6 py-16 md:justify-center md:py-0">
-      {/* Organic catfish watermark — behind the counter */}
-      <svg
-        className="pointer-events-none absolute left-1/2 top-1/2 h-64 w-80 -translate-x-1/2 -translate-y-1/2 opacity-[0.04]"
-        viewBox="0 0 340 160"
-        fill="none"
-        stroke="currentColor"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      >
-        <g transform="translate(170, 80)">
-          <path d="M -65 -8 C -60 -40, -20 -50, 25 -46 C 60 -42, 95 -28, 118 -6" strokeWidth="3.2" />
-          <path d="M -65 8 C -55 42, -5 55, 40 48 C 72 42, 98 26, 118 6" strokeWidth="2.8" />
-          <path d="M -65 -8 C -72 -4, -72 4, -65 8" strokeWidth="3" />
-          <path d="M 116 -4 C 138 -32, 158 -38, 170 -24" strokeWidth="3" />
-          <path d="M 116 4 C 138 32, 158 38, 170 24" strokeWidth="3" />
-          <path d="M -68 2 C -100 -8, -138 -4, -168 -14" strokeWidth="3.2" />
-          <path d="M -68 6 C -98 14, -135 18, -162 12" strokeWidth="2.5" />
-          <path d="M -66 9 C -88 28, -118 34, -150 36" strokeWidth="1.8" />
-          <circle cx="-35" cy="-6" r="6.5" fill="currentColor" stroke="none" />
-        </g>
+      {/* Organic ambient accents — soft curves that feel like part of the page */}
+      <svg className="pointer-events-none absolute top-12 right-0 h-48 w-48 opacity-[0.03]" viewBox="0 0 200 200" fill="none">
+        <circle cx="200" cy="0" r="140" stroke="#8b6144" strokeWidth="0.8" />
+        <circle cx="200" cy="0" r="100" stroke="#8b6144" strokeWidth="0.5" />
+        <circle cx="200" cy="0" r="60" stroke="#8b6144" strokeWidth="0.3" />
+      </svg>
+      <svg className="pointer-events-none absolute bottom-20 left-0 h-40 w-40 opacity-[0.03]" viewBox="0 0 200 200" fill="none">
+        <path d="M 0 100 Q 50 20, 120 60 T 200 40" stroke="#8b6144" strokeWidth="0.8" />
+        <path d="M 0 140 Q 60 60, 140 90 T 200 80" stroke="#8b6144" strokeWidth="0.5" />
       </svg>
 
       <div className="flex w-full max-w-sm flex-col items-center gap-12 md:gap-16">
@@ -99,24 +89,30 @@ export default function QuickSplitPage() {
           <div className="flex items-center gap-8">
             <button
               type="button"
-              onClick={() => setSplitters((s) => Math.max(1, s - 1))}
+              onClick={() => { setDirection(-1); setSplitters((s) => Math.max(1, s - 1)); }}
               disabled={splitters <= 1}
               className="flex h-11 w-11 items-center justify-center rounded-full border border-brand-200 text-xl transition-all hover:border-brand-400 hover:bg-cream-light active:scale-95 disabled:opacity-30 disabled:hover:border-brand-200 disabled:hover:bg-transparent md:h-12 md:w-12 md:text-2xl"
             >
               −
             </button>
-            <motion.span
-              key={splitters}
-              initial={{ scale: 1.25, opacity: 0.6 }}
-              animate={{ scale: 1, opacity: 1 }}
-              transition={{ type: "spring", stiffness: 400, damping: 20 }}
-              className="min-w-[3rem] text-center font-heading text-4xl font-semibold md:text-5xl"
-            >
-              {splitters}
-            </motion.span>
+            <div className="relative min-w-[3rem] overflow-hidden" style={{ height: "3rem" }}>
+              <AnimatePresence mode="popLayout" custom={direction}>
+                <motion.span
+                  key={splitters}
+                  custom={direction}
+                  initial={{ y: direction * 24, opacity: 0, scale: 0.85 }}
+                  animate={{ y: 0, opacity: 1, scale: 1 }}
+                  exit={{ y: direction * -24, opacity: 0, scale: 0.85 }}
+                  transition={{ type: "spring", stiffness: 500, damping: 30 }}
+                  className="absolute inset-0 flex items-center justify-center font-heading text-4xl font-semibold md:text-5xl"
+                >
+                  {splitters}
+                </motion.span>
+              </AnimatePresence>
+            </div>
             <button
               type="button"
-              onClick={() => setSplitters((s) => s + 1)}
+              onClick={() => { setDirection(1); setSplitters((s) => s + 1); }}
               className="flex h-11 w-11 items-center justify-center rounded-full border border-brand-200 text-xl transition-all hover:border-brand-400 hover:bg-cream-light active:scale-95 md:h-12 md:w-12 md:text-2xl"
             >
               +
