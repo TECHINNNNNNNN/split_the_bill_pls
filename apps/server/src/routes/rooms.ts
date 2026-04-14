@@ -1038,14 +1038,17 @@ const app = new Hono()
       return c.json({ error: "Cannot set payment method in current status" }, 400)
     }
 
-    // Safety guard: block PromptPay changes once anyone has started paying
-    const activeClaims = await db.query.roomPayments.findFirst({
+    // Safety guard: block PromptPay changes once any NON-HOST member has claimed/confirmed
+    // (Host's own payment is auto-confirmed on finalize — exclude it)
+    const hostMemberId = member.id
+    const activeClaims = await db.query.roomPayments.findMany({
       where: and(
         eq(roomPayments.roomId, roomId),
         inArray(roomPayments.status, ["claimed", "confirmed"]),
       ),
     })
-    if (activeClaims) {
+    const nonHostClaims = activeClaims.filter((p) => p.memberId !== hostMemberId)
+    if (nonHostClaims.length > 0) {
       return c.json({ error: "Cannot change payment method — someone has already paid" }, 409)
     }
 
