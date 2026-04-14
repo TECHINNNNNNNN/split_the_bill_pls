@@ -996,6 +996,18 @@ const app = new Hono()
       return c.json({ error: "Can only unfinalize from payment status" }, 400)
     }
 
+    // Block if any non-host member has claimed or confirmed — money is in transit
+    const hostMemberId = member.id
+    const activePayments = await db.query.roomPayments.findMany({
+      where: and(
+        eq(roomPayments.roomId, roomId),
+        inArray(roomPayments.status, ["claimed", "confirmed"]),
+      ),
+    })
+    if (activePayments.some((p) => p.memberId !== hostMemberId)) {
+      return c.json({ error: "Cannot go back — members have already started paying" }, 409)
+    }
+
     // Delete payments (they'll be recalculated on next finalize)
     await db.delete(roomPayments).where(eq(roomPayments.roomId, roomId))
 

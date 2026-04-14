@@ -61,6 +61,12 @@ export default function PaymentMethodPage({
 
   const total = payments.reduce((sum, p) => sum + parseFloat(p.amount), 0);
 
+  // Can the host go back to editing? Only if no non-host member has claimed/confirmed.
+  const hostMemberId = members.find((m) => m.isHost)?.id;
+  const canUnfinalize = !payments.some(
+    (p) => p.memberId !== hostMemberId && (p.status === "claimed" || p.status === "confirmed"),
+  );
+
   const handleContinue = () => {
     if (activeTab === "promptpay" && displayPromptpayId.trim()) {
       setPaymentMethod.mutate(
@@ -109,25 +115,38 @@ export default function PaymentMethodPage({
   return (
     <div className="flex min-h-svh flex-col px-6 py-6 md:mx-auto md:max-w-lg md:py-12">
       {/* Header */}
-      <button
-        type="button"
-        disabled={unfinalizeRoom.isPending}
-        onClick={() => {
-          unfinalizeRoom.mutate(undefined, {
-            onSuccess: () => {
-              setIsNavigating(true);
-              router.replace(`/quick-split/${code}/bill`);
-            },
-            onError: () => toast.error("Couldn't go back — try again"),
-          });
-        }}
-        className="flex items-center gap-1 self-start text-sm text-brand-400 hover:text-brand-700 disabled:opacity-40"
-      >
-        <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-        </svg>
+      {canUnfinalize ? (
+        <button
+          type="button"
+          disabled={unfinalizeRoom.isPending}
+          onClick={() => {
+            unfinalizeRoom.mutate(undefined, {
+              onSuccess: () => {
+                setIsNavigating(true);
+                router.replace(`/quick-split/${code}/bill`);
+              },
+              onError: () => toast.error("Couldn't go back — try again"),
+            });
+          }}
+          className="flex items-center gap-1 self-start text-sm text-brand-400 hover:text-brand-700 disabled:opacity-40"
+        >
+          <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+          </svg>
         {unfinalizeRoom.isPending ? "Going back..." : "Back to editing"}
       </button>
+      ) : (
+        <button
+          type="button"
+          onClick={() => router.replace(`/quick-split/${code}/tracking`)}
+          className="flex items-center gap-1 self-start text-sm text-brand-400 hover:text-brand-700"
+        >
+          <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+          </svg>
+          Go to tracking
+        </button>
+      )}
       <h1 className="mt-2 font-caveat text-3xl font-bold md:text-4xl">
         Payment Method
       </h1>
