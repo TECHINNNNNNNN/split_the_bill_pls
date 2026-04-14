@@ -200,8 +200,8 @@ export default function PaymentMethodPage({
         </div>
       </div>
 
-      {/* Continue button */}
-      <div className="mt-auto flex justify-center pt-8">
+      {/* Continue buttons */}
+      <div className="mt-auto flex flex-col items-center gap-3 pt-8">
         <button
           type="button"
           onClick={handleContinue}
@@ -213,6 +213,15 @@ export default function PaymentMethodPage({
         >
           {setPaymentMethod.isPending ? "Saving..." : "Continue"}
         </button>
+        {room?.promptpayId && (
+          <button
+            type="button"
+            onClick={() => router.replace(`/quick-split/${code}/tracking`)}
+            className="text-sm text-brand-400 hover:text-brand-600"
+          >
+            Skip — go to tracking
+          </button>
+        )}
       </div>
     </div>
   );
