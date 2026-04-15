@@ -179,12 +179,37 @@ const app = new Hono()
   .get("/my", requireAuth, async (c) => {
     const user = c.get("user")
 
-    const userRooms = await db.query.rooms.findMany({
-      where: eq(rooms.createdByUserId, user.id),
-      orderBy: desc(rooms.createdAt),
-      with: { members: true },
-      limit: 20,
+    // Find all rooms where the user is a member (not just rooms they created)
+    const memberRows = await db.query.roomMembers.findMany({
+      where: eq(roomMembers.userId, user.id),
+      with: {
+        room: {
+          with: {
+            members: true,
+            payments: true,
+          },
+        },
+      },
     })
+
+    const userRooms = memberRows
+      .filter((m) => m.room)
+      .map((m) => {
+        const room = m.room
+        const payments = room.payments ?? []
+        const totalAmount = payments.reduce((sum, p) => sum + parseFloat(p.amount), 0)
+        const confirmedCount = payments.filter((p) => p.status === "confirmed").length
+        const totalPayments = payments.length
+        return {
+          ...room,
+          payments: undefined, // don't send raw payments
+          totalAmount,
+          confirmedCount,
+          totalPayments,
+          currentMemberIsHost: m.isHost,
+        }
+      })
+      .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
 
     return c.json(userRooms)
   })
