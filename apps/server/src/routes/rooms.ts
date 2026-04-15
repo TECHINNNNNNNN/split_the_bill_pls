@@ -192,8 +192,15 @@ const app = new Hono()
       },
     })
 
-    const userRooms = memberRows
-      .filter((m) => m.room)
+    // Deduplicate — a user might have multiple member rows in the same room
+    const seen = new Set<string>()
+    const uniqueRows = memberRows.filter((m) => {
+      if (!m.room || seen.has(m.room.id)) return false
+      seen.add(m.room.id)
+      return true
+    })
+
+    const userRooms = uniqueRows
       .map((m) => {
         const room = m.room
         const payments = room.payments ?? []

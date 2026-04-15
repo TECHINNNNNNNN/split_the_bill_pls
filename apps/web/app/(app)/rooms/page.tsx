@@ -9,12 +9,17 @@ import { roomQueries } from "@/lib/queries/rooms";
 import { getRoomRedirect } from "@/lib/utils/room-redirect";
 import { Skeleton } from "@/components/skeleton";
 
-const STATUS_CONFIG: Record<string, { label: string; color: string; bg: string }> = {
-  waiting: { label: "Waiting", color: "text-amber-700", bg: "bg-amber-100" },
-  splitting: { label: "Splitting", color: "text-blue-700", bg: "bg-blue-100" },
-  payment: { label: "Payment", color: "text-orange-700", bg: "bg-orange-100" },
-  settled: { label: "Settled", color: "text-emerald-700", bg: "bg-emerald-100" },
+const STATUS_CONFIG: Record<string, { label: string; color: string; bg: string; dot: string }> = {
+  waiting: { label: "Waiting", color: "text-amber-700", bg: "bg-amber-50", dot: "bg-amber-400" },
+  splitting: { label: "Splitting", color: "text-blue-700", bg: "bg-blue-50", dot: "bg-blue-400" },
+  payment: { label: "Payment", color: "text-orange-700", bg: "bg-orange-50", dot: "bg-orange-400" },
+  settled: { label: "Settled", color: "text-emerald-700", bg: "bg-emerald-50", dot: "bg-emerald-400" },
 };
+
+const AVATAR_COLORS = [
+  "bg-brand-700", "bg-amber-600", "bg-emerald-600", "bg-sky-600",
+  "bg-rose-500", "bg-violet-600", "bg-orange-500", "bg-teal-600",
+];
 
 function timeAgo(date: string | Date): string {
   const now = Date.now();
@@ -48,7 +53,7 @@ export default function RoomsPage() {
         <Skeleton className="h-10 w-full rounded-xl" />
         <div className="flex flex-col gap-3">
           {Array.from({ length: 4 }).map((_, i) => (
-            <Skeleton key={i} className="h-20 rounded-2xl" />
+            <Skeleton key={i} className="h-24 rounded-2xl" />
           ))}
         </div>
       </div>
@@ -69,11 +74,18 @@ export default function RoomsPage() {
           </svg>
           Back
         </button>
-        <h1 className="mt-1 font-heading text-3xl font-bold">My Rooms</h1>
+        <h1 className="mt-1 font-caveat text-4xl font-bold">My Rooms</h1>
+        <p className="mt-0.5 text-xs text-brand-300">
+          {(rooms ?? []).length} {(rooms ?? []).length === 1 ? "room" : "rooms"} total
+        </p>
+        {/* Organic underline */}
+        <svg className="mt-1.5 h-[3px] w-14" viewBox="0 0 56 3" fill="none">
+          <path d="M 1 1.5 C 10 0.5, 24 2.5, 36 1 S 48 2, 55 1.5" stroke="#C4956A" strokeWidth="1" strokeLinecap="round" opacity="0.35" />
+        </svg>
       </div>
 
       {/* Tabs */}
-      <div className="flex gap-1 rounded-xl bg-brand-50 p-1">
+      <div className="flex gap-1 rounded-2xl bg-brand-50 p-1">
         {(["active", "history"] as const).map((t) => {
           const count = t === "active" ? activeRooms.length : historyRooms.length;
           const isActive = tab === t;
@@ -82,14 +94,16 @@ export default function RoomsPage() {
               key={t}
               type="button"
               onClick={() => setTab(t)}
-              className={`flex-1 rounded-lg px-4 py-2 text-sm font-medium transition-all ${
+              className={`relative flex-1 rounded-xl px-4 py-2.5 text-sm font-medium transition-all ${
                 isActive
                   ? "bg-cream-light text-brand-800 shadow-sm"
                   : "text-brand-400 hover:text-brand-600"
               }`}
             >
               {t === "active" ? "Active" : "History"}
-              <span className={`ml-1.5 text-xs ${isActive ? "text-brand-500" : "text-brand-300"}`}>
+              <span className={`ml-1.5 rounded-full px-1.5 py-0.5 text-[10px] ${
+                isActive ? "bg-brand-100 text-brand-600" : "text-brand-300"
+              }`}>
                 {count}
               </span>
             </button>
@@ -101,15 +115,18 @@ export default function RoomsPage() {
       <AnimatePresence mode="wait">
         <motion.div
           key={tab}
-          initial={{ opacity: 0, y: 6 }}
-          animate={{ opacity: 1, y: 0 }}
-          exit={{ opacity: 0, y: -6 }}
-          transition={{ duration: 0.2 }}
+          initial="hidden"
+          animate="visible"
+          exit={{ opacity: 0, y: -8, transition: { duration: 0.15 } }}
+          variants={{
+            hidden: {},
+            visible: { transition: { staggerChildren: 0.04 } },
+          }}
           className="flex flex-col gap-3"
         >
           {currentRooms.length === 0 ? (
-            <div className="flex flex-col items-center gap-3 py-12 text-center">
-              <svg className="h-12 w-12 text-brand-200" viewBox="0 0 340 160" fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" style={{ opacity: 0.4 }}>
+            <div className="flex flex-col items-center gap-3 rounded-2xl border border-dashed border-brand-200 py-14 text-center">
+              <svg className="h-16 w-20 text-brand-200" viewBox="0 0 340 160" fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" style={{ opacity: 0.4 }}>
                 <g transform="translate(170, 80)">
                   <path d="M -65 -8 C -60 -40, -20 -50, 25 -46 C 60 -42, 95 -28, 118 -6" strokeWidth="3.2" />
                   <path d="M -65 8 C -55 42, -5 55, 40 48 C 72 42, 98 26, 118 6" strokeWidth="2.8" />
@@ -117,7 +134,7 @@ export default function RoomsPage() {
                   <circle cx="-35" cy="-6" r="6.5" fill="currentColor" stroke="none" />
                 </g>
               </svg>
-              <p className="font-heading text-lg font-semibold text-brand-400">
+              <p className="font-caveat text-xl font-semibold text-brand-400">
                 {tab === "active" ? "No active splits" : "No past splits yet"}
               </p>
               <p className="text-sm text-brand-300">
@@ -135,45 +152,68 @@ export default function RoomsPage() {
           ) : (
             currentRooms.map((room: any, index: number) => {
               const status = STATUS_CONFIG[room.status] ?? STATUS_CONFIG.waiting;
-              const memberCount = room.members?.length ?? 0;
+              const members = room.members ?? [];
+              const memberCount = members.length;
               const displayName = room.name || `${room.hostName}'s Split`;
               const isHost = room.currentMemberIsHost;
 
               return (
-                <motion.button
+                <button
                   key={room.id}
                   type="button"
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: index * 0.04, duration: 0.3 }}
                   onClick={() => {
                     const redirect = getRoomRedirect(room.inviteCode, room.status, isHost, "");
                     router.push(redirect ?? `/quick-split/${room.inviteCode}`);
                   }}
-                  className="group flex items-center justify-between rounded-2xl border border-brand-100 bg-cream-light px-4 py-3.5 text-left transition-all hover:border-brand-200 hover:shadow-sm active:scale-[0.99]"
+                  className="group relative animate-item-fade overflow-hidden rounded-2xl border border-brand-100 bg-cream-light p-4 text-left transition-all hover:border-brand-200 hover:shadow-md active:scale-[0.99]"
+                  style={{ animationDelay: `${index * 40}ms` }}
                 >
-                  <div className="min-w-0 flex-1">
+                  {/* Status dot — top right corner accent */}
+                  <div className={`absolute right-3 top-3 h-2 w-2 rounded-full ${status.dot}`} />
+
+                  {/* Room name */}
+                  <div className="flex items-center gap-2 pr-6">
+                    <h3 className="truncate font-heading text-base font-semibold">{displayName}</h3>
+                    {isHost && (
+                      <span className="shrink-0 rounded-full bg-brand-700 px-2 py-0.5 text-[9px] font-bold text-cream-light">
+                        HOST
+                      </span>
+                    )}
+                  </div>
+
+                  {/* Meta row */}
+                  <div className="mt-2 flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      {/* Member avatar stack */}
+                      <div className="flex -space-x-1.5">
+                        {members.slice(0, 4).map((m: any, i: number) => (
+                          <div
+                            key={m.id}
+                            className={`flex h-6 w-6 items-center justify-center rounded-full border-2 border-cream-light text-[9px] font-bold text-cream-light ${AVATAR_COLORS[i % AVATAR_COLORS.length]}`}
+                          >
+                            {m.displayName.charAt(0).toUpperCase()}
+                          </div>
+                        ))}
+                        {memberCount > 4 && (
+                          <div className="flex h-6 w-6 items-center justify-center rounded-full border-2 border-cream-light bg-brand-200 text-[9px] font-bold text-brand-600">
+                            +{memberCount - 4}
+                          </div>
+                        )}
+                      </div>
+                      <span className="text-[11px] text-brand-300">{timeAgo(room.createdAt)}</span>
+                    </div>
+
+                    {/* Status badge + arrow */}
                     <div className="flex items-center gap-2">
-                      <p className="truncate font-medium">{displayName}</p>
-                      {isHost && (
-                        <span className="shrink-0 text-[10px] text-brand-300">★ host</span>
-                      )}
-                    </div>
-                    <div className="mt-1 flex items-center gap-3 text-xs text-brand-400">
-                      <span>{memberCount} {memberCount === 1 ? "member" : "members"}</span>
-                      <span>·</span>
-                      <span>{timeAgo(room.createdAt)}</span>
+                      <span className={`rounded-full px-2.5 py-0.5 text-[10px] font-semibold ${status.color} ${status.bg}`}>
+                        {status.label}
+                      </span>
+                      <svg className="h-4 w-4 text-brand-200 transition-transform group-hover:translate-x-0.5 group-hover:text-brand-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                      </svg>
                     </div>
                   </div>
-                  <div className="flex items-center gap-2">
-                    <span className={`rounded-full px-2.5 py-0.5 text-[10px] font-semibold ${status.color} ${status.bg}`}>
-                      {status.label}
-                    </span>
-                    <svg className="h-4 w-4 text-brand-200 transition-colors group-hover:text-brand-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                    </svg>
-                  </div>
-                </motion.button>
+                </button>
               );
             })
           )}
