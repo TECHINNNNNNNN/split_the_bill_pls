@@ -324,7 +324,12 @@ export default function HomePage() {
 
       {/* ─── Recent splits (horizontal scroll) ─── */}
       <section className="animate-section mb-8" style={{ animationDelay: recentDelay }}>
-        <h2 className="font-heading text-xl font-semibold mb-3">Recent</h2>
+        <div className="mb-3 flex items-center justify-between">
+          <h2 className="font-heading text-xl font-semibold">Recent</h2>
+          <Link href="/rooms" className="text-xs font-medium text-brand-400 hover:text-brand-600">
+            See all →
+          </Link>
+        </div>
         {roomsLoading ? (
           <div className="flex gap-3">
             <Skeleton className="h-28 w-36 shrink-0 rounded-2xl" />
