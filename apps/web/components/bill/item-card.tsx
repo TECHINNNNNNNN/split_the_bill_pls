@@ -8,8 +8,6 @@ const LONG_PRESS_MS = 400;
 export function ItemCard({
   item,
   isLocked,
-  isHost,
-  currentMemberId,
   members,
   onDelete,
   onUpdate,
@@ -21,8 +19,6 @@ export function ItemCard({
 }: {
   item: CollabItem;
   isLocked: boolean;
-  isHost: boolean;
-  currentMemberId: string;
   members: { id: string; displayName: string }[];
   onDelete: () => void;
   onUpdate: (updates: { name?: string; quantity?: number; unitPrice?: number }) => void;

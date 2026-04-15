@@ -580,8 +580,6 @@ export default function BillDetailsPage({
             section={section}
             isMultiSection={isMultiSection}
             isLocked={isLocked}
-            isHost={isHost}
-            currentMemberId={currentMemberId}
             members={members}
             onAddItem={(name, unitPrice, quantity) => addItem(name, unitPrice, section.id, quantity)}
             onUpdateItem={(itemId, updates) => updateItem(itemId, section.id, updates)}

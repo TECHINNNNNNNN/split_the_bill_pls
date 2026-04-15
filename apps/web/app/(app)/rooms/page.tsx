@@ -37,13 +37,34 @@ function timeAgo(date: string | Date): string {
 
 type Tab = "active" | "history";
 
+interface RoomMember {
+  id: string;
+  displayName: string;
+  isHost: boolean;
+}
+
+interface RoomSummary {
+  id: string;
+  hostName: string;
+  name: string | null;
+  status: string;
+  inviteCode: string;
+  createdAt: string;
+  members: RoomMember[];
+  currentMemberIsHost: boolean;
+  totalAmount: number;
+  confirmedCount: number;
+  totalPayments: number;
+}
+
 export default function RoomsPage() {
   const router = useRouter();
   const [tab, setTab] = useState<Tab>("active");
   const { data: rooms, isLoading } = useQuery(roomQueries.my());
 
-  const activeRooms = (rooms ?? []).filter((r: any) => r.status !== "settled");
-  const historyRooms = (rooms ?? []).filter((r: any) => r.status === "settled");
+  const allRooms = (rooms ?? []) as RoomSummary[];
+  const activeRooms = allRooms.filter((r) => r.status !== "settled");
+  const historyRooms = allRooms.filter((r) => r.status === "settled");
   const currentRooms = tab === "active" ? activeRooms : historyRooms;
 
   if (isLoading) {
@@ -150,7 +171,7 @@ export default function RoomsPage() {
               )}
             </div>
           ) : (
-            currentRooms.map((room: any, index: number) => {
+            currentRooms.map((room, index) => {
               const status = STATUS_CONFIG[room.status] ?? STATUS_CONFIG.waiting;
               const members = room.members ?? [];
               const memberCount = members.length;
@@ -186,7 +207,7 @@ export default function RoomsPage() {
                     <div className="flex items-center gap-3">
                       {/* Member avatar stack */}
                       <div className="flex -space-x-1.5">
-                        {members.slice(0, 4).map((m: any, i: number) => (
+                        {members.slice(0, 4).map((m, i) => (
                           <div
                             key={m.id}
                             className={`flex h-6 w-6 items-center justify-center rounded-full border-2 border-cream-light text-[9px] font-bold text-cream-light ${AVATAR_COLORS[i % AVATAR_COLORS.length]}`}

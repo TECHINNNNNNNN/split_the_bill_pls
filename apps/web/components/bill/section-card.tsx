@@ -9,8 +9,6 @@ export function SectionCard({
   section,
   isMultiSection,
   isLocked,
-  isHost,
-  currentMemberId,
   members,
   onAddItem,
   onUpdateItem,
@@ -35,8 +33,6 @@ export function SectionCard({
   section: CollabSection;
   isMultiSection: boolean;
   isLocked: boolean;
-  isHost: boolean;
-  currentMemberId: string;
   members: { id: string; displayName: string }[];
   onAddItem: (name: string, unitPrice: number, quantity?: number) => void;
   onUpdateItem: (itemId: string, updates: { name?: string; quantity?: number; unitPrice?: number }) => void;
@@ -252,8 +248,6 @@ export function SectionCard({
               key={item.id}
               item={item}
               isLocked={isLocked}
-              isHost={isHost}
-              currentMemberId={currentMemberId}
               members={members}
               onDelete={() => onDeleteItem(item.id)}
               onUpdate={(updates) => onUpdateItem(item.id, updates)}
