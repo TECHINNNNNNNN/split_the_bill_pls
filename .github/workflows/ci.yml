@@ -54,10 +54,8 @@ jobs:
           DISCORD_CLIENT_SECRET: fake-discord-secret
           LINE_CLIENT_ID: fake-line-id
           LINE_CLIENT_SECRET: fake-line-secret
-          SPOTIFY_CLIENT_ID: fake-spotify-id
-          SPOTIFY_CLIENT_SECRET: fake-spotify-secret
-          TIKTOK_CLIENT_KEY: fake-tiktok-key
-          TIKTOK_CLIENT_SECRET: fake-tiktok-secret
+          GITLAB_CLIENT_ID: fake-gitlab-id
+          GITLAB_CLIENT_SECRET: fake-gitlab-secret
           FRONTEND_URL: http://localhost:3000
 
       - name: Deploy to Fly.io
