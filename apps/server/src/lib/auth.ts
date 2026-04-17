@@ -24,6 +24,7 @@ export const auth = betterAuth({
         line: {
             clientId: process.env.LINE_CLIENT_ID!,
             clientSecret: process.env.LINE_CLIENT_SECRET!,
+            scope: ["openid", "profile", "email"],
         },
         spotify: {
             clientId: process.env.SPOTIFY_CLIENT_ID!,
