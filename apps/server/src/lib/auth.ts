@@ -25,10 +25,16 @@ export const auth = betterAuth({
             clientId: process.env.LINE_CLIENT_ID!,
             clientSecret: process.env.LINE_CLIENT_SECRET!,
         },
-        tiktok: {
-            clientKey: process.env.TIKTOK_CLIENT_KEY!,
-            clientSecret: process.env.TIKTOK_CLIENT_SECRET!,
+        spotify: {
+            clientId: process.env.SPOTIFY_CLIENT_ID!,
+            clientSecret: process.env.SPOTIFY_CLIENT_SECRET!,
         },
+        ...(process.env.TIKTOK_CLIENT_KEY ? {
+            tiktok: {
+                clientKey: process.env.TIKTOK_CLIENT_KEY,
+                clientSecret: process.env.TIKTOK_CLIENT_SECRET!,
+            },
+        } : {}),
     },
     emailAndPassword: { enabled: true },
     plugins: [bearer()],

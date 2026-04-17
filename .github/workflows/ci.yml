@@ -54,6 +54,8 @@ jobs:
           DISCORD_CLIENT_SECRET: fake-discord-secret
           LINE_CLIENT_ID: fake-line-id
           LINE_CLIENT_SECRET: fake-line-secret
+          SPOTIFY_CLIENT_ID: fake-spotify-id
+          SPOTIFY_CLIENT_SECRET: fake-spotify-secret
           TIKTOK_CLIENT_KEY: fake-tiktok-key
           TIKTOK_CLIENT_SECRET: fake-tiktok-secret
           FRONTEND_URL: http://localhost:3000
