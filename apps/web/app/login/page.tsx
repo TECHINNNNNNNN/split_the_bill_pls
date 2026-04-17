@@ -25,10 +25,10 @@ export default function LoginPage() {
     }
   }, [isPending, session, router]);
 
-  const handleGoogleSignIn = () => {
+  const handleSocialSignIn = (provider: string) => {
     setLoading(true);
     signIn.social({
-      provider: "google",
+      provider: provider as "google",
       callbackURL: `${window.location.origin}/home`,
     });
   };
