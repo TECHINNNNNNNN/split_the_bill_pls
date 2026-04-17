@@ -26,22 +26,15 @@ export const auth = betterAuth({
             clientSecret: process.env.LINE_CLIENT_SECRET!,
             scope: ["openid", "profile", "email"],
         },
-        spotify: {
-            clientId: process.env.SPOTIFY_CLIENT_ID!,
-            clientSecret: process.env.SPOTIFY_CLIENT_SECRET!,
-            redirectURI: process.env.BETTER_AUTH_URL + "/api/auth/callback/spotify",
+        gitlab: {
+            clientId: process.env.GITLAB_CLIENT_ID!,
+            clientSecret: process.env.GITLAB_CLIENT_SECRET!,
         },
-        ...(process.env.TIKTOK_CLIENT_KEY ? {
-            tiktok: {
-                clientKey: process.env.TIKTOK_CLIENT_KEY,
-                clientSecret: process.env.TIKTOK_CLIENT_SECRET!,
-            },
-        } : {}),
     },
     account: {
         accountLinking: {
             enabled: true,
-            trustedProviders: ["google", "github", "discord", "line", "spotify"],
+            trustedProviders: ["google", "github", "discord", "line", "gitlab"],
         },
     },
     emailAndPassword: { enabled: true },
