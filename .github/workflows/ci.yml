@@ -48,6 +48,14 @@ jobs:
           BETTER_AUTH_URL: http://localhost:3001
           GOOGLE_CLIENT_ID: fake-client-id
           GOOGLE_CLIENT_SECRET: fake-client-secret
+          GITHUB_CLIENT_ID: fake-github-id
+          GITHUB_CLIENT_SECRET: fake-github-secret
+          DISCORD_CLIENT_ID: fake-discord-id
+          DISCORD_CLIENT_SECRET: fake-discord-secret
+          LINE_CLIENT_ID: fake-line-id
+          LINE_CLIENT_SECRET: fake-line-secret
+          TIKTOK_CLIENT_KEY: fake-tiktok-key
+          TIKTOK_CLIENT_SECRET: fake-tiktok-secret
           FRONTEND_URL: http://localhost:3000
 
       - name: Deploy to Fly.io

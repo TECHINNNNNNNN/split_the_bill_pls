@@ -12,7 +12,23 @@ export const auth = betterAuth({
         google: {
             clientId: process.env.GOOGLE_CLIENT_ID!,
             clientSecret: process.env.GOOGLE_CLIENT_SECRET!,
-        }
+        },
+        github: {
+            clientId: process.env.GITHUB_CLIENT_ID!,
+            clientSecret: process.env.GITHUB_CLIENT_SECRET!,
+        },
+        discord: {
+            clientId: process.env.DISCORD_CLIENT_ID!,
+            clientSecret: process.env.DISCORD_CLIENT_SECRET!,
+        },
+        line: {
+            clientId: process.env.LINE_CLIENT_ID!,
+            clientSecret: process.env.LINE_CLIENT_SECRET!,
+        },
+        tiktok: {
+            clientKey: process.env.TIKTOK_CLIENT_KEY!,
+            clientSecret: process.env.TIKTOK_CLIENT_SECRET!,
+        },
     },
     emailAndPassword: { enabled: true },
     plugins: [bearer()],
