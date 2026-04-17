@@ -29,7 +29,7 @@ export const auth = betterAuth({
         spotify: {
             clientId: process.env.SPOTIFY_CLIENT_ID!,
             clientSecret: process.env.SPOTIFY_CLIENT_SECRET!,
-            scope: ["user-read-email", "user-read-private"],
+            redirectURI: process.env.BETTER_AUTH_URL + "/api/auth/callback/spotify",
         },
         ...(process.env.TIKTOK_CLIENT_KEY ? {
             tiktok: {
