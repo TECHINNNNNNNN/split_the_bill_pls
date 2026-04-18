@@ -121,6 +121,9 @@ export const rooms = pgTable("rooms", {
   inviteCode: text("invite_code").unique().notNull(),
   promptpayId: text("promptpay_id"),
   promptpayType: text("promptpay_type"),          // 'phone' or 'national_id'
+  paymentMethod: text("payment_method"),           // 'promptpay' | 'bank' | 'other'
+  bankAccountNumber: text("bank_account_number"),
+  paymentNote: text("payment_note"),
   status: roomStatusEnum("status").default("waiting").notNull(),
   createdByUserId: text("created_by_user_id").references(() => user.id, { onDelete: "set null" }),
   groupId: uuid("group_id").references(() => groups.id, { onDelete: "set null" }),
