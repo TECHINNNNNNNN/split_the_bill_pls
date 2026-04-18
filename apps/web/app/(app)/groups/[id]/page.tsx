@@ -283,9 +283,7 @@ export default function GroupDetailPage() {
       )}
 
       {/* Members */}
-      <section
-        className="mb-8"
-      >
+      <section className="mb-8 animate-section" style={{ animationDelay: "100ms" }}>
         <div className="mb-3 flex items-center gap-2">
           <svg className="h-4 w-4 text-brand-300" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
             <path d="M16 21V19C16 16.79 13.76 15 11 15H5C2.24 15 0 16.79 0 19V21" />
