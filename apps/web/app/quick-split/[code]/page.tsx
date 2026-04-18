@@ -271,7 +271,7 @@ export default function RoomLobbyPage({
                 </motion.span>
               </AnimatePresence>
             </div>
-            <span className="text-xs font-normal text-brand-300">/{expectedCount}</span>
+            <span className="font-heading text-lg font-normal text-brand-300">/{expectedCount}</span>
           </div>
           <span className="text-[9px] tracking-wider text-brand-300">JOINED</span>
         </div>
