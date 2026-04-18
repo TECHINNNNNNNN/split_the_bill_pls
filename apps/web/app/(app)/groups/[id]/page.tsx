@@ -146,10 +146,7 @@ export default function GroupDetailPage() {
       </div>
 
       {/* Group identity — minimal, typographic */}
-      <motion.div
-        initial={{ opacity: 0, y: 12 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.05 }}
+      <div
         className="mb-6"
       >
         {/* Name + avatars on same line */}
@@ -198,9 +195,7 @@ export default function GroupDetailPage() {
 
       {/* Settings Panel */}
       {showSettings && isCreator && (
-        <motion.div
-          initial={{ opacity: 0, height: 0 }}
-          animate={{ opacity: 1, height: "auto" }}
+        <div
           className="mb-4 overflow-hidden rounded-2xl border border-red-200 bg-red-50 p-4"
         >
           <p className="text-xs font-bold uppercase tracking-[2px] text-red-400">Danger Zone</p>
@@ -219,10 +214,7 @@ export default function GroupDetailPage() {
 
       {/* Start Split CTA */}
       {!showSplitPicker && group.members.length > 1 && (
-        <motion.button
-          initial={{ opacity: 0, y: 8 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.1 }}
+        <button
           onClick={() => {
             setSelectedIds(new Set(group.members.map(m => m.id)));
             setShowSplitPicker(true);
@@ -238,9 +230,7 @@ export default function GroupDetailPage() {
 
       {/* Member Picker for Split */}
       {showSplitPicker && (
-        <motion.div
-          initial={{ opacity: 0, y: 8 }}
-          animate={{ opacity: 1, y: 0 }}
+        <div
           className="mb-6 rounded-2xl border border-brand-200 bg-cream-light p-4 shadow-sm"
         >
           <div className="mb-3 flex items-center justify-between">
@@ -295,10 +285,7 @@ export default function GroupDetailPage() {
       )}
 
       {/* Members */}
-      <motion.section
-        initial={{ opacity: 0, y: 12 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.15 }}
+      <section
         className="mb-8"
       >
         <div className="mb-3 flex items-center gap-2">
