@@ -146,9 +146,7 @@ export default function GroupDetailPage() {
       </div>
 
       {/* Group identity — minimal, typographic */}
-      <div
-        className="mb-6"
-      >
+      <div className="mb-6 animate-section" style={{ animationDelay: "50ms" }}>
         {/* Name + avatars on same line */}
         <div className="flex items-center gap-3">
           <h1 className="font-caveat text-4xl font-bold">{group.name}</h1>
