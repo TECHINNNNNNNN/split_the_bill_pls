@@ -9,7 +9,7 @@ import { useDeleteGroupMember, useDeleteGroup, useStartGroupSplit } from "@/lib/
 import { useGroupSocket } from "@/lib/hooks/use-group-socket";
 import { toast } from "sonner";
 import { Skeleton } from "@/components/skeleton";
-import { motion } from "motion/react";
+
 
 const COLORS = ["#8B6914", "#B08A56", "#6D8B5E", "#C49A3C", "#9B7A6E", "#6A8BA0", "#C47A5A", "#A06B7A"];
 
@@ -121,7 +121,7 @@ export default function GroupDetailPage() {
   return (
     <div>
       {/* Back + Settings */}
-      <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="mb-4 flex items-center justify-between">
+      <div className="mb-4 flex animate-item-fade items-center justify-between">
         <button
           onClick={() => router.push("/home")}
           className="flex items-center gap-1 text-sm text-brand-400 hover:text-brand-700"
@@ -143,7 +143,7 @@ export default function GroupDetailPage() {
             {showSettings ? "Done" : "Settings"}
           </button>
         )}
-      </motion.div>
+      </div>
 
       {/* Group identity — minimal, typographic */}
       <motion.div
@@ -194,7 +194,7 @@ export default function GroupDetailPage() {
             {group.inviteCode}
           </button>
         </div>
-      </motion.div>
+      </div>
 
       {/* Settings Panel */}
       {showSettings && isCreator && (
@@ -214,7 +214,7 @@ export default function GroupDetailPage() {
           >
             {deleteGroup.isPending ? "Deleting..." : "Delete Group"}
           </button>
-        </motion.div>
+        </div>
       )}
 
       {/* Start Split CTA */}
@@ -233,7 +233,7 @@ export default function GroupDetailPage() {
             <path d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
           </svg>
           Start a Split
-        </motion.button>
+        </button>
       )}
 
       {/* Member Picker for Split */}
@@ -291,7 +291,7 @@ export default function GroupDetailPage() {
               Cancel
             </button>
           </div>
-        </motion.div>
+        </div>
       )}
 
       {/* Members */}
@@ -345,7 +345,7 @@ export default function GroupDetailPage() {
             ))}
           </div>
         )}
-      </motion.section>
+      </section>
 
       {/* Footer tagline */}
       <div className="flex justify-center pb-4">
