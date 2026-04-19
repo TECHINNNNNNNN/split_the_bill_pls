@@ -425,13 +425,6 @@ export default function BillDetailsPage({
 
       {/* Header */}
       <div>
-        <button
-          type="button"
-          onClick={() => router.replace(`/quick-split/${code}`)}
-          className="text-sm text-brand-400 hover:text-brand-700"
-        >
-          Back
-        </button>
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
             <h1 className="font-caveat text-3xl font-bold md:text-4xl">
