@@ -246,6 +246,7 @@ export default function PaymentMethodPage({
           onClick={handleContinue}
           disabled={
             (activeTab === "promptpay" && !displayPromptpayId.trim()) ||
+            (activeTab === "bank" && !bankAccountNumber.trim()) ||
             setPaymentMethod.isPending
           }
           className="rounded-full bg-brand-700 px-10 py-3 text-sm font-medium text-cream-light transition-all hover:bg-brand-800 active:scale-[0.98] disabled:opacity-40 md:text-base"
