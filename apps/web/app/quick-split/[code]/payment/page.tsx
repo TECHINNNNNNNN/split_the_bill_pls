@@ -33,7 +33,6 @@ export default function PaymentMethodPage({
   const payments = room?.payments ?? [];
 
   const setPaymentMethod = useSetPaymentMethod(roomId);
-  const advanceStatus = useAdvanceRoomStatus(roomId);
   const unfinalizeRoom = useUnfinalizeRoom(roomId);
 
   const { data: session } = useSession();
