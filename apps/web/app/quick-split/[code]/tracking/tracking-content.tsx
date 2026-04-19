@@ -1192,11 +1192,20 @@ function PaymentTrackingContent({
                             onSuccess: (data: { delivery?: { delivered: boolean; noSub: boolean; channel: string | null } }) => {
                               const d = data.delivery;
                               if (d?.noSub) {
-                                toast(`${payment.member?.displayName} hasn't enabled notifications`, { duration: 4000 });
+                                toast(`${payment.member?.displayName} hasn't enabled notifications`, {
+                                  duration: 4000,
+                                  icon: <svg className="h-4 w-4 text-brand-300" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"><path d="M13.73 21a2 2 0 01-3.46 0M18.63 13A17.89 17.89 0 0118 8M6.26 6.26L2 2m4.73 4.73A6 6 0 0112 2a6 6 0 016 6c0 1.09-.11 2.17-.34 3.22M6.26 6.26C6.1 6.82 6 7.4 6 8a15.64 15.64 0 001.22 5.63M6.26 6.26l10.38 10.38M18 8a15.64 15.64 0 01.63 5M2 2l20 20" /><path d="M7.22 13.63L3 18h18l-2.64-3.47" /></svg>,
+                                });
                               } else if (d?.delivered) {
-                                toast(`Reminder sent to ${payment.member?.displayName}`, { duration: 3000 });
+                                toast(`Reminder sent to ${payment.member?.displayName}`, {
+                                  duration: 3000,
+                                  icon: <svg className="h-4 w-4 text-emerald-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round"><path d="M13.73 21a2 2 0 01-3.46 0" /><path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9" /><path d="M5 19l14-14" className="hidden" /></svg>,
+                                });
                               } else {
-                                toast(`Couldn't reach ${payment.member?.displayName}`, { duration: 3000 });
+                                toast.error(`Couldn't reach ${payment.member?.displayName}`, {
+                                  duration: 3000,
+                                  icon: <svg className="h-4 w-4 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10" /><path d="M15 9l-6 6M9 9l6 6" /></svg>,
+                                });
                               }
                               const expiry = Date.now() + 5 * 60 * 1000;
                               setNudgeCooldowns((prev) => ({
