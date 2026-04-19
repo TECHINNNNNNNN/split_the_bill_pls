@@ -65,8 +65,11 @@ export const finalizeRoomSchema = z.object({
 // Either items or sections must be provided (validated server-side)
 
 export const setRoomPaymentMethodSchema = z.object({
-  promptpayId: z.string().min(10).max(13),
-  promptpayType: promptpayTypeSchema,
+  paymentMethod: z.enum(["promptpay", "bank", "other"]),
+  promptpayId: z.string().min(10).max(13).optional(),
+  promptpayType: promptpayTypeSchema.optional(),
+  bankAccountNumber: z.string().min(1).optional(),
+  paymentNote: z.string().min(1).optional(),
 })
 
 export const claimRoomPaymentSchema = z.object({
