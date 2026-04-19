@@ -7,6 +7,7 @@ import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { motion } from "motion/react";
 import { Skeleton } from "@/components/skeleton";
+import { HandwritingTitle } from "@/components/handwriting-title";
 
 const EASE: [number, number, number, number] = [0.25, 0.46, 0.45, 0.94];
 const stagger = (i: number) => ({
