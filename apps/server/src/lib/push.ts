@@ -61,14 +61,20 @@ async function sendToSubscription(
 
 // ─── Send to all subscriptions for a member in a room ───
 
+export interface PushDeliveryResult {
+  sent: number
+  failed: number
+  noSub: boolean
+}
+
 export async function sendPushToMember(
   memberId: string,
   roomId: string,
   payload: PushPayload,
-): Promise<void> {
+): Promise<PushDeliveryResult> {
   if (!isConfigured) {
     console.warn("[push] Skipping — VAPID not configured")
-    return
+    return { sent: 0, failed: 0, noSub: true }
   }
 
   try {
@@ -81,12 +87,21 @@ export async function sendPushToMember(
 
     console.log(`[push] Found ${subs.length} subscription(s) for member=${memberId} room=${roomId}`)
 
-    for (const sub of subs) {
-      sendToSubscription(sub, payload)
-        .then((ok) => console.log(`[push] Sent to ${sub.id}: ${ok}`))
-        .catch((err) => console.warn(`[push] Error sending to ${sub.id}:`, err))
+    if (subs.length === 0) {
+      return { sent: 0, failed: 0, noSub: true }
     }
+
+    let sent = 0
+    let failed = 0
+    for (const sub of subs) {
+      const ok = await sendToSubscription(sub, payload)
+      if (ok) { sent++; console.log(`[push] Sent to ${sub.id}: true`) }
+      else { failed++; console.log(`[push] Sent to ${sub.id}: false`) }
+    }
+
+    return { sent, failed, noSub: false }
   } catch (err) {
     console.warn(`[push] Failed to query subscriptions for member ${memberId}:`, err)
+    return { sent: 0, failed: 1, noSub: false }
   }
 }
