@@ -445,7 +445,7 @@ function PaymentTrackingContent({
         <h1 className="font-caveat text-3xl font-bold md:text-4xl">
           {room.name || "Payment Tracking"}
         </h1>
-        <SyncIndicator />
+        <SyncIndicator roomCode={code} />
       </div>
       <p className="mt-1 font-serif text-sm italic text-brand-400">
         {isHost ? "Track who has paid." : "See how much you owe."}
