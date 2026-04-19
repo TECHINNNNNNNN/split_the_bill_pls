@@ -434,14 +434,7 @@ function PaymentTrackingContent({
   return (
     <div className="flex min-h-svh flex-col px-6 py-6 md:mx-auto md:max-w-lg md:py-12">
       {/* Header */}
-      <button
-        type="button"
-        onClick={() => router.replace("/home")}
-        className="self-start text-sm text-brand-400 hover:text-brand-700"
-      >
-        Back
-      </button>
-      <div className="mt-2 flex items-center gap-2">
+      <div className="flex items-center gap-2">
         <h1 className="font-caveat text-3xl font-bold md:text-4xl">
           {room.name || "Payment Tracking"}
         </h1>
