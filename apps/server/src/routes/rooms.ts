@@ -104,30 +104,34 @@ async function sendNudgeToPayment(
   paidCount: number,
   totalCount: number,
   tierName: string,
-) {
+): Promise<{ channel: "line" | "web-push" | null; delivered: boolean; noSub: boolean }> {
   const amount = parseFloat(payment.amount)
   let channel: "line" | "web-push" | null = null
+  let delivered = false
+  let noSub = false
 
   // LINE first
   if (payment.member.lineUserId) {
     const flex = buildNudgeFlex(host.displayName, amount, paidCount, totalCount, trackingUrl)
     const sent = await sendLineMessage(payment.member.lineUserId, [flex])
-    if (sent) channel = "line"
+    if (sent) { channel = "line"; delivered = true }
   }
 
   // Web Push fallback
   if (!channel) {
-    await sendPushToMember(payment.memberId, room.id, {
+    const result = await sendPushToMember(payment.memberId, room.id, {
       title: "PlaDuk — Nudge!",
       body: `${host.displayName} is waiting for your payment of ฿${amount.toFixed(2)}`,
       url: `/quick-split/${room.inviteCode}/tracking`,
       tag: `nudge-${payment.id}`,
     })
     channel = "web-push"
+    delivered = result.sent > 0
+    noSub = result.noSub
   }
 
   // Log to prevent rapid re-sends
-  if (channel) {
+  if (channel && delivered) {
     await db.insert(pushNotificationLog).values({
       paymentId: payment.id,
       tier: tierName,
@@ -135,6 +139,8 @@ async function sendNudgeToPayment(
     })
     console.log(`[nudge] ✓ Sent ${tierName} via ${channel} to ${payment.member.displayName} (room ${room.inviteCode})`)
   }
+
+  return { channel, delivered, noSub }
 }
 
 // ═════════════════════════════════════════════
