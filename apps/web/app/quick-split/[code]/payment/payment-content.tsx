@@ -156,7 +156,7 @@ export default function PaymentMethodPage({
         <h1 className="font-caveat text-3xl font-bold md:text-4xl">
           Payment Method
         </h1>
-        <SyncIndicator />
+        <SyncIndicator roomCode={code} />
       </div>
       <p className="mt-1 font-serif text-sm italic text-brand-400">
         How should people pay you?
