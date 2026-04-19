@@ -530,25 +530,53 @@ function PaymentTrackingContent({
 
         return (
           <>
-            {/* QR code — hide once confirmed */}
-            {qrPayload && (
+            {/* Payment info — varies by method */}
+            {status !== "confirmed" && (
               <div className="mt-4 flex flex-col items-center rounded-2xl border border-brand-200 bg-cream-light p-6 shadow-sm">
-                <p className="font-serif text-sm italic text-brand-400">
-                  Scan to pay {hostMember?.displayName}
-                </p>
-                <div className="mt-4 rounded-2xl border border-brand-100 bg-cream p-4">
-                  <QRCodeSVG
-                    value={qrPayload}
-                    size={200}
-                    fgColor="#3d2810"
-                    bgColor="transparent"
-                    level="M"
-                  />
-                </div>
-                <Baht value={myAmount} className="mt-4 font-caveat text-3xl font-bold" />
-                <p className="mt-1 text-xs text-brand-300">
-                  via PromptPay · {room.promptpayId}
-                </p>
+                {(!room.paymentMethod || room.paymentMethod === "promptpay") && qrPayload ? (
+                  <>
+                    <p className="font-heading text-sm text-brand-400">
+                      Scan to pay {hostMember?.displayName}
+                    </p>
+                    <div className="mt-4 rounded-2xl border border-brand-100 bg-cream p-4">
+                      <QRCodeSVG
+                        value={qrPayload}
+                        size={200}
+                        fgColor="#3d2810"
+                        bgColor="transparent"
+                        level="M"
+                      />
+                    </div>
+                    <Baht value={myAmount} className="mt-4 font-caveat text-3xl font-bold" />
+                    <p className="mt-1 text-xs text-brand-300">
+                      via PromptPay · {room.promptpayId}
+                    </p>
+                  </>
+                ) : room.paymentMethod === "bank" ? (
+                  <>
+                    <p className="font-heading text-sm text-brand-400">
+                      Transfer to {hostMember?.displayName}
+                    </p>
+                    <div className="mt-3 rounded-xl border border-brand-100 bg-cream px-5 py-4 text-center">
+                      <p className="text-xs text-brand-300">Account Number</p>
+                      <p className="mt-1 font-heading text-2xl font-bold tracking-wider">{room.bankAccountNumber}</p>
+                    </div>
+                    <Baht value={myAmount} className="mt-4 font-caveat text-3xl font-bold" />
+                    <p className="mt-1 text-xs text-brand-300">
+                      via Bank Transfer
+                    </p>
+                  </>
+                ) : room.paymentMethod === "other" ? (
+                  <>
+                    <p className="font-heading text-sm text-brand-400">
+                      Pay {hostMember?.displayName}
+                    </p>
+                    <div className="mt-3 rounded-xl border border-brand-100 bg-cream px-5 py-4 text-center">
+                      <p className="text-sm text-brand-600">{room.paymentNote}</p>
+                    </div>
+                    <Baht value={myAmount} className="mt-4 font-caveat text-3xl font-bold" />
+                  </>
+                ) : null}
               </div>
             )}
 
