@@ -372,9 +372,9 @@ export function HandwritingTitle({ onComplete }: HandwritingTitleProps) {
           penDot.style.transition = "opacity 0.3s ease-out";
           penDot.setAttribute("opacity", "0");
 
-          await sleep(200);
-          await animateUnderline(650);
-          await sleep(300);
+          await sleep(100);
+          await animateUnderline(350);
+          await sleep(150);
 
           onComplete?.();
         })();
