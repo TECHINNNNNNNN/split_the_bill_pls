@@ -21,7 +21,7 @@ export default function LoginPage() {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   const ANIM_KEY = "pladuk_handwriting_played";
-  const [showHandwriting, setShowHandwriting] = useState(() => {
+  const [showHandwriting] = useState(() => {
     if (typeof window === "undefined") return false;
     try { return !localStorage.getItem(ANIM_KEY); } catch { return false; }
   });
@@ -114,7 +114,11 @@ export default function LoginPage() {
       <motion.div
         {...stagger(1)}
         className="mb-8 h-[1.5px] w-14"
-        style={{ backgroundColor: "#C4956A" }}
+        style={{
+          backgroundColor: "#C4956A",
+          opacity: showHandwriting && !animDone ? 0 : undefined,
+          transition: "opacity 0.5s",
+        }}
       />
 
       {/* Title — handwriting animation on first visit, static on return */}
@@ -126,7 +130,7 @@ export default function LoginPage() {
       ) : (
         <motion.h1
           {...stagger(2)}
-          className="font-heading text-5xl font-semibold tracking-tight md:text-6xl"
+          className="font-caveat text-6xl font-bold md:text-7xl"
           style={{ color: "#4A3C2A" }}
         >
           PlaDuk
@@ -168,6 +172,10 @@ export default function LoginPage() {
       <motion.div
         {...stagger(5)}
         className="mt-10 flex flex-col items-center gap-5"
+        style={{
+          opacity: showHandwriting && !animDone ? 0 : undefined,
+          transition: "opacity 0.7s",
+        }}
       >
         <Link
           href="/quick-split"
