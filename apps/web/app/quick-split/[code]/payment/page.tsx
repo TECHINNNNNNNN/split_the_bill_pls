@@ -192,16 +192,32 @@ export default function PaymentMethodPage({
 
       {activeTab === "bank" && (
         <div className="mt-6 rounded-2xl border border-brand-200 bg-cream-light p-4">
-          <p className="font-caveat text-base text-brand-400">
-            Bank transfer details coming soon. For now, share your bank info with your friends directly.
+          <p className="font-caveat text-lg font-medium">Bank Account Number</p>
+          <input
+            type="text"
+            value={bankAccountNumber}
+            onChange={(e) => setBankAccountNumber(e.target.value)}
+            placeholder="e.g. 123-4-56789-0"
+            className="mt-2 w-full rounded-xl border border-brand-200 bg-cream px-4 py-3 text-sm placeholder:text-brand-300 focus:border-brand-400 focus:outline-none"
+          />
+          <p className="mt-2 text-xs text-brand-300">
+            Members will see this number and transfer via their banking app
           </p>
         </div>
       )}
 
       {activeTab === "other" && (
         <div className="mt-6 rounded-2xl border border-brand-200 bg-cream-light p-4">
-          <p className="font-caveat text-base text-brand-400">
-            You can collect payment however you prefer — cash, transfer, etc.
+          <p className="font-caveat text-lg font-medium">Payment Instructions</p>
+          <textarea
+            value={paymentNote}
+            onChange={(e) => setPaymentNote(e.target.value)}
+            placeholder="e.g. Pay me cash at lunch, Venmo @boom123..."
+            rows={3}
+            className="mt-2 w-full resize-none rounded-xl border border-brand-200 bg-cream px-4 py-3 text-sm placeholder:text-brand-300 focus:border-brand-400 focus:outline-none"
+          />
+          <p className="mt-2 text-xs text-brand-300">
+            Tell your friends how to pay you
           </p>
         </div>
       )}
