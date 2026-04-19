@@ -437,7 +437,7 @@ export default function BillDetailsPage({
             <h1 className="font-caveat text-3xl font-bold md:text-4xl">
               Bill Details
             </h1>
-            <SyncIndicator />
+            <SyncIndicator roomCode={code} />
             <PresenceAvatars onlineUsers={onlineUsers} members={members} currentMemberId={currentMemberId} />
           </div>
           {!isLocked && !isMultiSection && (
