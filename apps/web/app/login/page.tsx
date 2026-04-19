@@ -20,6 +20,12 @@ export default function LoginPage() {
   const { data: session, isPending } = useSession();
   const router = useRouter();
   const [loading, setLoading] = useState(false);
+  const ANIM_KEY = "pladuk_handwriting_played";
+  const [showHandwriting, setShowHandwriting] = useState(() => {
+    if (typeof window === "undefined") return false;
+    try { return !localStorage.getItem(ANIM_KEY); } catch { return false; }
+  });
+  const [animDone, setAnimDone] = useState(!showHandwriting);
 
   useEffect(() => {
     if (!isPending && session) {
@@ -111,20 +117,31 @@ export default function LoginPage() {
         style={{ backgroundColor: "#C4956A" }}
       />
 
-      {/* Title */}
-      <motion.h1
-        {...stagger(2)}
-        className="font-heading text-5xl font-semibold tracking-tight md:text-6xl"
-        style={{ color: "#4A3C2A" }}
-      >
-        PlaDuk
-      </motion.h1>
+      {/* Title — handwriting animation on first visit, static on return */}
+      {showHandwriting ? (
+        <HandwritingTitle onComplete={() => {
+          setAnimDone(true);
+          try { localStorage.setItem(ANIM_KEY, "1"); } catch {}
+        }} />
+      ) : (
+        <motion.h1
+          {...stagger(2)}
+          className="font-heading text-5xl font-semibold tracking-tight md:text-6xl"
+          style={{ color: "#4A3C2A" }}
+        >
+          PlaDuk
+        </motion.h1>
+      )}
 
       {/* Subtitle */}
       <motion.p
         {...stagger(3)}
         className="mt-5 font-heading text-sm tracking-[0.18em] md:text-base"
-        style={{ color: "#C4956A" }}
+        style={{
+          color: "#C4956A",
+          opacity: showHandwriting && !animDone ? 0 : undefined,
+          transition: "opacity 0.5s",
+        }}
       >
         split bills, not friendships
       </motion.p>
@@ -133,7 +150,11 @@ export default function LoginPage() {
       <motion.p
         {...stagger(4)}
         className="mt-2 font-caveat text-base font-medium md:text-lg"
-        style={{ color: "#4A3C2A" }}
+        style={{
+          color: "#4A3C2A",
+          opacity: showHandwriting && !animDone ? 0 : undefined,
+          transition: "opacity 0.5s",
+        }}
       >
         ~ PlaDukKhlongToei ~
       </motion.p>
