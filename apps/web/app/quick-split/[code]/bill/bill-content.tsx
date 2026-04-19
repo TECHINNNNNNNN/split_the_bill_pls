@@ -69,6 +69,27 @@ export default function BillDetailsPage({
     return () => window.removeEventListener("beforeunload", handler);
   }, []);
 
+  // ─── Clipboard paste to OCR (same pipeline as file upload) ───
+  useEffect(() => {
+    const handlePaste = (e: ClipboardEvent) => {
+      const items = e.clipboardData?.items;
+      if (!items) return;
+      for (const item of items) {
+        if (item.type.startsWith("image/")) {
+          const file = item.getAsFile();
+          if (file) {
+            e.preventDefault();
+            // Same function as file picker — compresses, converts to base64, sends to API
+            handleScanReceipt(file, sections[0]?.id);
+          }
+          break;
+        }
+      }
+    };
+    document.addEventListener("paste", handlePaste);
+    return () => document.removeEventListener("paste", handlePaste);
+  });
+
   // ─── Collaborative editing via PartyKit WebSocket ───
   const {
     socket,
