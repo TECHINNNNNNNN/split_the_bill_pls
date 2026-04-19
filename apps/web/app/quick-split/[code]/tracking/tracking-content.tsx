@@ -1207,13 +1207,15 @@ function PaymentTrackingContent({
                                   icon: <svg className="h-4 w-4 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10" /><path d="M15 9l-6 6M9 9l6 6" /></svg>,
                                 });
                               }
-                              const expiry = Date.now() + 5 * 60 * 1000;
-                              setNudgeCooldowns((prev) => ({
-                                ...prev,
-                                [payment.memberId]: expiry,
-                              }));
-                              // Also block "nudge all"
-                              setGlobalNudgeCooldown(expiry);
+                              // Only start cooldown if the nudge actually delivered
+                              if (d?.delivered) {
+                                const expiry = Date.now() + 5 * 60 * 1000;
+                                setNudgeCooldowns((prev) => ({
+                                  ...prev,
+                                  [payment.memberId]: expiry,
+                                }));
+                                setGlobalNudgeCooldown(expiry);
+                              }
                             },
                             onError: (err) => {
                               if (err.message.includes("cooldown")) {
