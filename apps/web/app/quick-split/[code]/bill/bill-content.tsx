@@ -23,6 +23,7 @@ import type { SectionBreakdown } from "@/components/bill/breakdown-modal";
 import { VoiceWaveform } from "@/components/voice-waveform";
 import { Skeleton } from "@/components/skeleton";
 import { Baht } from "@/components/baht";
+import { SyncIndicator } from "@/components/sync-indicator";
 
 // ─── Main Page ───
 
@@ -436,6 +437,7 @@ export default function BillDetailsPage({
             <h1 className="font-caveat text-3xl font-bold md:text-4xl">
               Bill Details
             </h1>
+            <SyncIndicator />
             <PresenceAvatars onlineUsers={onlineUsers} members={members} currentMemberId={currentMemberId} />
           </div>
           {!isLocked && !isMultiSection && (

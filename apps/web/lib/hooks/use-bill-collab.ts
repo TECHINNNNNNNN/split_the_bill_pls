@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import usePartySocket from "partysocket/react";
 import { useQueryClient } from "@tanstack/react-query";
 
@@ -47,11 +47,14 @@ export function useBillCollab(
 ) {
   const [sections, setSections] = useState<CollabSection[]>([]);
   const [isLocked, setIsLocked] = useState(false);
+  const [isConnected, setIsConnected] = useState(false);
   const queryClient = useQueryClient();
 
   const socket = usePartySocket({
     host: process.env.NEXT_PUBLIC_PARTYKIT_HOST!,
     room: roomCode,
+    onOpen() { setIsConnected(true); },
+    onClose() { setIsConnected(false); },
     onMessage(event) {
       try {
         const msg: ServerMessage = JSON.parse(event.data);
@@ -96,6 +99,27 @@ export function useBillCollab(
       }
     },
   });
+
+  // Layer 1: When page becomes visible (phone wakes, tab switches back),
+  // request fresh state from PartyKit + refetch React Query data.
+  // This ensures the user always sees the latest state.
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === "visible") {
+        // Request fresh state from PartyKit
+        try {
+          socket.send(JSON.stringify({ type: "state:request" }));
+        } catch {
+          // Socket might not be ready yet — partysocket will reconnect
+        }
+        // Also refetch API data (room status, payments, etc.)
+        queryClient.invalidateQueries({ queryKey: ["rooms"] });
+        queryClient.invalidateQueries({ queryKey: ["room"] });
+      }
+    };
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+    return () => document.removeEventListener("visibilitychange", handleVisibilityChange);
+  }, [socket, queryClient]);
 
   const send = useCallback(
     (msg: Record<string, unknown>) => {
@@ -209,6 +233,7 @@ export function useBillCollab(
     socket,
     sections,
     isLocked,
+    isConnected,
     addSection,
     updateSection,
     deleteSection,

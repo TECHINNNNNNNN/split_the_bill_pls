@@ -31,8 +31,8 @@ export function getRoomRedirect(
       break;
     case "payment":
       // Host can be on payment (setting PromptPay) OR tracking (monitoring payments)
-      // Members can only be on tracking
-      allowed = isHost ? [payment, tracking] : [tracking];
+      // Members can be on bill (read-only, while host sets up payment) OR tracking
+      allowed = isHost ? [payment, tracking] : [bill, tracking];
       fallback = isHost ? payment : tracking;
       break;
     case "settled":

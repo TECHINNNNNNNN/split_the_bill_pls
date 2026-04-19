@@ -15,6 +15,7 @@ import { useLiff } from "@/lib/hooks/use-liff";
 import { useWakeLock } from "@/lib/hooks/use-wake-lock";
 import { buildInviteFlexMessage } from "@/lib/liff-messages";
 import { Skeleton } from "@/components/skeleton";
+import { SyncIndicator } from "@/components/sync-indicator";
 
 // Warm avatar colors for member circles
 const AVATAR_COLORS = [
@@ -206,7 +207,10 @@ export default function RoomLobbyPage({
 
       <div className="flex w-full max-w-sm flex-col items-center">
         {/* Room name + invite code */}
-        <h1 className="font-caveat text-2xl font-bold md:text-3xl">{roomDisplayName}</h1>
+        <div className="flex items-center gap-2">
+          <h1 className="font-caveat text-2xl font-bold md:text-3xl">{roomDisplayName}</h1>
+          <SyncIndicator />
+        </div>
         <div className="mt-1 flex items-center gap-2">
           <span className="rounded-full bg-brand-100 px-3 py-0.5 text-[11px] font-medium tracking-wider text-brand-500">
             {room.inviteCode}

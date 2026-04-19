@@ -26,6 +26,7 @@ import { StoryCard } from "@/components/bill/story-card";
 import { statusConfig, bankNames } from "@/components/tracking/constants";
 import { fireAllPaidConfetti } from "@/lib/confetti";
 import { Skeleton } from "@/components/skeleton";
+import { SyncIndicator } from "@/components/sync-indicator";
 import { useDynamicFavicon } from "@/lib/hooks/use-dynamic-favicon";
 import { Baht } from "@/components/baht";
 import { CelebrationOverlay } from "@/components/tracking/celebration-overlay";
@@ -440,9 +441,12 @@ function PaymentTrackingContent({
       >
         Back
       </button>
-      <h1 className="mt-2 font-caveat text-3xl font-bold md:text-4xl">
-        {room.name || "Payment Tracking"}
-      </h1>
+      <div className="mt-2 flex items-center gap-2">
+        <h1 className="font-caveat text-3xl font-bold md:text-4xl">
+          {room.name || "Payment Tracking"}
+        </h1>
+        <SyncIndicator />
+      </div>
       <p className="mt-1 font-serif text-sm italic text-brand-400">
         {isHost ? "Track who has paid." : "See how much you owe."}
       </p>

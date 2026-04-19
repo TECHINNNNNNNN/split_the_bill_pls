@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect } from "react";
 import usePartySocket from "partysocket/react";
 import { useQueryClient } from "@tanstack/react-query";
 
@@ -29,7 +30,7 @@ export function useRoomSocket(
 ) {
   const queryClient = useQueryClient();
 
-  usePartySocket({
+  const socket = usePartySocket({
     host: process.env.NEXT_PUBLIC_PARTYKIT_HOST!,
     room: roomCode,
     onMessage(event) {
@@ -64,4 +65,16 @@ export function useRoomSocket(
       }
     },
   });
+
+  // Wake-up resync: when the page becomes visible again, refetch all data
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === "visible") {
+        queryClient.invalidateQueries({ queryKey: ["rooms"] });
+        queryClient.invalidateQueries({ queryKey: ["room"] });
+      }
+    };
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+    return () => document.removeEventListener("visibilitychange", handleVisibilityChange);
+  }, [queryClient]);
 }
