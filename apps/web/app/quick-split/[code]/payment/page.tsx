@@ -41,6 +41,8 @@ export default function PaymentMethodPage({
 
   const [activeTab, setActiveTab] = useState<PaymentTab>("promptpay");
   const [promptpayId, setPromptpayId] = useState("");
+  const [bankAccountNumber, setBankAccountNumber] = useState("");
+  const [paymentNote, setPaymentNote] = useState("");
 
   const pathname = usePathname();
   const currentMemberId = codeData?.currentMemberId ?? "";
