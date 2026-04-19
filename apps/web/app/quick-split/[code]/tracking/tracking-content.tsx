@@ -1189,8 +1189,15 @@ function PaymentTrackingContent({
                         type="button"
                         onClick={() => {
                           nudgeMember.mutate(payment.memberId, {
-                            onSuccess: () => {
-                              toast(`Nudged ${payment.member?.displayName}`, { icon: "🔔", duration: 3000 });
+                            onSuccess: (data: { delivery?: { delivered: boolean; noSub: boolean; channel: string | null } }) => {
+                              const d = data.delivery;
+                              if (d?.noSub) {
+                                toast(`${payment.member?.displayName} hasn't enabled notifications`, { duration: 4000 });
+                              } else if (d?.delivered) {
+                                toast(`Reminder sent to ${payment.member?.displayName}`, { duration: 3000 });
+                              } else {
+                                toast(`Couldn't reach ${payment.member?.displayName}`, { duration: 3000 });
+                              }
                               const expiry = Date.now() + 5 * 60 * 1000;
                               setNudgeCooldowns((prev) => ({
                                 ...prev,
