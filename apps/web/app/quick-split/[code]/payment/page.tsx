@@ -70,30 +70,32 @@ export default function PaymentMethodPage({
   );
 
   const handleContinue = () => {
-    if (activeTab === "promptpay" && displayPromptpayId.trim()) {
+    if (activeTab === "promptpay") {
+      if (!displayPromptpayId.trim()) return;
       setPaymentMethod.mutate(
+        { paymentMethod: "promptpay", promptpayId: displayPromptpayId.trim(), promptpayType: "phone" },
         {
-          promptpayId: displayPromptpayId.trim(),
-          promptpayType: "phone",
-        },
+          onSuccess: () => router.replace(`/quick-split/${code}/tracking`),
+          onError: () => toast.error("Couldn't save PromptPay — check your number 🔢"),
+        }
+      );
+    } else if (activeTab === "bank") {
+      if (!bankAccountNumber.trim()) return;
+      setPaymentMethod.mutate(
+        { paymentMethod: "bank", bankAccountNumber: bankAccountNumber.trim() },
         {
-          onSuccess: () => {
-            router.replace(`/quick-split/${code}/tracking`);
-          },
-          onError: () => {
-            toast.error("Couldn't save PromptPay — check your number 🔢");
-          },
+          onSuccess: () => router.replace(`/quick-split/${code}/tracking`),
+          onError: () => toast.error("Couldn't save bank details — try again"),
         }
       );
     } else {
-      advanceStatus.mutate("payment", {
-        onSuccess: () => {
-          router.push(`/quick-split/${code}/tracking`);
-        },
-        onError: () => {
-          toast.error("Something went wrong — try again 😬");
-        },
-      });
+      setPaymentMethod.mutate(
+        { paymentMethod: "other", paymentNote: paymentNote.trim() || "Settle up in person" },
+        {
+          onSuccess: () => router.replace(`/quick-split/${code}/tracking`),
+          onError: () => toast.error("Something went wrong — try again 😬"),
+        }
+      );
     }
   };
 
