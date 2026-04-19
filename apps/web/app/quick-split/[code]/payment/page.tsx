@@ -40,6 +40,7 @@ export default function PaymentMethodPage({
 
   const [activeTab, setActiveTab] = useState<PaymentTab>("promptpay");
   const [promptpayId, setPromptpayId] = useState("");
+  const [bankName, setBankName] = useState("");
   const [bankAccountNumber, setBankAccountNumber] = useState("");
   const [paymentNote, setPaymentNote] = useState("");
 
@@ -81,7 +82,7 @@ export default function PaymentMethodPage({
     } else if (activeTab === "bank") {
       if (!bankAccountNumber.trim()) return;
       setPaymentMethod.mutate(
-        { paymentMethod: "bank", bankAccountNumber: bankAccountNumber.trim() },
+        { paymentMethod: "bank", bankName, bankAccountNumber: bankAccountNumber.trim() },
         {
           onSuccess: () => router.replace(`/quick-split/${code}/tracking`),
           onError: () => toast.error("Couldn't save bank details — try again"),
@@ -191,7 +192,25 @@ export default function PaymentMethodPage({
 
       {activeTab === "bank" && (
         <div className="mt-6 rounded-2xl border border-brand-200 bg-cream-light p-4">
-          <p className="font-caveat text-lg font-medium">Bank Account Number</p>
+          <p className="font-caveat text-lg font-medium">Bank</p>
+          <select
+            value={bankName}
+            onChange={(e) => setBankName(e.target.value)}
+            className="mt-2 w-full rounded-xl border border-brand-200 bg-cream px-4 py-3 text-sm text-brand-600 focus:border-brand-400 focus:outline-none"
+          >
+            <option value="">Select your bank</option>
+            <option value="กสิกรไทย (KBank)">กสิกรไทย (KBank)</option>
+            <option value="ไทยพาณิชย์ (SCB)">ไทยพาณิชย์ (SCB)</option>
+            <option value="กรุงเทพ (BBL)">กรุงเทพ (BBL)</option>
+            <option value="กรุงไทย (KTB)">กรุงไทย (KTB)</option>
+            <option value="ทหารไทยธนชาต (TTB)">ทหารไทยธนชาต (TTB)</option>
+            <option value="กรุงศรี (BAY)">กรุงศรี (BAY)</option>
+            <option value="ออมสิน (GSB)">ออมสิน (GSB)</option>
+            <option value="เกียรตินาคินภัทร (KKP)">เกียรตินาคินภัทร (KKP)</option>
+            <option value="ซีไอเอ็มบี (CIMB)">ซีไอเอ็มบี (CIMB)</option>
+            <option value="อื่นๆ">อื่นๆ (Other)</option>
+          </select>
+          <p className="font-caveat text-lg font-medium mt-4">Account Number</p>
           <input
             type="text"
             value={bankAccountNumber}
@@ -200,7 +219,7 @@ export default function PaymentMethodPage({
             className="mt-2 w-full rounded-xl border border-brand-200 bg-cream px-4 py-3 text-sm placeholder:text-brand-300 focus:border-brand-400 focus:outline-none"
           />
           <p className="mt-2 text-xs text-brand-300">
-            Members will see this number and transfer via their banking app
+            Members will see your bank and account number
           </p>
         </div>
       )}
@@ -245,7 +264,7 @@ export default function PaymentMethodPage({
           onClick={handleContinue}
           disabled={
             (activeTab === "promptpay" && !displayPromptpayId.trim()) ||
-            (activeTab === "bank" && !bankAccountNumber.trim()) ||
+            (activeTab === "bank" && (!bankName || !bankAccountNumber.trim())) ||
             setPaymentMethod.isPending
           }
           className="rounded-full bg-brand-700 px-10 py-3 text-sm font-medium text-cream-light transition-all hover:bg-brand-800 active:scale-[0.98] disabled:opacity-40 md:text-base"

@@ -68,6 +68,7 @@ export const setRoomPaymentMethodSchema = z.object({
   paymentMethod: z.enum(["promptpay", "bank", "other"]),
   promptpayId: z.string().min(10).max(13).optional(),
   promptpayType: promptpayTypeSchema.optional(),
+  bankName: z.string().min(1).optional(),
   bankAccountNumber: z.string().min(1).optional(),
   paymentNote: z.string().min(1).optional(),
 })

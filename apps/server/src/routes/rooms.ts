@@ -1096,13 +1096,14 @@ const app = new Hono()
       return c.json({ error: "Cannot change payment method — someone has already paid" }, 409)
     }
 
-    const { paymentMethod, promptpayId, promptpayType, bankAccountNumber, paymentNote } = c.req.valid("json")
+    const { paymentMethod, promptpayId, promptpayType, bankName, bankAccountNumber, paymentNote } = c.req.valid("json")
 
     const [updated] = await db.update(rooms)
       .set({
         paymentMethod,
         promptpayId: paymentMethod === "promptpay" ? promptpayId : null,
         promptpayType: paymentMethod === "promptpay" ? promptpayType : null,
+        bankName: paymentMethod === "bank" ? bankName : null,
         bankAccountNumber: paymentMethod === "bank" ? bankAccountNumber : null,
         paymentNote: paymentMethod === "other" ? paymentNote : null,
         status: "payment",

@@ -122,6 +122,7 @@ export const rooms = pgTable("rooms", {
   promptpayId: text("promptpay_id"),
   promptpayType: text("promptpay_type"),          // 'phone' or 'national_id'
   paymentMethod: text("payment_method"),           // 'promptpay' | 'bank' | 'other'
+  bankName: text("bank_name"),
   bankAccountNumber: text("bank_account_number"),
   paymentNote: text("payment_note"),
   status: roomStatusEnum("status").default("waiting").notNull(),
