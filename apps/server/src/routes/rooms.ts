@@ -1513,14 +1513,14 @@ const app = new Hono()
         }, 429)
       }
 
-      await sendNudgeToPayment(target, room, caller, trackingUrl, paidCount, totalCount, "manual-nudge")
+      const deliveryResult = await sendNudgeToPayment(target, room, caller, trackingUrl, paidCount, totalCount, "manual-nudge")
 
       notifyPartyKit(room.inviteCode, "nudge-sent", {
         memberId: targetMemberId,
         nudgedAt: new Date().toISOString(),
       })
 
-      return c.json({ success: true, nudgedCount: 1 })
+      return c.json({ success: true, nudgedCount: 1, delivery: deliveryResult })
     } else {
       // ── Nudge all ──
       if (unpaidPayments.length === 0) {
