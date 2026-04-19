@@ -209,7 +209,7 @@ export default function RoomLobbyPage({
         {/* Room name + invite code */}
         <div className="flex items-center gap-2">
           <h1 className="font-caveat text-2xl font-bold md:text-3xl">{roomDisplayName}</h1>
-          <SyncIndicator />
+          <SyncIndicator roomCode={code} />
         </div>
         <div className="mt-1 flex items-center gap-2">
           <span className="rounded-full bg-brand-100 px-3 py-0.5 text-[11px] font-medium tracking-wider text-brand-500">
