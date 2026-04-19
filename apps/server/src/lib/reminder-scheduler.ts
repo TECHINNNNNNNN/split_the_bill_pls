@@ -253,6 +253,13 @@ async function checkAndSendReminders() {
 // ─── Scheduler entry point ───
 
 export function startReminderScheduler() {
+  // Skip in local dev — the scheduler blocks the event loop with 75+ DB queries
+  // and makes the dev server unresponsive. It runs fine on Fly.io in production.
+  if (!process.env.FLY_APP_NAME) {
+    console.log("[reminders] Scheduler disabled in local dev (runs on Fly.io only)")
+    return
+  }
+
   const INTERVAL = 15 * 60 * 1000 // 15 minutes (must be < shortest tier of 30m)
 
   console.log("[reminders] Scheduler started — checking every 15 minutes")
