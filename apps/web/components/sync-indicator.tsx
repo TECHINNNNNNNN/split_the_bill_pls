@@ -70,13 +70,28 @@ export function SyncIndicator({ roomCode }: { roomCode: string }) {
   return (
     <button
       type="button"
-      title="Tap to sync — puts you on the right page"
+      title="Tap to resync"
       onClick={handleSync}
       disabled={syncing}
-      className="flex items-center gap-1.5 rounded-full border border-brand-100 px-2.5 py-1 text-[10px] transition-all hover:bg-brand-50 active:scale-95 disabled:opacity-50"
+      className="group relative flex h-8 w-8 items-center justify-center rounded-full border border-brand-100 bg-cream-light transition-all hover:border-brand-300 hover:shadow-sm active:scale-90 disabled:opacity-60"
     >
-      <span className={`h-2 w-2 rounded-full ${syncing ? "bg-amber-400 animate-pulse" : "bg-emerald-400"}`} />
-      <span className="text-brand-300">{syncing ? "syncing" : "sync"}</span>
+      {/* Refresh arrow */}
+      <svg
+        className={`h-3.5 w-3.5 text-brand-400 transition-transform group-hover:text-brand-600 ${syncing ? "animate-spin" : ""}`}
+        fill="none"
+        stroke="currentColor"
+        viewBox="0 0 24 24"
+        strokeWidth={2.2}
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      >
+        <path d="M21 2v6h-6" />
+        <path d="M3 12a9 9 0 0115.36-6.36L21 8" />
+        <path d="M3 22v-6h6" />
+        <path d="M21 12a9 9 0 01-15.36 6.36L3 16" />
+      </svg>
+      {/* Status dot */}
+      <span className={`absolute -right-0.5 -top-0.5 h-2.5 w-2.5 rounded-full border-2 border-cream-light ${syncing ? "bg-amber-400 animate-pulse" : "bg-emerald-400"}`} />
     </button>
   );
 }

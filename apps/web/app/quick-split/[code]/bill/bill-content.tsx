@@ -69,27 +69,6 @@ export default function BillDetailsPage({
     return () => window.removeEventListener("beforeunload", handler);
   }, []);
 
-  // ─── Clipboard paste to OCR (same pipeline as file upload) ───
-  useEffect(() => {
-    if (isLocked) return; // read-only bill — don't accept pastes
-    const handlePaste = (e: ClipboardEvent) => {
-      const items = e.clipboardData?.items;
-      if (!items) return;
-      for (const item of items) {
-        if (item.type.startsWith("image/")) {
-          const file = item.getAsFile();
-          if (file) {
-            e.preventDefault();
-            handleScanReceipt(file, sections[0]?.id);
-          }
-          break;
-        }
-      }
-    };
-    document.addEventListener("paste", handlePaste);
-    return () => document.removeEventListener("paste", handlePaste);
-  }, [isLocked, sections]);
-
   // ─── Collaborative editing via PartyKit WebSocket ───
   const {
     socket,
@@ -115,6 +94,27 @@ export default function BillDetailsPage({
       }
     },
   });
+
+  // ─── Clipboard paste to OCR (same pipeline as file upload) ───
+  useEffect(() => {
+    if (isLocked) return;
+    const handlePaste = (e: ClipboardEvent) => {
+      const items = e.clipboardData?.items;
+      if (!items) return;
+      for (const item of items) {
+        if (item.type.startsWith("image/")) {
+          const file = item.getAsFile();
+          if (file) {
+            e.preventDefault();
+            handleScanReceipt(file, sections[0]?.id);
+          }
+          break;
+        }
+      }
+    };
+    document.addEventListener("paste", handlePaste);
+    return () => document.removeEventListener("paste", handlePaste);
+  }, [isLocked, sections]);
 
   // ─── Live cursors & presence ───
   const billContainerRef = useRef<HTMLDivElement>(null);
