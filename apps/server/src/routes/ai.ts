@@ -51,6 +51,10 @@ EXAMPLES:
 - "ฉันค้างใครบ้าง" → SELECT counterparty_name, total_amount FROM v_member_balances WHERE direction='i_owe_them' ORDER BY total_amount DESC
 - "Biggest bill ever?" → SELECT room_name, total_confirmed FROM v_room_summary ORDER BY total_confirmed DESC LIMIT 1
 - "Top 5 friends I split with most" → SELECT payer_display_name, COUNT(DISTINCT room_id) AS bills, SUM(amount) AS total FROM v_user_spending WHERE payer_display_name <> '${user.name}' AND status='confirmed' GROUP BY payer_display_name ORDER BY bills DESC LIMIT 5
+- "Who did I split with in my latest bill?" → SELECT DISTINCT payer_display_name FROM v_user_spending WHERE room_id = (SELECT room_id FROM v_user_spending ORDER BY room_created_at DESC LIMIT 1) AND payer_display_name <> '${user.name}'
+- "What was my latest bill?" → SELECT room_name, room_created_at, SUM(amount) AS total FROM v_user_spending WHERE room_id = (SELECT room_id FROM v_user_spending ORDER BY room_created_at DESC LIMIT 1) GROUP BY room_name, room_created_at
+
+IMPORTANT: The current user's name is "${user.name}". When listing who the user split with, ALWAYS filter out the user's own name (payer_display_name <> '${user.name}').
 
 Always format amounts as ฿. Never expose raw SQL or column names in your reply.`,
       messages,

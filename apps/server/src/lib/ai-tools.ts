@@ -77,7 +77,7 @@ export async function searchRooms(userId: string, query: string) {
 export async function nudgeMember(userId: string, memberName: string) {
   // Find unpaid payment for this member in rooms where the current user is host
   const result = await db.execute(sql`
-    SELECT rp.id as payment_id, rp.amount, rm.display_name, rm.line_user_id, r.invite_code, r.id as room_id
+    SELECT rp.id as payment_id, rm.id as member_id, rp.amount, rm.display_name, rm.line_user_id, r.invite_code, r.id as room_id
     FROM room_payments rp
     JOIN room_members rm ON rp.member_id = rm.id
     JOIN rooms r ON rp.room_id = r.id
@@ -99,7 +99,7 @@ export async function nudgeMember(userId: string, memberName: string) {
   try {
     const { sendPushToMember } = await import("./push.js")
     const result = await sendPushToMember(
-      String(payment.payment_id),
+      String(payment.member_id),
       String(payment.room_id),
       {
         title: "PlaDuk — Reminder!",
