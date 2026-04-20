@@ -259,8 +259,8 @@ export default function RoomLobbyPage({
 
         {/* Count */}
         <div className="mt-3 flex flex-col items-center">
-          <div className="flex items-baseline gap-0.5">
-            <div className="relative overflow-hidden" style={{ width: "2rem", height: "2rem" }}>
+          <div className="flex items-end">
+            <div className="relative overflow-hidden" style={{ width: "2rem", height: "2.2rem" }}>
               <AnimatePresence mode="popLayout" custom={countDirection}>
                 <motion.span
                   key={joinedCount}
@@ -269,13 +269,13 @@ export default function RoomLobbyPage({
                   animate={{ y: 0, opacity: 1, scale: 1 }}
                   exit={{ y: countDirection * -16, opacity: 0, scale: 0.8 }}
                   transition={{ type: "spring", stiffness: 500, damping: 30 }}
-                  className="absolute inset-0 flex items-center justify-center font-heading text-2xl font-bold"
+                  className="absolute bottom-0 left-0 right-0 text-center font-heading text-2xl font-bold leading-none"
                 >
                   {joinedCount}
                 </motion.span>
               </AnimatePresence>
             </div>
-            <span className="font-heading text-lg font-normal text-brand-300">/{expectedCount}</span>
+            <span className="font-heading text-lg leading-none font-normal text-brand-300">/{expectedCount}</span>
           </div>
           <span className="text-[9px] tracking-wider text-brand-300">JOINED</span>
         </div>
