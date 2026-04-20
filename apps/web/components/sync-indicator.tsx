@@ -33,7 +33,6 @@ export function SyncIndicator({ roomCode }: { roomCode: string }) {
       };
 
       const room = data.room;
-      const isHost = false; // We'll determine from the response
       const code = room.inviteCode;
       const hasPayment = !!(room.paymentMethod || room.promptpayId);
 

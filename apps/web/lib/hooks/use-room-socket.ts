@@ -30,7 +30,7 @@ export function useRoomSocket(
 ) {
   const queryClient = useQueryClient();
 
-  const socket = usePartySocket({
+  usePartySocket({
     host: process.env.NEXT_PUBLIC_PARTYKIT_HOST!,
     room: roomCode,
     onMessage(event) {

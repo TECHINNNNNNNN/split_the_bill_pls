@@ -114,6 +114,7 @@ export default function BillDetailsPage({
     };
     document.addEventListener("paste", handlePaste);
     return () => document.removeEventListener("paste", handlePaste);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isLocked, sections]);
 
   // ─── Live cursors & presence ───
