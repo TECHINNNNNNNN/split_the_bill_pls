@@ -795,18 +795,30 @@ function PaymentTrackingContent({
             type="button"
             onClick={() => {
               nudgeAll.mutate(undefined, {
-                onSuccess: () => {
-                  toast.success("Notified all unpaid members!");
+                onSuccess: (data: { nudgedCount: number; noSubCount: number; total: number; results?: { memberId: string; delivered: boolean; noSub: boolean }[] }) => {
+                  // Show delivery summary
+                  if (data.nudgedCount === data.total) {
+                    toast.success(`Sent to all ${data.total} members`);
+                  } else if (data.nudgedCount > 0) {
+                    toast(`Sent to ${data.nudgedCount} of ${data.total} members`, {
+                      description: data.noSubCount > 0 ? `${data.noSubCount} haven't enabled notifications` : undefined,
+                    });
+                  } else {
+                    toast("No members have notifications enabled");
+                  }
+
+                  // Only set cooldown for members who actually received the nudge
                   const expiry = Date.now() + 5 * 60 * 1000;
-                  setGlobalNudgeCooldown(expiry);
-                  // Also block individual nudges for all members
                   const perMember: Record<string, number> = {};
-                  for (const p of payments) {
-                    if (p.status === "unpaid" || p.status === "rejected") {
-                      perMember[p.memberId] = expiry;
+                  for (const r of data.results ?? []) {
+                    if (r.delivered) {
+                      perMember[r.memberId] = expiry;
                     }
                   }
-                  setNudgeCooldowns((prev) => ({ ...prev, ...perMember }));
+                  if (Object.keys(perMember).length > 0) {
+                    setNudgeCooldowns((prev) => ({ ...prev, ...perMember }));
+                    setGlobalNudgeCooldown(expiry);
+                  }
                 },
                 onError: (err) => {
                   if (err.message.includes("cooldown")) {

@@ -3,7 +3,7 @@ import { streamText, stepCountIs, convertToModelMessages } from "ai"
 import { anthropic } from "@ai-sdk/anthropic"
 import { z } from "zod"
 import { requireAuth } from "../lib/middleware.js"
-import { runSql, searchRooms } from "../lib/ai-tools.js"
+import { runSql, searchRooms, nudgeMember } from "../lib/ai-tools.js"
 
 const aiRoutes = new Hono()
   .post("/chat", requireAuth, async (c) => {
@@ -26,7 +26,8 @@ Rules:
 - Be playful but helpful — like a smart friend who's good with money
 - Use ฿ for Thai Baht amounts
 - Never reveal internal IDs, raw SQL, or column names
-- You are a READ-ONLY assistant — you can look up data but CANNOT take actions like nudging, creating rooms, or sending messages. If someone asks you to do an action, politely tell them to use the app directly.
+- You can look up data AND send payment reminders (nudge). You CANNOT create rooms or send arbitrary messages.
+- When the user asks to nudge/remind someone, use the \`nudge_member\` tool. Report back whether the notification was delivered, or if the member hasn't enabled notifications.
 
 HOW TO ANSWER QUESTIONS:
 You have ONE primary tool: \`run_sql\`. For every analytical question, write a SELECT query against the views below. The user_id is automatically scoped — do NOT add a WHERE user_id filter. If the user mentions a specific room/dinner/event by name, call \`search_rooms\` first to resolve it.
@@ -67,6 +68,13 @@ Always format amounts as ฿. Never expose raw SQL or column names in your reply
             query: z.string().describe("A single SELECT statement against the v_* views."),
           }),
           execute: async ({ query }: { query: string }) => runSql(user.id, query),
+        },
+        nudge_member: {
+          description: "Send a payment reminder notification to a specific member who hasn't paid. Use when the user asks to nudge, remind, or notify someone. Reports back whether the notification was actually delivered.",
+          inputSchema: z.object({
+            member_name: z.string().describe("The name (or partial name) of the member to nudge"),
+          }),
+          execute: async ({ member_name }: { member_name: string }) => nudgeMember(user.id, member_name),
         },
       },
       stopWhen: stepCountIs(8),

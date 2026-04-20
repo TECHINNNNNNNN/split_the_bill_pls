@@ -1553,17 +1553,25 @@ const app = new Hono()
         }, 429)
       }
 
-      let nudgedCount = 0
+      const results: { memberId: string; memberName: string; delivered: boolean; noSub: boolean }[] = []
       for (const payment of unpaidPayments) {
-        await sendNudgeToPayment(payment, room, caller, trackingUrl, paidCount, totalCount, "manual-nudge-all")
-        nudgedCount++
+        const result = await sendNudgeToPayment(payment, room, caller, trackingUrl, paidCount, totalCount, "manual-nudge-all")
+        results.push({
+          memberId: payment.memberId,
+          memberName: payment.member.displayName,
+          delivered: result.delivered,
+          noSub: result.noSub,
+        })
       }
+
+      const deliveredCount = results.filter((r) => r.delivered).length
+      const noSubCount = results.filter((r) => r.noSub).length
 
       notifyPartyKit(room.inviteCode, "nudge-sent", {
         nudgedAt: new Date().toISOString(),
       })
 
-      return c.json({ success: true, nudgedCount })
+      return c.json({ success: true, nudgedCount: deliveredCount, noSubCount, total: results.length, results })
     }
   })
 

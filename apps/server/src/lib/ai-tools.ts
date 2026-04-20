@@ -95,10 +95,10 @@ export async function nudgeMember(userId: string, memberName: string) {
 
   const payment = result.rows[0]
 
-  // Import and call the actual nudge notification logic
+  // Send nudge using the same push system as the manual nudge button
   try {
     const { sendPushToMember } = await import("./push.js")
-    await sendPushToMember(
+    const result = await sendPushToMember(
       String(payment.payment_id),
       String(payment.room_id),
       {
@@ -108,8 +108,15 @@ export async function nudgeMember(userId: string, memberName: string) {
         tag: `nudge-${payment.payment_id}`,
       }
     )
-    return { success: true, message: `Sent a reminder to ${payment.display_name} for ฿${parseFloat(String(payment.amount)).toFixed(2)}.` }
+
+    if (result.noSub) {
+      return { success: false, delivered: false, noSub: true, message: `${payment.display_name} hasn't enabled notifications. They need to enable it on the tracking page.` }
+    }
+    if (result.sent > 0) {
+      return { success: true, delivered: true, noSub: false, message: `Sent a reminder to ${payment.display_name} for ฿${parseFloat(String(payment.amount)).toFixed(2)}.` }
+    }
+    return { success: false, delivered: false, noSub: false, message: `Couldn't reach ${payment.display_name} — their notification subscription may have expired.` }
   } catch {
-    return { success: false, message: "Couldn't send the reminder. They may not have push notifications enabled." }
+    return { success: false, delivered: false, noSub: false, message: "Couldn't send the reminder. Try again later." }
   }
 }
