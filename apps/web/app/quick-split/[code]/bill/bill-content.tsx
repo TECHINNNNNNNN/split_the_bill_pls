@@ -71,6 +71,7 @@ export default function BillDetailsPage({
 
   // ─── Clipboard paste to OCR (same pipeline as file upload) ───
   useEffect(() => {
+    if (isLocked) return; // read-only bill — don't accept pastes
     const handlePaste = (e: ClipboardEvent) => {
       const items = e.clipboardData?.items;
       if (!items) return;
@@ -79,7 +80,6 @@ export default function BillDetailsPage({
           const file = item.getAsFile();
           if (file) {
             e.preventDefault();
-            // Same function as file picker — compresses, converts to base64, sends to API
             handleScanReceipt(file, sections[0]?.id);
           }
           break;
@@ -88,7 +88,7 @@ export default function BillDetailsPage({
     };
     document.addEventListener("paste", handlePaste);
     return () => document.removeEventListener("paste", handlePaste);
-  });
+  }, [isLocked, sections]);
 
   // ─── Collaborative editing via PartyKit WebSocket ───
   const {
