@@ -13,8 +13,8 @@ interface ChatOverlayProps {
 const SUGGESTED_CHIPS = [
   "Who owes me?",
   "This month's spending",
-  "Top friends",
-  "My biggest bill",
+  "Top friends I split with",
+  "บิลไหนแพงสุด 🫠",
 ];
 
 export function ChatOverlay({ open, onClose }: ChatOverlayProps) {
@@ -71,38 +71,55 @@ export function ChatOverlay({ open, onClose }: ChatOverlayProps) {
             transition={{ type: "spring", damping: 30, stiffness: 300 }}
             className="fixed inset-x-0 bottom-0 z-50 flex h-[85vh] flex-col rounded-t-3xl bg-cream shadow-2xl md:inset-x-auto md:right-6 md:bottom-6 md:h-[70vh] md:w-96 md:rounded-2xl"
           >
-            {/* Header */}
-            <div className="flex items-center justify-between border-b border-brand-100 px-5 py-4">
-              <div className="flex items-center gap-3">
-                <div className="flex h-9 w-9 items-center justify-center rounded-full bg-brand-700">
-                  <svg className="h-5 w-7 text-cream-light" viewBox="0 0 340 160" fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round">
-                    <g transform="translate(170, 80)">
-                      <path d="M -65 -8 C -60 -40, -20 -50, 25 -46 C 60 -42, 95 -28, 118 -6" strokeWidth="8" />
-                      <path d="M -65 8 C -55 42, -5 55, 40 48 C 72 42, 98 26, 118 6" strokeWidth="7" />
-                      <path d="M -65 -8 C -72 -4, -72 4, -65 8" strokeWidth="8" />
-                      <path d="M 116 -4 C 138 -32, 158 -38, 170 -24" strokeWidth="8" />
-                      <path d="M 116 4 C 138 32, 158 38, 170 24" strokeWidth="8" />
-                      <path d="M -68 2 C -100 -8, -138 -4, -168 -14" strokeWidth="8" />
-                      <path d="M -68 6 C -98 14, -135 18, -162 12" strokeWidth="6" />
-                      <path d="M -66 9 C -88 28, -118 34, -150 36" strokeWidth="5" />
-                      <circle cx="-35" cy="-6" r="8" fill="currentColor" stroke="none" />
-                    </g>
+            {/* Header — warm gradient with catfish */}
+            <div
+              className="relative overflow-hidden rounded-t-3xl px-5 py-5 md:rounded-t-2xl"
+              style={{ background: "linear-gradient(135deg, #5c3d2e 0%, #8b6144 100%)" }}
+            >
+              {/* Subtle catfish watermark */}
+              <svg className="pointer-events-none absolute -right-4 -bottom-3 h-20 w-28 text-cream-light/[0.06]" viewBox="0 0 340 160" fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round">
+                <g transform="translate(170, 80)">
+                  <path d="M -65 -8 C -60 -40, -20 -50, 25 -46 C 60 -42, 95 -28, 118 -6" strokeWidth="3.2" />
+                  <path d="M -65 8 C -55 42, -5 55, 40 48 C 72 42, 98 26, 118 6" strokeWidth="2.8" />
+                  <path d="M -65 -8 C -72 -4, -72 4, -65 8" strokeWidth="3" />
+                  <path d="M 116 -4 C 138 -32, 158 -38, 170 -24" strokeWidth="3" />
+                  <path d="M 116 4 C 138 32, 158 38, 170 24" strokeWidth="3" />
+                  <circle cx="-35" cy="-6" r="6.5" fill="currentColor" stroke="none" />
+                </g>
+              </svg>
+
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="flex h-10 w-10 items-center justify-center rounded-full border-2 border-cream-light/20 bg-cream-light/10">
+                    <svg className="h-5 w-7 text-cream-light" viewBox="0 0 340 160" fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round">
+                      <g transform="translate(170, 80)">
+                        <path d="M -65 -8 C -60 -40, -20 -50, 25 -46 C 60 -42, 95 -28, 118 -6" strokeWidth="8" />
+                        <path d="M -65 8 C -55 42, -5 55, 40 48 C 72 42, 98 26, 118 6" strokeWidth="7" />
+                        <path d="M -65 -8 C -72 -4, -72 4, -65 8" strokeWidth="8" />
+                        <path d="M 116 -4 C 138 -32, 158 -38, 170 -24" strokeWidth="8" />
+                        <path d="M 116 4 C 138 32, 158 38, 170 24" strokeWidth="8" />
+                        <path d="M -68 2 C -100 -8, -138 -4, -168 -14" strokeWidth="8" />
+                        <path d="M -68 6 C -98 14, -135 18, -162 12" strokeWidth="6" />
+                        <path d="M -66 9 C -88 28, -118 34, -150 36" strokeWidth="5" />
+                        <circle cx="-35" cy="-6" r="8" fill="currentColor" stroke="none" />
+                      </g>
+                    </svg>
+                  </div>
+                  <div>
+                    <p className="font-heading text-sm font-bold text-cream-light">PlaDuk Coach</p>
+                    <p className="text-[11px] text-cream-light/60">{isLoading ? "Thinking..." : "Ask me anything"}</p>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={onClose}
+                  className="flex h-8 w-8 items-center justify-center rounded-full text-cream-light/60 transition-colors hover:bg-cream-light/10 hover:text-cream-light"
+                >
+                  <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M18 6L6 18M6 6l12 12" />
                   </svg>
-                </div>
-                <div>
-                  <p className="text-sm font-bold text-brand-700">PlaDuk Coach</p>
-                  <p className="text-xs text-brand-300">{isLoading ? "Thinking..." : "Ask me anything"}</p>
-                </div>
+                </button>
               </div>
-              <button
-                type="button"
-                onClick={onClose}
-                className="flex h-8 w-8 items-center justify-center rounded-full text-brand-400 transition-colors hover:bg-brand-50 hover:text-brand-600"
-              >
-                <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M18 6L6 18M6 6l12 12" />
-                </svg>
-              </button>
             </div>
 
             {/* Messages */}
@@ -123,7 +140,21 @@ export function ChatOverlay({ open, onClose }: ChatOverlayProps) {
                       <circle cx="-35" cy="-6" r="6.5" fill="currentColor" stroke="none" />
                     </g>
                   </svg>
-                  <p className="font-caveat text-lg text-brand-400">Ask me about your spending!</p>
+                  <p className="font-caveat text-lg text-brand-400 flex items-center gap-1.5 justify-center">
+                    ดุกเอ๋ยบอกข้าที ใครติดตังข้าพเจ้า
+                    <svg className="inline h-5 w-7 text-brand-400" viewBox="0 0 340 160" fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round">
+                      <g transform="translate(170, 80)">
+                        <path d="M -65 -8 C -60 -40, -20 -50, 25 -46 C 60 -42, 95 -28, 118 -6" strokeWidth="5" />
+                        <path d="M -65 8 C -55 42, -5 55, 40 48 C 72 42, 98 26, 118 6" strokeWidth="4.5" />
+                        <path d="M -65 -8 C -72 -4, -72 4, -65 8" strokeWidth="5" />
+                        <path d="M 116 -4 C 138 -32, 158 -38, 170 -24" strokeWidth="5" />
+                        <path d="M 116 4 C 138 32, 158 38, 170 24" strokeWidth="5" />
+                        <path d="M -68 2 C -100 -8, -138 -4, -168 -14" strokeWidth="5" />
+                        <path d="M -68 6 C -98 14, -135 18, -162 12" strokeWidth="4" />
+                        <circle cx="-35" cy="-6" r="7" fill="currentColor" stroke="none" />
+                      </g>
+                    </svg>
+                  </p>
                   <div className="flex flex-wrap justify-center gap-2">
                     {SUGGESTED_CHIPS.map((chip) => (
                       <button
@@ -216,7 +247,7 @@ export function ChatOverlay({ open, onClose }: ChatOverlayProps) {
                   ref={inputRef}
                   value={input}
                   onChange={(e) => setInput(e.target.value)}
-                  placeholder="Ask anything..."
+                  placeholder="ถามปุ๊บตอบปั๊บ..."
                   disabled={isLoading}
                   className="flex-1 rounded-2xl border border-brand-200 bg-cream-light px-4 py-2.5 text-sm text-brand-700 placeholder-brand-300 outline-none transition-all focus:border-brand-400 disabled:opacity-50"
                 />
