@@ -253,12 +253,10 @@ async function checkAndSendReminders() {
 // ─── Scheduler entry point ───
 
 export function startReminderScheduler() {
-  // Skip in local dev — the scheduler blocks the event loop with 75+ DB queries
-  // and makes the dev server unresponsive. It runs fine on Fly.io in production.
-  if (!process.env.FLY_APP_NAME) {
-    console.log("[reminders] Scheduler disabled in local dev (runs on Fly.io only)")
-    return
-  }
+  // This function runs inside the dedicated `scheduler` Fly process group
+  // (see apps/server/src/scheduler.ts). It no longer needs to dodge the API
+  // process — it owns its machine. Local dev simply doesn't invoke this
+  // entrypoint, so the FLY_APP_NAME guard is gone.
 
   const INTERVAL = 15 * 60 * 1000 // 15 minutes (must be < shortest tier of 30m)
 

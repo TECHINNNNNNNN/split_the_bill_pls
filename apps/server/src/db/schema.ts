@@ -22,7 +22,9 @@ export const session = pgTable("session", {
   userId: text("user_id").notNull().references(() => user.id, { onDelete: "cascade" }),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
-});
+}, (t) => [
+  index("session_user_id_idx").on(t.userId),
+]);
 
 export const account = pgTable("account", {
   id: text("id").primaryKey(),
@@ -38,7 +40,9 @@ export const account = pgTable("account", {
   password: text("password"),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
-});
+}, (t) => [
+  index("account_user_id_idx").on(t.userId),
+]);
 
 export const verification = pgTable("verification", {
   id: text("id").primaryKey(),
@@ -47,7 +51,9 @@ export const verification = pgTable("verification", {
   expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
-});
+}, (t) => [
+  index("verification_identifier_idx").on(t.identifier),
+]);
 
 // ════════════════════════════════════════════
 // Application Schema

@@ -12,14 +12,34 @@ primary_region = 'sin'
 [env]
   NODE_ENV = 'production'
 
+# Two independent process groups deployed from the same Docker image:
+#   - `app`       — Hono HTTP server (user-facing API).
+#   - `scheduler` — Periodic reminder worker, no HTTP.
+# This isolates cron CPU/Neon spikes from user request handling.
+[processes]
+  app = "node dist/index.js"
+  scheduler = "node dist/scheduler.js"
+
 [http_service]
   internal_port = 3001
   force_https = true
   auto_stop_machines = 'off'
   auto_start_machines = true
   min_machines_running = 1
+  processes = ["app"]
 
+# User-facing API runs on a dedicated CPU for demo-day predictability —
+# no noisy-neighbor contention with other Fly tenants.
+# After the demo, downgrade back to shared-cpu-2x / 1024mb to save cost.
 [[vm]]
-  memory = '256mb'
+  processes = ["app"]
+  memory = '2gb'
+  cpu_kind = 'performance'
+  cpus = 1
+
+# Scheduler can stay small — only runs work every 15 min.
+[[vm]]
+  processes = ["scheduler"]
+  memory = '512mb'
   cpu_kind = 'shared'
   cpus = 1

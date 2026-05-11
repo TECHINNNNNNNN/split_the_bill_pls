@@ -14,6 +14,14 @@ import aiRoutes from "./routes/ai.js"
 const app = new Hono().basePath("/api")
 
 
+// Request-timing middleware — single line per request so we can spot slow
+// endpoints in `fly logs` without parsing the verbose Hono logger output.
+app.use(async (c, next) => {
+    const start = Date.now()
+    await next()
+    console.log(`[req] ${c.req.method} ${c.req.path} - ${Date.now() - start}ms - ${c.res.status}`)
+})
+
 app.use(logger())
 app.use(
     cors({
