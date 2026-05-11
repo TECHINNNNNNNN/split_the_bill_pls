@@ -85,19 +85,14 @@ export async function sendPushToMember(
       ),
     })
 
-    console.log(`[push] Found ${subs.length} subscription(s) for member=${memberId} room=${roomId}`)
-
     if (subs.length === 0) {
       return { sent: 0, failed: 0, noSub: true }
     }
 
-    let sent = 0
-    let failed = 0
-    for (const sub of subs) {
-      const ok = await sendToSubscription(sub, payload)
-      if (ok) { sent++; console.log(`[push] Sent to ${sub.id}: true`) }
-      else { failed++; console.log(`[push] Sent to ${sub.id}: false`) }
-    }
+    // Send to all subscriptions in parallel (a member may have multiple devices)
+    const results = await Promise.all(subs.map((sub) => sendToSubscription(sub, payload)))
+    const sent = results.filter(Boolean).length
+    const failed = results.length - sent
 
     return { sent, failed, noSub: false }
   } catch (err) {

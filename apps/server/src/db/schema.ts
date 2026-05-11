@@ -1,4 +1,4 @@
-import { pgTable, text, timestamp, boolean, uuid, integer, numeric, pgEnum, unique } from "drizzle-orm/pg-core";
+import { pgTable, text, timestamp, boolean, uuid, integer, numeric, pgEnum, unique, index } from "drizzle-orm/pg-core";
 import { relations } from "drizzle-orm";
 
 export const user = pgTable("user", {
@@ -75,7 +75,10 @@ export const groupMembers = pgTable("group_members", {
     .notNull(),
   displayName: text("display_name").notNull(),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
-});
+}, (t) => [
+  index("group_members_group_id_idx").on(t.groupId),
+  index("group_members_user_id_idx").on(t.userId),
+]);
 
 // ════════════════════════════════════════════
 // Push Notifications (for payment reminders)
@@ -93,7 +96,9 @@ export const pushSubscriptions = pgTable("push_subscriptions", {
   p256dh: text("p256dh").notNull(),
   auth: text("auth").notNull(),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
-});
+}, (t) => [
+  index("push_subscriptions_member_room_idx").on(t.memberId, t.roomId),
+]);
 
 export const pushNotificationLog = pgTable("push_notification_log", {
   id: uuid("id").primaryKey().defaultRandom(),
@@ -103,7 +108,9 @@ export const pushNotificationLog = pgTable("push_notification_log", {
   tier: text("tier").notNull(), // "30m" | "1h" | "6h" | "24h" | "recurring-2d" | "recurring-3d" | ...
   channel: text("channel").notNull().default("web-push"), // "web-push" | "line"
   sentAt: timestamp("sent_at", { withTimezone: true }).notNull().defaultNow(),
-});
+}, (t) => [
+  index("push_notification_log_payment_id_idx").on(t.paymentId),
+]);
 
 // ════════════════════════════════════════════
 // Quick Split — Room Schema
@@ -142,7 +149,10 @@ export const roomMembers = pgTable("room_members", {
   isHost: boolean("is_host").default(false).notNull(),
   lineUserId: text("line_user_id"),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
-});
+}, (t) => [
+  index("room_members_room_id_idx").on(t.roomId),
+  index("room_members_user_id_idx").on(t.userId),
+]);
 
 export const roomBillSections = pgTable("room_bill_sections", {
   id: uuid("id").primaryKey().defaultRandom(),
@@ -154,7 +164,9 @@ export const roomBillSections = pgTable("room_bill_sections", {
   serviceChargeRate: numeric("service_charge_rate", { precision: 5, scale: 4 }),
   discountAmount: numeric("discount_amount", { precision: 10, scale: 2 }),
   sortOrder: integer("sort_order").default(0),
-});
+}, (t) => [
+  index("room_bill_sections_room_id_idx").on(t.roomId),
+]);
 
 export const roomBillItems = pgTable("room_bill_items", {
   id: uuid("id").primaryKey().defaultRandom(),
@@ -167,7 +179,10 @@ export const roomBillItems = pgTable("room_bill_items", {
   quantity: integer("quantity").notNull().default(1),
   unitPrice: numeric("unit_price", { precision: 10, scale: 2 }).notNull(),
   sortOrder: integer("sort_order").default(0),
-});
+}, (t) => [
+  index("room_bill_items_room_id_idx").on(t.roomId),
+  index("room_bill_items_section_id_idx").on(t.sectionId),
+]);
 
 export const roomItemSplits = pgTable("room_item_splits", {
   id: uuid("id").primaryKey().defaultRandom(),
@@ -180,6 +195,7 @@ export const roomItemSplits = pgTable("room_item_splits", {
   share: integer("share").notNull().default(1),
 }, (t) => [
   unique("room_item_splits_item_member_unique").on(t.itemId, t.memberId),
+  index("room_item_splits_member_id_idx").on(t.memberId),
 ]);
 
 export const roomInvites = pgTable("room_invites", {
@@ -196,7 +212,10 @@ export const roomInvites = pgTable("room_invites", {
   displayName: text("display_name").notNull(),
   status: roomInviteStatusEnum("status").default("pending").notNull(),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
-});
+}, (t) => [
+  index("room_invites_room_id_idx").on(t.roomId),
+  index("room_invites_user_id_idx").on(t.userId),
+]);
 
 export const roomPayments = pgTable("room_payments", {
   id: uuid("id").primaryKey().defaultRandom(),
@@ -217,7 +236,11 @@ export const roomPayments = pgTable("room_payments", {
   slipImageData: text("slip_image_data"),
   slipVerifiedAmount: numeric("slip_verified_amount", { precision: 10, scale: 2 }),
   slipVerifiedAt: timestamp("slip_verified_at", { withTimezone: true }),
-});
+}, (t) => [
+  index("room_payments_room_id_idx").on(t.roomId),
+  index("room_payments_room_status_idx").on(t.roomId, t.status),
+  index("room_payments_member_status_idx").on(t.memberId, t.status),
+]);
 
 // ════════════════════════════════════════════
 // Settlements (cross-room debt netting)
@@ -254,7 +277,10 @@ export const settlementPayments = pgTable("settlement_payments", {
   roomPaymentId: uuid("room_payment_id")
     .references(() => roomPayments.id, { onDelete: "cascade" })
     .notNull(),
-});
+}, (t) => [
+  index("settlement_payments_settlement_id_idx").on(t.settlementId),
+  index("settlement_payments_room_payment_id_idx").on(t.roomPaymentId),
+]);
 
 // ════════════════════════════════════════════
 // Drizzle Relations (for relational query builder)

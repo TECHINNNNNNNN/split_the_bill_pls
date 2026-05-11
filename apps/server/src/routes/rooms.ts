@@ -857,117 +857,116 @@ const app = new Hono()
       return c.json({ error: "Either items or sections must be provided" }, 400)
     }
 
-    // Clear any existing data for this room (clean slate)
-    const existingItems = await db.query.roomBillItems.findMany({
-      where: eq(roomBillItems.roomId, roomId),
-    })
-    for (const item of existingItems) {
-      await db.delete(roomItemSplits).where(eq(roomItemSplits.itemId, item.id))
-    }
-    await db.delete(roomBillItems).where(eq(roomBillItems.roomId, roomId))
-    await db.delete(roomBillSections).where(eq(roomBillSections.roomId, roomId))
+    // Clear any existing data for this room (clean slate).
+    // ON DELETE CASCADE on room_item_splits.item_id handles splits automatically.
+    await Promise.all([
+      db.delete(roomBillItems).where(eq(roomBillItems.roomId, roomId)),
+      db.delete(roomBillSections).where(eq(roomBillSections.roomId, roomId)),
+    ])
 
-    // Process each section: create DB records, calculate per-section totals
-    // Then merge per-member amounts across all sections
-
-    // Accumulate per-member totals across all sections
+    // Process all sections in parallel: create DB records, calculate per-section totals.
+    // Then merge per-member amounts across all sections.
     const memberTotalMap = new Map<string, number>()
     let grandTotal = 0
 
-    for (let si = 0; si < sectionInputs.length; si++) {
-      const sec = sectionInputs[si]
-
-      // Create section record in DB (only if multiple sections or section has a name)
-      let sectionDbId: string | null = null
-      if (sectionInputs.length > 1 || sec.name) {
-        const [dbSection] = await db.insert(roomBillSections).values({
-          roomId,
-          name: sec.name || `Section ${si + 1}`,
-          vatRate: sec.vatRate ? sec.vatRate.toString() : null,
-          serviceChargeRate: sec.serviceChargeRate ? sec.serviceChargeRate.toString() : null,
-          discountAmount: sec.discountAmount ? sec.discountAmount.toString() : null,
-          sortOrder: si,
-        }).returning()
-        sectionDbId = dbSection.id
-      }
-
-      // Create items + splits for this section
-      const createdItems = []
-      for (let i = 0; i < sec.items.length; i++) {
-        const ci = sec.items[i]
-        const [item] = await db.insert(roomBillItems).values({
-          roomId,
-          sectionId: sectionDbId,
-          name: ci.name,
-          quantity: ci.quantity ?? 1,
-          unitPrice: ci.unitPrice.toString(),
-          sortOrder: i,
-        }).returning()
-
-        // Normalize: prefer memberShares, fall back to memberIds with share=1
-        const memberShares: Record<string, number> = ci.memberShares
-          ? ci.memberShares
-          : Object.fromEntries((ci.memberIds ?? []).map((id: string) => [id, 1]))
-
-        const entries = Object.entries(memberShares)
-        if (entries.length > 0) {
-          await db.insert(roomItemSplits).values(
-            entries.map(([mId, share]) => ({
-              itemId: item.id,
-              memberId: mId,
-              share: share ?? 1,
-            }))
-          )
+    const sectionResults = await Promise.all(
+      sectionInputs.map(async (sec, si) => {
+        // Create section record in DB (only if multiple sections or section has a name)
+        let sectionDbId: string | null = null
+        if (sectionInputs.length > 1 || sec.name) {
+          const [dbSection] = await db.insert(roomBillSections).values({
+            roomId,
+            name: sec.name || `Section ${si + 1}`,
+            vatRate: sec.vatRate ? sec.vatRate.toString() : null,
+            serviceChargeRate: sec.serviceChargeRate ? sec.serviceChargeRate.toString() : null,
+            discountAmount: sec.discountAmount ? sec.discountAmount.toString() : null,
+            sortOrder: si,
+          }).returning()
+          sectionDbId = dbSection.id
         }
 
-        createdItems.push({ ...item, memberShares })
-      }
+        // Insert all items in this section in parallel
+        const createdItems = await Promise.all(
+          sec.items.map(async (ci, i) => {
+            const [item] = await db.insert(roomBillItems).values({
+              roomId,
+              sectionId: sectionDbId,
+              name: ci.name,
+              quantity: ci.quantity ?? 1,
+              unitPrice: ci.unitPrice.toString(),
+              sortOrder: i,
+            }).returning()
 
-      // Build inputs for calculateSplit() — per section
-      const calcItems = createdItems.map((item) => ({
-        id: item.id,
-        name: item.name,
-        totalPrice: (item.quantity ?? 1) * parseFloat(item.unitPrice),
-      }))
+            // Normalize: prefer memberShares, fall back to memberIds with share=1
+            const memberShares: Record<string, number> = ci.memberShares
+              ? ci.memberShares
+              : Object.fromEntries((ci.memberIds ?? []).map((id: string) => [id, 1]))
 
-      const calcClaims = createdItems.flatMap((item) =>
-        Object.entries(item.memberShares).map(([mId, share]) => ({
-          billItemId: item.id,
-          memberId: mId,
-          share,
+            return { ...item, memberShares }
+          })
+        )
+
+        // Bulk-insert all splits for this section in a single round-trip
+        const allSplits = createdItems.flatMap((item) =>
+          Object.entries(item.memberShares).map(([mId, share]) => ({
+            itemId: item.id,
+            memberId: mId,
+            share: share ?? 1,
+          }))
+        )
+        if (allSplits.length > 0) {
+          await db.insert(roomItemSplits).values(allSplits)
+        }
+
+        // Build inputs for calculateSplit() — per section
+        const calcItems = createdItems.map((item) => ({
+          id: item.id,
+          name: item.name,
+          totalPrice: (item.quantity ?? 1) * parseFloat(item.unitPrice),
         }))
-      )
 
-      const subtotal = calcItems.reduce((sum, item) => sum + item.totalPrice, 0)
+        const calcClaims = createdItems.flatMap((item) =>
+          Object.entries(item.memberShares).map(([mId, share]) => ({
+            billItemId: item.id,
+            memberId: mId,
+            share,
+          }))
+        )
 
-      // Thai ++ convention: subtotal → -discount → +SC → +VAT
-      const discount = sec.discountAmount ?? 0
-      const discountedSubtotal = Math.max(0, subtotal - discount)
-      const scRate = sec.serviceChargeRate ?? 0
-      const vRate = sec.vatRate ?? 0
-      const serviceChargeAmount = discountedSubtotal * scRate
-      const vatAmount = (discountedSubtotal + serviceChargeAmount) * vRate
-      const sectionTotal = discountedSubtotal + serviceChargeAmount + vatAmount
+        const subtotal = calcItems.reduce((sum, item) => sum + item.totalPrice, 0)
 
-      const calcTotals = {
-        subtotal,
-        discountAmount: discount || null,
-        vatAmount: vatAmount || null,
-        serviceChargeAmount: serviceChargeAmount || null,
-        totalAmount: sectionTotal,
-      }
+        // Thai ++ convention: subtotal → -discount → +SC → +VAT
+        const discount = sec.discountAmount ?? 0
+        const discountedSubtotal = Math.max(0, subtotal - discount)
+        const scRate = sec.serviceChargeRate ?? 0
+        const vRate = sec.vatRate ?? 0
+        const serviceChargeAmount = discountedSubtotal * scRate
+        const vatAmount = (discountedSubtotal + serviceChargeAmount) * vRate
+        const sectionTotal = discountedSubtotal + serviceChargeAmount + vatAmount
 
-      const splitMemberIds = [...new Set(calcClaims.map((cl) => cl.memberId))]
-      const splitResult = calculateSplit(calcItems, calcClaims, calcTotals, splitMemberIds)
+        const calcTotals = {
+          subtotal,
+          discountAmount: discount || null,
+          vatAmount: vatAmount || null,
+          serviceChargeAmount: serviceChargeAmount || null,
+          totalAmount: sectionTotal,
+        }
 
-      // Accumulate per-member totals
-      for (const split of splitResult.splits) {
+        const splitMemberIds = [...new Set(calcClaims.map((cl) => cl.memberId))]
+        const splitResult = calculateSplit(calcItems, calcClaims, calcTotals, splitMemberIds)
+
+        return { splits: splitResult.splits, sectionTotal }
+      })
+    )
+
+    // Merge per-section results into final totals (deterministic order)
+    for (const { splits, sectionTotal } of sectionResults) {
+      for (const split of splits) {
         memberTotalMap.set(
           split.memberId,
           (memberTotalMap.get(split.memberId) || 0) + split.totalAmount,
         )
       }
-
       grandTotal += sectionTotal
     }
 
@@ -1206,13 +1205,11 @@ const app = new Hono()
       notifyPartyKit(room.inviteCode, "payment-toggled", { paymentId, status: newStatus })
 
       // Push notification to host when member submits a claim (with or without slip)
-      console.log(`[claim] Payment ${paymentId} → status=${newStatus}, sending push to host`)
       const members = await db.query.roomMembers.findMany({
         where: eq(roomMembers.roomId, roomId),
       })
       const hostMember = members.find(m => m.isHost)
       const claimingMember = members.find(m => m.id === member.id)
-      console.log(`[claim] host=${hostMember?.id}, claimer=${claimingMember?.id}`)
       if (hostMember && claimingMember) {
         const amount = `฿${parseFloat(payment.amount).toFixed(2)}`
         const title = newStatus === "rejected"
