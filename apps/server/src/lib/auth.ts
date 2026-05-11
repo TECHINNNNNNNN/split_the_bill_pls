@@ -38,6 +38,12 @@ export const auth = betterAuth({
         },
     },
     emailAndPassword: { enabled: true },
+    session: {
+        cookieCache: {
+            enabled: true,
+            maxAge: 5 * 60, // re-check session against DB every 5 minutes
+        },
+    },
     plugins: [bearer()],
     user: {
         additionalFields: {
