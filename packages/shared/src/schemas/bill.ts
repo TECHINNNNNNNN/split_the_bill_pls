@@ -43,6 +43,7 @@ const billItemSchema = z.object({
   quantity: z.number().int().min(1).default(1),
   unitPrice: z.number().positive(),
   memberIds: z.array(z.string().uuid()).min(1),
+  memberShares: z.record(z.string().uuid(), z.number().int().min(1)).optional(),
 })
 
 const billExtrasSchema = z.object({
